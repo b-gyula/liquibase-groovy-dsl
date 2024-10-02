@@ -19,7 +19,7 @@ import liquibase.changelog.DatabaseChangeLog
 import liquibase.changelog.ChangeLogParameters
 import liquibase.resource.ResourceAccessor
 import liquibase.exception.ChangeLogParseException
-
+import org.codehaus.groovy.control.CompilationFailedException
 import org.liquibase.groovy.delegate.DatabaseChangeLogDelegate
 
 /**
@@ -51,7 +51,8 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
 
             // Parse the script, give it the local changeLog instance, give it access to root-level
             // method delegates, and call.
-            def script = shell.parse(new InputStreamReader(inputStream, "UTF8"))
+            def script = shell.parse(new InputStreamReader(inputStream, "UTF8")
+                                            ,physicalChangeLogLocation)
             script.metaClass.getDatabaseChangeLog = { -> changeLog }
             script.metaClass.getResourceAccessor = { -> resourceAccessor }
             script.metaClass.methodMissing = changeLogMethodMissing
@@ -91,9 +92,9 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
         }
     }
 
-    private def processDatabaseChangeLogRootElement(databaseChangeLog, resourceAccessor, args) {
-        def delegate;
-        def closure;
+    static def processDatabaseChangeLogRootElement(DatabaseChangeLog databaseChangeLog, resourceAccessor, args) {
+        def delegate
+        def closure
 
         switch ( args.size() ) {
             case 0:
@@ -126,7 +127,18 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
         delegate.resourceAccessor = resourceAccessor
         closure.delegate = delegate
         closure.resolveStrategy = Closure.DELEGATE_FIRST
-        closure.call()
+        try {
+            closure.call()
+        }
+        catch (e) {
+            StackTraceElement st
+            if ( !(e instanceof CompilationFailedException) &&
+                    (st = e.stackTrace.find { it.getClassName() == closure.getClass().name }) ) {
+                throw new ChangeLogParseException(e.message
+                        + ' @'+ databaseChangeLog.physicalFilePath + ":" + st.lineNumber)
+            }
+            throw e
+        }
     }
 }
 

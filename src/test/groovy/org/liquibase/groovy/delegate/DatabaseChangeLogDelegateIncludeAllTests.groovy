@@ -802,7 +802,7 @@ databaseChangeLog {
 
         def rootChangeLogFile = createFileFrom(TMP_CHANGELOG_DIR, '.groovy', """
 databaseChangeLog {
-  includeAll(path: '${INCLUDED_CHANGELOG_DIR}', minDepth: 2)
+  includeAll(path: '${INCLUDED_CHANGELOG_PATH}', minDepth: 2)
   changeSet(author: 'ssaliman', id: '${ROOT_CHANGE_SET}') {
     addColumn(tableName: 'monkey') {
       column(name: 'emotion', type: 'varchar(50)')
@@ -839,7 +839,7 @@ databaseChangeLog {
 
         def rootChangeLogFile = createFileFrom(TMP_CHANGELOG_DIR, '.groovy', """
 databaseChangeLog {
-  includeAll(path: '${INCLUDED_CHANGELOG_DIR}', maxDepth: 1)
+  includeAll(path: "${INCLUDED_CHANGELOG_PATH}", maxDepth: 1)
   changeSet(author: 'ssaliman', id: '${ROOT_CHANGE_SET}') {
     addColumn(tableName: 'monkey') {
       column(name: 'emotion', type: 'varchar(50)')

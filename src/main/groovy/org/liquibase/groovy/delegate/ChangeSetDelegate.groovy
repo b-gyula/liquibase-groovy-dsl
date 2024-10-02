@@ -21,6 +21,7 @@ import liquibase.change.ColumnConfig
 import liquibase.change.core.LoadDataColumnConfig
 import liquibase.exception.ChangeLogParseException
 import liquibase.exception.RollbackImpossibleException
+import static PreconditionDelegate.buildPreconditionContainer
 import liquibase.util.PatchedObjectUtil
 
 /**
@@ -51,8 +52,27 @@ class ChangeSetDelegate {
         changeSet.comments = DelegateUtil.expandExpressions(text, databaseChangeLog)
     }
 
+    /** Preconditions required to execute the changeset. The closure containing nested elements of a precondition.
+     If no conditional tags are specified, the default logic is AND for multiple conditions
+     <br>Params:
+     <dl>
+     <dt>onError</dt>
+     <dd>Controls what happens if there is an error checking whether the precondition passed or not.</dd>
+     <dt>onErrorMessage</dt>
+     <dd>Provides a custom message to output when preconditions fail. Since 2.0</dd>
+     <dt>onFail</dt>
+     <dd>Controls what happens if the preconditions check fails.</dd>
+     <dt>onFailMessage</dt>
+     <dd>Provides a custom message to output when preconditions fail. Since 2.0</dd>
+     <dt>onSqlOutput</dt>
+     <dd>Controls how preconditions are evaluated with the update-sql command for XML, YAML, and JSON changelogs. Since 1.9.5</dd>
+     <dt>onUpdateSql</dt>
+     <dd>Controls how preconditions are evaluated with the update-sql command for formatted SQL changelogs.</dd>
+     </dl>
+     */
     void preConditions(Map params = [:], Closure closure) {
-        changeSet.preconditions = PreconditionDelegate.buildPreconditionContainer(databaseChangeLog, changeSet.id, params, closure)
+        changeSet.preconditions =
+                buildPreconditionContainer(databaseChangeLog, params, closure, changeSet.id)
     }
 
     void validCheckSum(String checksum) {
@@ -60,7 +80,7 @@ class ChangeSetDelegate {
     }
 
     /**
-     * Process an empty rollback.  This doesn't actually do anything, but empty rollbacks are
+     * Process an empty rollback. This doesn't actually do anything, but empty rollbacks are
      * allowed by the spec.
      */
     void rollback() {
@@ -463,7 +483,7 @@ class ChangeSetDelegate {
 
     /**
      * Parse a tagDatabase change.  This version of the method is syntactic sugar that allows
-     * {@code tagDatabase 'my-tag-name'} in stead of the usual parameter based change.
+     * {@code tagDatabase 'my-tag-name'} instead of the usual parameter based change.
      * @param tagName the name of the tag to create.
      */
     // Match Present
@@ -541,7 +561,7 @@ class ChangeSetDelegate {
             try {
                 PatchedObjectUtil.setProperty(change, key, DelegateUtil.expandExpressions(value, databaseChangeLog))
             }
-            catch (NumberFormatException ex) {
+            catch (NumberFormatException ignored) {
                 change[key] = value.toBigInteger()
             }
             catch (RuntimeException re) {

@@ -24,7 +24,7 @@ import liquibase.changelog.IncludeAllFilter
 import liquibase.database.DatabaseList
 import liquibase.database.ObjectQuotingStrategy
 import liquibase.exception.ChangeLogParseException
-
+import static PreconditionDelegate.buildPreconditionContainer
 /**
  * This class is the delegate for the {@code databaseChangeLog} element.  It is the starting point
  * for parsing the Groovy DSL.
@@ -186,7 +186,7 @@ class DatabaseChangeLogDelegate {
 		}
 
 		def relativeToChangelogFile = DelegateUtil.parseTruth(params.relativeToChangelogFile, false)
-		def errorIfMissing = DelegateUtil.parseTruth(params.errorIfMissing, false)
+		def errorIfMissing = DelegateUtil.parseTruth(params.errorIfMissing, true)
 
 	   	def fileName = databaseChangeLog
 			    .changeLogParameters
@@ -354,13 +354,26 @@ class DatabaseChangeLogDelegate {
         }
     }
 
-	/**
-	 * Process nested preConditions elements in a database change log.
-	 * @param params the attributes of the preConditions
-	 * @param closure the closure containing nested elements of a precondition.
-	 */
+    /** Preconditions required to execute the changeset. The closure containing nested elements of a precondition.
+     If no conditional tags are specified, the default logic is AND for multiple conditions
+     <br>Params:
+     <dl>
+     <dt>onError</dt>
+     <dd>Controls what happens if there is an error checking whether the precondition passed or not.</dd>
+     <dt>onErrorMessage</dt>
+     <dd>Provides a custom message to output when preconditions fail. Since 2.0</dd>
+     <dt>onFail</dt>
+     <dd>Controls what happens if the preconditions check fails.</dd>
+     <dt>onFailMessage</dt>
+     <dd>Provides a custom message to output when preconditions fail. Since 2.0</dd>
+     <dt>onSqlOutput</dt>
+     <dd>Controls how preconditions are evaluated with the update-sql command for XML, YAML, and JSON changelogs. Since 1.9.5</dd>
+     <dt>onUpdateSql</dt>
+     <dd>Controls how preconditions are evaluated with the update-sql command for formatted SQL changelogs.</dd>
+     </dl>
+     */
 	void preConditions(Map params = [:], Closure closure) {
-		databaseChangeLog.preconditions = PreconditionDelegate.buildPreconditionContainer(databaseChangeLog, '<none>', params, closure)
+		databaseChangeLog.preconditions = buildPreconditionContainer(databaseChangeLog, params, closure)
 	}
 
 	/**

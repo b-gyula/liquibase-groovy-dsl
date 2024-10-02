@@ -20,13 +20,12 @@ import liquibase.precondition.core.OrPrecondition
 import liquibase.precondition.core.SqlPrecondition
 import liquibase.precondition.CustomPreconditionWrapper
 import liquibase.precondition.PreconditionFactory
-import liquibase.precondition.core.NotPrecondition;
+import liquibase.precondition.core.NotPrecondition
 import liquibase.precondition.core.PreconditionContainer
 import liquibase.precondition.core.PreconditionContainer.OnSqlOutputOption
 import liquibase.precondition.core.PreconditionContainer.ErrorOption
 import liquibase.precondition.core.PreconditionContainer.FailOption
-import liquibase.util.PatchedObjectUtil;
-
+import liquibase.util.PatchedObjectUtil
 
 class PreconditionDelegate {
     def preconditions = []
@@ -150,8 +149,9 @@ class PreconditionDelegate {
      * @param closure nested closures to call.
      * @return the PreconditionContainer it builds.
      */
-    static PreconditionContainer buildPreconditionContainer(databaseChangeLog, changeSetId, Map params, Closure closure) {
-        def preconditions = new PreconditionContainer()
+    static PreconditionContainer buildPreconditionContainer(databaseChangeLog, Map<String, Object> params,
+                                                            Closure closure, String changeSetId = null) {
+        PreconditionContainer preconditions = new PreconditionContainer()
 
         // Process parameters.  3 of them need a special case.
         params.each { key, value ->
@@ -163,11 +163,12 @@ class PreconditionDelegate {
             } else if ( key == "onUpdateSql" || key == "onUpdateSql" ) {
                 preconditions.onSqlOutput = OnSqlOutputOption."${paramValue}"
             } else {
-                // pass the reset to Liquibase
+                // pass the rest to Liquibase
                 try {
                     PatchedObjectUtil.setProperty(preconditions, key, paramValue)
                 } catch (RuntimeException e) {
-                    throw new ChangeLogParseException("ChangeSet '${changeSetId}': '${key}' is an invalid property for preconditions.", e)
+                    String id = changeSetId ? "ChangeSet '${changeSetId}'" : 'databaseChangeLog'
+                    throw new ChangeLogParseException("${id}: '${key}' is an invalid property for 'preConditions'", e)
                 }
             }
         }
