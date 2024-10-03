@@ -13,12 +13,12 @@
  */
 package org.liquibase.groovy.delegate
 
+import groovy.transform.TupleConstructor
 import liquibase.change.visitor.AddColumnChangeVisitor
 import liquibase.changelog.ChangeLogParameters
 import liquibase.changelog.DatabaseChangeLog
 import liquibase.database.ObjectQuotingStrategy
 import liquibase.exception.ChangeLogParseException
-import liquibase.parser.ChangeLogParser
 import liquibase.parser.ChangeLogParserFactory
 import liquibase.parser.ext.GroovyLiquibaseChangeLogParser
 import liquibase.precondition.Precondition
@@ -30,12 +30,15 @@ import org.junit.Before
 import org.junit.Test
 
 import java.lang.reflect.Field
+import java.nio.charset.StandardCharsets
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertFalse
 import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertNull
+import static org.liquibase.groovy.delegate.DatabaseChangeLogDelegateTests.IO.io
 import static org.junit.Assert.assertTrue
+import static liquibase.parser.ext.GroovyLiquibaseChangeLogParser.*
 
 /**
  * One of several test classes for the {@link DatabaseChangeLogDelegate}.  The number of tests for
@@ -142,19 +145,16 @@ databaseChangeLog()
         parser.parse(changeLogFile.path, new ChangeLogParameters(), resourceAccessor)
     }
 
-
     @Test
     void parsingDatabaseChangeLogAsProperty() {
-        File changeLogFile = createFileFrom(TMP_CHANGELOG_DIR, '.groovy', """
-    databaseChangeLog = {
+        ["databaseChangeLog = {}"
+        ,"databaseChangeLog {}"
+        ,"databaseChangeLog: {}"
+        ].eachWithIndex { String entry, int i ->
+            assertNotNull "case $i: Parsed DatabaseChangeLog was null",
+                parseDatabaseChangeLog( entry)
+        }
     }
-    """)
-        ChangeLogParser parser = parserFactory.getParser(changeLogFile.path, resourceAccessor)
-        DatabaseChangeLog changeLog = parser.parse(changeLogFile.path, null, resourceAccessor)
-
-        assertNotNull "Parsed DatabaseChangeLog was null", changeLog
-    }
-
 
     /**
      * Test processing preconditions with almost all the options.  The onSqlOutput and onUpdateSql
@@ -826,11 +826,11 @@ emotion=angry
     }
 
 
-    private File createFileFrom(directory, suffix, text) {
+    static File createFileFrom(directory, suffix, text) {
         createFileFrom(directory, 'liquibase-', suffix, text)
     }
 
-    private File createFileFrom(directory, prefix, suffix, text) {
+    static File createFileFrom(File directory, String prefix, String suffix, String text) {
         def file = File.createTempFile(prefix, suffix, directory)
         file << text
     }
@@ -856,6 +856,51 @@ emotion=angry
         return actualPreconditions
     }
 
+    DatabaseChangeLog parseDatabaseChangeLog(String content) {
+        def parser = parserFactory.getParser(FULL_CHANGELOG, resourceAccessor) as GroovyLiquibaseChangeLogParser
+        parser.parse(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)), resourceAccessor)
+    }
 
+    @TupleConstructor()
+    @Newify(auto=false)
+    static class IO { String i; String o
+        static IO io(String i, String o) { new IO ( i, o)}
+    }
+
+    @Test
+    void parseErrors() {
+        [ io('databaseChangeLog (1) {}', databaseChangeLogInvalidArgs(1,'{}')),
+          io('databaseChangeLog', databaseChangeMissingClosure),
+          io('databaseChangeLog () {} {}', databaseChangeLogInvalidArgs('{}','{}')),
+          io('databaseChangeLog {}{}', databaseChangeLogInvalidArgs('{}','{}')),
+          io("databaseChangeLog 'a'", databaseChangeLogInvalidArgs('a')),
+          io("nonExistentName () {}", 'Unrecognized root element nonExistentName'),
+          io("nonExistentName 'a'", 'Unrecognized root element nonExistentName'),
+          io("nonExistentName ()", 'Unrecognized root element nonExistentName'),
+          io("nonExistentName {}", 'Unrecognized root element nonExistentName'),
+          io("nonExistentName", 'Unrecognized root element nonExistentName')
+        ].eachWithIndex{  io, int idx ->
+            String errMsg = "case $idx:'${io.i}' expected error msg '${io.o}' != '{}'"
+            try{
+                parseDatabaseChangeLog(io.i)
+                assertFalse(String.format( errMsg, ''), true)
+            } catch (ChangeLogParseException e) {
+                assertTrue(String.format( errMsg, e.message), e.message == io.o)
+            }
+        }
+    }
+
+    @Test
+    void parse() {
+        ['positionalOnly': "databaseChangeLog('l','c') {}"
+        ,'mixed 1': "databaseChangeLog( contextFilter: 'c', 'l') {}"
+        ,'mixed 2': "databaseChangeLog('l',  contextFilter: 'c',) {}"
+        ,'mapped': "databaseChangeLog(logicalFilePath:'l', contextFilter: 'c') {}"
+        ,'import *': "databaseChangeLog('l', 'c', LEGACY) {}"
+        ].each {
+            DatabaseChangeLog log = parseDatabaseChangeLog it.value
+            assertTrue it.key, log.logicalFilePath == 'l'
+            assertTrue it.key, log.contextFilter.toString() == 'c'
+        }
+    }
 }
-

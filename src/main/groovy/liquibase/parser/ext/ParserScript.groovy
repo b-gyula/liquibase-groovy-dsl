@@ -14,25 +14,80 @@
 
 package liquibase.parser.ext
 
+import liquibase.changelog.DatabaseChangeLog
+import liquibase.database.ObjectQuotingStrategy
+import liquibase.exception.ChangeLogParseException
+import liquibase.resource.ResourceAccessor
+import org.liquibase.groovy.delegate.*
+import static groovy.lang.Closure.DELEGATE_ONLY
+import static GroovyLiquibaseChangeLogParser.processDatabaseChangeLogRootElement
 
 abstract class ParserScript extends Script {
 
     @Override
-    void setProperty(String name, value) {
-        if ( "databaseChangeLog" == name ) {
-            changeLogParser.processDatabaseChangeLogRootElement(changeLog, resourceAccessor, [value])
-        } else {
-            super.setProperty(name, value)
-        }
-    }
-
-    @Override
     Object invokeMethod(String name, Object args) {
-        if ( "databaseChangeLog" == name ) {
-            changeLogParser.processDatabaseChangeLogRootElement(changeLog, resourceAccessor, args)
+        if ( name == 'databaseChangeLog' ) {
+            processDatabaseChangeLogRootElement(getProperty('changeLog') as DatabaseChangeLog,
+                    getProperty('resourceAccessor') as ResourceAccessor, args)
         } else {
-            return super.invokeMethod(name, args)
+            throw new ChangeLogParseException("Unrecognized root element ${name}")
         }
     }
 
+    /** Root element of the changelog
+     <br>Params:
+     <dl>
+     <dt>contextFilter</dt>
+     <dd>The filter (coma separated list) defining which contexts are required the databaseChangeLog to process.
+     <a href="https://docs.liquibase.com/concepts/changelogs/attributes/contexts.html">Contexts</a>
+     are tags you can add to changesets to control which changesets are executed in any particular migration run.
+     Contexts you specify in the databaseChangeLog header are inherited by individual changeSets.
+     renamed from "context" since v4.16</dd>
+     <dt>logicalFilePath</dt>
+     <dd>Overrides the file name and path when creating the unique identifier of changesets.
+     It is required when you want to move or rename changelogs. Default: physical path</dd>
+     <dt>objectQuotingStrategy</dt>
+     <dd>the SQL object quoting strategy defaults to LEGACY</dd>
+     </dl>
+     @see liquibase.database.ObjectQuotingStrategy
+     */
+    void databaseChangeLog( Map<String, Object> args
+                           ,String logicalFilePath = null, String contextFilter = null // These are required for mixed parameter calls
+                           ,ObjectQuotingStrategy objectQuotingStrategy = null
+                           ,@DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_ONLY) Closure closure) {
+        // It is required to accept all versions containing named parameter must remain for backward compatibility!!!
+        args.putAll(
+                [logicalFilePath      : logicalFilePath,
+                 contextFilter        : contextFilter,
+                 objectQuotingStrategy: objectQuotingStrategy
+                ].findAll { it.value != null })
+        invokeMethod ('databaseChangeLog', new Object[]{args, closure})
+    }
+
+    /** Root element of the changelog
+     <br>Params:
+     <dl>
+     <dt>contextFilter</dt>
+     <dd>The filter (coma separated list) defining which contexts are required the databaseChangeLog to process.
+     <a href="https://docs.liquibase.com/concepts/changelogs/attributes/contexts.html">Contexts</a> are tags you can add to changesets to control which changesets are executed in any particular migration run.
+     Contexts you specify in the databaseChangeLog header are inherited by individual changeSets.
+     renamed from "context" since v4.16</dd>
+     <dt>logicalFilePath</dt>
+     <dd>Overrides the file name and path when creating the unique identifier of changesets.
+     It is required when you want to move or rename changelogs. Default: physical path</dd>
+     <dt>objectQuotingStrategy</dt>
+     <dd>the SQL object quoting strategy defaults to LEGACY</dd>
+     </dl>
+     @see liquibase.database.ObjectQuotingStrategy
+     */
+    void databaseChangeLog(String logicalFilePath = null, String contextFilter = null,
+                           ObjectQuotingStrategy objectQuotingStrategy = null,
+                           @DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_ONLY) Closure closure) {
+         databaseChangeLog [:], logicalFilePath, contextFilter, objectQuotingStrategy, closure
+    }
+
+    /**  */
+    def propertyMissing(String name)  { // Pure "databaseChangeLog" / "nonExistentName"
+        invokeMethod(name, new Object[]{}) // TODO add filename an linenumber
+    }
 }
