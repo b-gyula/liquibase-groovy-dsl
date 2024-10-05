@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2025 Tim Berglund and Steven C. Saliman
+ * Copyright 2011-2024 Tim Berglund and Steven C. Saliman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.  You may obtain a copy of the License at
@@ -13,6 +13,8 @@
  */
 
 package org.liquibase.groovy.delegate
+
+import liquibase.changelog.DatabaseChangeLog
 
 import liquibase.util.LiquibaseUtil
 
@@ -29,7 +31,7 @@ class DelegateUtil {
      * @param databaseChangeLog the database change log
      * @return the text, after substitutions have been made.
      */
-    static def expandExpressions(expression, databaseChangeLog) {
+    static String expandExpressions(expression, DatabaseChangeLog databaseChangeLog) {
         // Don't expand a null into the text "null", just return null
         if ( expression == null ) {
             return null

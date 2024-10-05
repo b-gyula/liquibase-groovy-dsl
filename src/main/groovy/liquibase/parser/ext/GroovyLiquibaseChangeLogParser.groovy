@@ -23,7 +23,6 @@ import org.codehaus.groovy.control.CompilationFailedException
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.customizers.ImportCustomizer
 import org.codehaus.groovy.runtime.metaclass.MethodSelectionException
-import org.liquibase.groovy.delegate.DatabaseChangeLogDelegate
 
 /**
  * This is the main parser class for the Liquibase Groovy DSL.  It is the integration point to
@@ -33,6 +32,7 @@ import org.liquibase.groovy.delegate.DatabaseChangeLogDelegate
  * @author Tim Berglund
  * @author Steven C. Saliman
  */
+@groovy.transform.CompileStatic
 class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
 
     DatabaseChangeLog parse(String physicalChangeLogLocation,
@@ -71,20 +71,24 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
             script.setProperty("resourceAccessor", resourceAccessor)
             try {
                 script.run()
+            } catch (CompilationFailedException e){
+                throw e // Contains file + line
             } catch(MethodSelectionException e) {
                 String methodName = e.metaClass.getAttribute(e, 'methodName')
                 Class[] argTypes = e.metaClass.getAttribute(e, 'arguments') as Class[]
-                def methods = e.metaClass.getAttribute(e, 'methods')
-                // All method must have closure as last if required
+                //def methods = e.metaClass.getAttribute(e, 'methods')
                 MetaMethod method = script.metaClass.methods.find {it.name == methodName}
                 println script.class.canonicalName
                 // Most common problem: closure missing as last parameter
-                if( method.nativeParameterTypes.last() == Closure.class &&
+                if(requiresClosure( method ) &&
                         (argTypes.length < 1 || argTypes.last() != Closure.class)) {
                     throw ChangeLogParseExceptionWithfileAndLineNumber(changeLog, e, script.class,
                             elemMissingRequiredClosure(methodName))
                 }
-                 throw e
+                throw ChangeLogParseExceptionWithfileAndLineNumber(changeLog, e, script.class)
+            }
+            catch (e) {
+                throw ChangeLogParseExceptionWithfileAndLineNumber(changeLog, e, script.class)
             }
             // The changeLog will have been populated by the script
             return changeLog
@@ -100,19 +104,28 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
     }
 
 
+    static boolean requiresClosure(MetaMethod method) {
+        method.nativeParameterTypes.last() == Closure.class // All method must have closure as last if required
+    }
+
+    // TODO get method by name and check if its declared in this class
+    static List<MetaMethod> findMethod(MetaClass metaClass, String name) {
+        metaClass.methods.findAll {it.name == name }}
+
     boolean supports(String changeLogFile, ResourceAccessor resourceAccessor) {
         changeLogFile.endsWith('.groovy')
     }
-
 
     int getPriority() {
         PRIORITY_DEFAULT
     }
 
     static String elemMissingRequiredClosure(String name) {"'$name' missing required closure"}
-    static final String databaseChangeMissingClosure = "databaseChangeLog element missing required closure!" + elementWithClosure
-    static String databaseChangeLogInvalidArgs(Object[] args) { "databaseChangeLog element got invalid arguments ${argsToString(args)}" + elementWithClosure }
+    static final String databaseChangeMissingClosure = elemMissingRequiredClosure("databaseChangeLog")
+    static String databaseChangeLogInvalidArgs(Object[] args) { "databaseChangeLog element got invalid arguments ${argsToString(args)}" }
     static final String elementWithClosure = "\nIt can take optional parameters followed by a required closure: 'databaseChangeLog { ... }' or 'databaseChangeLog(param1,...) { ... }'"
+    static final ChangeLogParseException unrecognizedRootElement(String name) {
+        new ChangeLogParseException("Unrecognized root element '${name}'! Only 'databaseChangeLog' expected")}
 
     static String argsToString(Object[] args){
         args.inject(""){ String acc, val ->
@@ -134,56 +147,12 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
     static ChangeLogParseException ChangeLogParseExceptionWithfileAndLineNumber(
             DatabaseChangeLog databaseChangeLog, Throwable t, Class calzz, String errMsg = null) {
         boolean bAddException = null == errMsg
-        StackTraceElement st = t.stackTrace.find { it.getClassName() == calzz.name }
+        StackTraceElement st = t.stackTrace.find { it.className.startsWith(calzz.name) }
         if(!errMsg) errMsg = t.message
         if ( st ) {
             errMsg += ' @'+ databaseChangeLog.physicalFilePath + ":" + st.lineNumber
         }
         bAddException ? new ChangeLogParseException(errMsg, t) : new ChangeLogParseException(errMsg)
-    }
-
-    static void processDatabaseChangeLogRootElement(DatabaseChangeLog databaseChangeLog,
-                                                   ResourceAccessor resourceAccessor, Object[] args) {
-        DatabaseChangeLogDelegate delegate
-        Closure closure
-
-        switch ( args.size() ) {
-            case 0:
-                throw new ChangeLogParseException(databaseChangeMissingClosure)
-
-            case 1:
-                if ( !(args[0] instanceof Closure) ) {
-                    throw new ChangeLogParseException(databaseChangeLogInvalidArgs(args))
-                }
-                closure = args[0] as Closure
-                delegate = new DatabaseChangeLogDelegate(databaseChangeLog)
-                break
-
-            case 2:
-                if ( !(args[0] instanceof Map) || !(args[1] instanceof Closure)  ) {
-                    throw new ChangeLogParseException(databaseChangeLogInvalidArgs(args))
-                }
-                Map params = args[0] as Map
-                closure = args[1] as Closure
-                delegate = new DatabaseChangeLogDelegate(params, databaseChangeLog)
-                break
-
-            default:
-                throw new ChangeLogParseException("databaseChangeLog element has too many arguments: ${args}")
-        }
-
-        delegate.resourceAccessor = resourceAccessor
-        closure.delegate = delegate
-        closure.resolveStrategy = Closure.DELEGATE_FIRST
-        try {
-            closure.call()
-        }
-        catch (CompilationFailedException e){
-            throw e
-        }
-        catch (e) {
-            throw ChangeLogParseExceptionWithfileAndLineNumber(databaseChangeLog, e, closure.class)
-        }
     }
 }
 

@@ -32,13 +32,13 @@ import static org.junit.Assert.assertTrue
  * @author Steven C. Saliman
  */
 class ChangeSetTests {
-    def CHANGESET_ID = 'generic-changeset-id'
+    def CHANGESET_ID = 'changeset-id'
     def CHANGESET_AUTHOR = 'tlberglund'
     def CHANGESET_FILEPATH = '/filePath'
     def sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
     def changeSet
     def resourceAccessor = new DirectoryResourceAccessor(new File(''))
-    def oldStdOut = System.out;
+    def oldStdOut = System.out
     def bufStr = new ByteArrayOutputStream()
 
     /**
@@ -93,9 +93,8 @@ class ChangeSetTests {
         changelog.changeLogParameters = new ChangeLogParameters()
         changelog.changeLogParameters.set('database.typeName', 'mysql')
 
-        closure.delegate = new ChangeSetDelegate(changeSet: changeSet,
-                                                 databaseChangeLog: changelog)
-        closure.call()
+        new ChangeSetDelegate(changeSet, changelog)
+            .call(closure)
         changeSet
     }
 

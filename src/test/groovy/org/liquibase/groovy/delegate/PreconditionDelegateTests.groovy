@@ -15,7 +15,7 @@ package org.liquibase.groovy.delegate
 
 import liquibase.exception.ChangeLogParseException
 import liquibase.precondition.core.NotPrecondition
-import liquibase.precondition.core.UniqueConstraintExistsPrecondition;
+import liquibase.precondition.core.UniqueConstraintExistsPrecondition
 import org.junit.Test
 import static org.junit.Assert.*
 import liquibase.changelog.ChangeLogParameters
@@ -398,7 +398,7 @@ class PreconditionDelegateTests {
 
     /**
      * Test creating a custom precondition with a parameter that has a name but no value.  It is
-     * unusual, but legal.  When this happens, the missing value will be converted by Liquibase to
+     * unusual, but legal.  When this happens, the missing value will be converted to
      * the word "null"
      */
     @Test
@@ -488,10 +488,8 @@ class PreconditionDelegateTests {
         def changelog = new DatabaseChangeLog()
         changelog.changeLogParameters = new ChangeLogParameters()
 
-        def delegate = new PreconditionDelegate(databaseChangeLog: changelog)
-        closure.delegate = delegate
-        closure.resolveStrategy = Closure.DELEGATE_FIRST
-        closure.call()
+        def delegate = new PreconditionDelegate(changelog,'')
+        delegate.call(closure)
 
         delegate.preconditions
     }
