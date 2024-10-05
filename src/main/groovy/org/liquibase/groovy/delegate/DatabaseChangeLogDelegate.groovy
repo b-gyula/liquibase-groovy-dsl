@@ -14,6 +14,8 @@
 
 package org.liquibase.groovy.delegate
 
+import groovy.transform.TypeChecked
+import groovy.transform.TypeCheckingMode
 import liquibase.ContextExpression
 import liquibase.Labels
 import liquibase.change.visitor.ChangeVisitor
@@ -24,25 +26,22 @@ import liquibase.changelog.IncludeAllFilter
 import liquibase.database.DatabaseList
 import liquibase.database.ObjectQuotingStrategy
 import liquibase.exception.ChangeLogParseException
+import liquibase.resource.ResourceAccessor
+
 import static PreconditionDelegate.buildPreconditionContainer
+import static groovy.lang.Closure.DELEGATE_ONLY
+
 /**
  * This class is the delegate for the {@code databaseChangeLog} element.  It is the starting point
  * for parsing the Groovy DSL.
  *
  * @author Steven C. Saliman
  */
-class DatabaseChangeLogDelegate {
-	def databaseChangeLog
-	def params
-	def resourceAccessor
-
-	DatabaseChangeLogDelegate(databaseChangeLog) {
-		this([:], databaseChangeLog)
-	}
-
-	DatabaseChangeLogDelegate(Map params, databaseChangeLog) {
-		this.params = params
-		this.databaseChangeLog = databaseChangeLog
+class DatabaseChangeLogDelegate extends Delegatee {
+    protected final ResourceAccessor resourceAccessor
+	DatabaseChangeLogDelegate(DatabaseChangeLog databaseChangeLog, ResourceAccessor resourceAccessor, Map params = [:]) {
+		super( databaseChangeLog )
+        this.resourceAccessor = resourceAccessor
 		// It doesn't make sense to expand expressions, since we haven't loaded properties yet.
 		params.each { key, value ->
 			// The contextFilter attribute needs a little work.  The value needs to be converted
@@ -62,7 +61,7 @@ class DatabaseChangeLogDelegate {
 	 * @param closure the closure containing, among other things, all the refactoring changes the
      *        change set should make.
 	 */
-	void changeSet(Map params, closure) {
+	void changeSet(Map params, Closure closure) {
 		// Most of the time, we just pass any parameters through to a newly created Liquibase
         // object, but we need to do things a little differently for a ChangeSet because the
         // Liquibase object does not have setters for its properties. We'll need to figure it all
@@ -158,11 +157,8 @@ class DatabaseChangeLogDelegate {
 			changeSet.ignore = DelegateUtil.parseTruth(params.ignore, false)
 		}
 
-		def delegate = new ChangeSetDelegate(changeSet: changeSet,
-				databaseChangeLog: databaseChangeLog)
-		closure.delegate = delegate
-		closure.resolveStrategy = Closure.DELEGATE_FIRST
-		closure.call()
+		new ChangeSetDelegate(changeSet, databaseChangeLog)
+		    .call(closure)
 
 		databaseChangeLog.addChangeSet(changeSet)
 	}
@@ -372,7 +368,8 @@ class DatabaseChangeLogDelegate {
      <dd>Controls how preconditions are evaluated with the update-sql command for formatted SQL changelogs.</dd>
      </dl>
      */
-	void preConditions(Map params = [:], Closure closure) {
+	void preConditions(Map params = [:],
+                       @DelegatesTo(value= PreconditionDelegate, strategy=DELEGATE_ONLY) Closure closure) {
 		databaseChangeLog.preconditions = buildPreconditionContainer(databaseChangeLog, params, closure)
 	}
 

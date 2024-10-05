@@ -20,36 +20,28 @@ import liquibase.exception.ChangeLogParseException
 import liquibase.resource.ResourceAccessor
 import org.liquibase.groovy.delegate.*
 import static groovy.lang.Closure.DELEGATE_ONLY
-import static GroovyLiquibaseChangeLogParser.processDatabaseChangeLogRootElement
+import static GroovyLiquibaseChangeLogParser.*
 
+@groovy.transform.TypeChecked
+//@groovy.transform.CompileStatic
 abstract class ParserScript extends Script {
 
-    @Override
-    Object invokeMethod(String name, Object args) {
-        if ( name == 'databaseChangeLog' ) {
-            processDatabaseChangeLogRootElement(getProperty('changeLog') as DatabaseChangeLog,
-                    getProperty('resourceAccessor') as ResourceAccessor, args)
-        } else {
-            throw new ChangeLogParseException("Unrecognized root element ${name}")
-        }
-    }
-
     /** Root element of the changelog
-     <br>Params:
-     <dl>
-     <dt>contextFilter</dt>
+    <br>Params:
+    <dl>
+    <dt>contextFilter</dt>
      <dd>The filter (coma separated list) defining which contexts are required the databaseChangeLog to process.
      <a href="https://docs.liquibase.com/concepts/changelogs/attributes/contexts.html">Contexts</a>
      are tags you can add to changesets to control which changesets are executed in any particular migration run.
      Contexts you specify in the databaseChangeLog header are inherited by individual changeSets.
      renamed from "context" since v4.16</dd>
-     <dt>logicalFilePath</dt>
+    <dt>logicalFilePath</dt>
      <dd>Overrides the file name and path when creating the unique identifier of changesets.
      It is required when you want to move or rename changelogs. Default: physical path</dd>
-     <dt>objectQuotingStrategy</dt>
+    <dt>objectQuotingStrategy</dt>
      <dd>the SQL object quoting strategy defaults to LEGACY</dd>
-     </dl>
-     @see liquibase.database.ObjectQuotingStrategy
+    </dl>
+      @see liquibase.database.ObjectQuotingStrategy
      */
     void databaseChangeLog( Map<String, Object> args
                            ,String logicalFilePath = null, String contextFilter = null // These are required for mixed parameter calls
@@ -61,7 +53,9 @@ abstract class ParserScript extends Script {
                  contextFilter        : contextFilter,
                  objectQuotingStrategy: objectQuotingStrategy
                 ].findAll { it.value != null })
-        invokeMethod ('databaseChangeLog', new Object[]{args, closure})
+        new DatabaseChangeLogDelegate(getProperty('changeLog') as DatabaseChangeLog,
+                                     getProperty('resourceAccessor') as ResourceAccessor, args)
+            .call( closure)
     }
 
     /** Root element of the changelog
@@ -86,8 +80,22 @@ abstract class ParserScript extends Script {
          databaseChangeLog [:], logicalFilePath, contextFilter, objectQuotingStrategy, closure
     }
 
-    /**  */
-    def propertyMissing(String name)  { // Pure "databaseChangeLog" / "nonExistentName"
-        invokeMethod(name, new Object[]{}) // TODO add filename an linenumber
+    /** Possible method calls with forgotten parameters */
+    def propertyMissing(String name)  {
+        List<MetaMethod> methods = findMethod(metaClass, name)
+        if(! methods.empty && requiresClosure(methods.first())) {
+            throw new ChangeLogParseException(elemMissingRequiredClosure(name))
+        }
+        throw unrecognizedRootElement(name)
+    }
+
+    Object methodMissing(String name, Object args) {
+        List<MetaMethod> methods = findMethod(metaClass, name)
+        if (methods.empty){
+            throw unrecognizedRootElement(name)
+        } else { // Do parameter validations:  String -> boolean, ObjectQuotingStrategy, etc
+            assert "databaseChangeLog" == name
+            throw new ChangeLogParseException(databaseChangeLogInvalidArgs(args))
+        }
     }
 }

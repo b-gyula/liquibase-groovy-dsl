@@ -170,9 +170,8 @@ databaseChangeLog()
 
         def databaseChangeLog = new DatabaseChangeLog('changelog.xml')
         databaseChangeLog.changeLogParameters = new ChangeLogParameters()
-        def delegate = new DatabaseChangeLogDelegate(databaseChangeLog)
-        closure.delegate = delegate
-        closure.call()
+        new DatabaseChangeLogDelegate(databaseChangeLog, resourceAccessor)
+            .call(closure)
 
         // Liquibase now wraps the container in a container.  I don't know why.
         def preconditions = databaseChangeLog.preconditions.nestedPreconditions[0]
@@ -199,9 +198,8 @@ databaseChangeLog()
 
         def databaseChangeLog = new DatabaseChangeLog('changelog.xml')
         databaseChangeLog.changeLogParameters = new ChangeLogParameters()
-        def delegate = new DatabaseChangeLogDelegate(databaseChangeLog)
-        closure.delegate = delegate
-        closure.call()
+        new DatabaseChangeLogDelegate(databaseChangeLog, resourceAccessor)
+                .call(closure)
 
         // Liquibase now wraps the container in a container.  I don't know why.
         def preconditions = databaseChangeLog.preconditions.nestedPreconditions[0]
@@ -818,10 +816,8 @@ emotion=angry
         } else {
             changelog.changeLogParameters = parameters
         }
-        closure.delegate = new DatabaseChangeLogDelegate(changelog)
-        closure.delegate.resourceAccessor = resourceAccessor
-        closure.resolveStrategy = Closure.DELEGATE_FIRST
-        closure.call()
+        new DatabaseChangeLogDelegate(changelog, resourceAccessor)
+            .call(closure)
         return changelog
     }
 
@@ -830,7 +826,7 @@ emotion=angry
         createFileFrom(directory, 'liquibase-', suffix, text)
     }
 
-    static File createFileFrom(File directory, String prefix, String suffix, String text) {
+    static File createFileFrom(File directory, String prefix,String suffix, String text) {
         def file = File.createTempFile(prefix, suffix, directory)
         file << text
     }
@@ -856,6 +852,7 @@ emotion=angry
         return actualPreconditions
     }
 
+
     DatabaseChangeLog parseDatabaseChangeLog(String content) {
         def parser = parserFactory.getParser(FULL_CHANGELOG, resourceAccessor) as GroovyLiquibaseChangeLogParser
         parser.parse(new ByteArrayInputStream(content.getBytes(StandardCharsets.UTF_8)), resourceAccessor)
@@ -869,29 +866,30 @@ emotion=angry
 
     @Test
     void parseErrors() {
-        [ io('databaseChangeLog (1) {}', databaseChangeLogInvalidArgs(1,'{}')),
+        [
+          io('databaseChangeLog (1) {}', databaseChangeLogInvalidArgs(1,'{}')),
           io('databaseChangeLog', databaseChangeMissingClosure),
           io('databaseChangeLog () {} {}', databaseChangeLogInvalidArgs('{}','{}')),
           io('databaseChangeLog {}{}', databaseChangeLogInvalidArgs('{}','{}')),
           io("databaseChangeLog 'a'", databaseChangeLogInvalidArgs('a')),
-          io("nonExistentName () {}", 'Unrecognized root element nonExistentName'),
-          io("nonExistentName 'a'", 'Unrecognized root element nonExistentName'),
-          io("nonExistentName ()", 'Unrecognized root element nonExistentName'),
-          io("nonExistentName {}", 'Unrecognized root element nonExistentName'),
-          io("nonExistentName", 'Unrecognized root element nonExistentName')
+          io("nonExistentName () {}", unrecognizedRootElement('nonExistentName').message),
+          io("nonExistentName 'a'", unrecognizedRootElement('nonExistentName').message),
+          io("nonExistentName ()", unrecognizedRootElement('nonExistentName').message),
+          io("nonExistentName {}", unrecognizedRootElement('nonExistentName').message),
+          io("nonExistentName", unrecognizedRootElement('nonExistentName').message)
         ].eachWithIndex{  io, int idx ->
-            String errMsg = "case $idx:'${io.i}' expected error msg '${io.o}' != '{}'"
+            String errMsg = "case $idx:'${io.i}' expected error msg '${io.o} @memtest:1' != '%s'"
             try{
                 parseDatabaseChangeLog(io.i)
                 assertFalse(String.format( errMsg, ''), true)
             } catch (ChangeLogParseException e) {
-                assertTrue(String.format( errMsg, e.message), e.message == io.o)
+                assertTrue(String.format( errMsg, e.message), e.message == io.o + " @memtest:1")
             }
         }
     }
 
     @Test
-    void parse() {
+    void parseEmptyDatabaseChangeLog() {
         ['positionalOnly': "databaseChangeLog('l','c') {}"
         ,'mixed 1': "databaseChangeLog( contextFilter: 'c', 'l') {}"
         ,'mixed 2': "databaseChangeLog('l',  contextFilter: 'c',) {}"
@@ -904,3 +902,4 @@ emotion=angry
         }
     }
 }
+

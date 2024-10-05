@@ -14,7 +14,12 @@
 
 package org.liquibase.groovy.delegate
 
+import groovy.transform.TypeChecked
+import groovy.transform.TypeCheckingMode
+import liquibase.changelog.DatabaseChangeLog
 import liquibase.exception.ChangeLogParseException
+import liquibase.precondition.Precondition
+import liquibase.precondition.PreconditionLogic
 import liquibase.precondition.core.AndPrecondition
 import liquibase.precondition.core.OrPrecondition
 import liquibase.precondition.core.SqlPrecondition
@@ -26,11 +31,16 @@ import liquibase.precondition.core.PreconditionContainer.OnSqlOutputOption
 import liquibase.precondition.core.PreconditionContainer.ErrorOption
 import liquibase.precondition.core.PreconditionContainer.FailOption
 import liquibase.util.PatchedObjectUtil
+import static groovy.lang.Closure.DELEGATE_ONLY
 
-class PreconditionDelegate {
-    def preconditions = []
-    def databaseChangeLog
-    def changeSetId = '<unknown>' // used for error messages
+@groovy.transform.CompileStatic
+/** Delegate for the preConditions element used both in changeSet and databaseChangeLog */
+class PreconditionDelegate extends Delegatee{
+    protected final List<Precondition> preconditions = []
+    PreconditionDelegate(DatabaseChangeLog dbChangeLog, String changeSetId){
+        super(dbChangeLog, changeSetId )
+        this.changeSetId = changeSetId ? "ChangeSet '$changeSetId'" : 'databaseChangeLog' + ' / preConditions'
+    }
 
     /**
      * Handle all non-nesting preconditions using the PreconditionFactory.
@@ -39,48 +49,51 @@ class PreconditionDelegate {
      */
     void methodMissing(String name, args) {
         def preconditionFactory = PreconditionFactory.instance
-        def precondition = null
+        Precondition precondition = null
         try {
             precondition = preconditionFactory.create(name)
         } catch (RuntimeException e) {
-            throw new ChangeLogParseException("ChangeSet '${changeSetId}': '${name}' is an invalid precondition.", e)
+            throw new ChangeLogParseException("$changeSetId: '${name}' is an invalid precondition.", e)
         }
 
         // We don't always get an exception for an invalid precondition...
         if ( precondition == null ) {
-            throw new ChangeLogParseException("ChangeSet '${changeSetId}': '${name}' is an invalid precondition.")
+            throw new ChangeLogParseException("$changeSetId: '${name}' is an invalid precondition.")
         }
 
-        def params = args[0]
+        def params = (args as Object[])[0]
 
-        if ( params != null && params instanceof Map ) {
-            params.each { key, value ->
-                try {
-                    PatchedObjectUtil.setProperty(precondition, key, DelegateUtil.expandExpressions(value, databaseChangeLog))
-                } catch (RuntimeException e) {
-                    throw new ChangeLogParseException("ChangeSet '${changeSetId}': '${key}' is an invalid property for '${name}' preconditions.", e)
-                }
+        if ( params != null && params instanceof Map<String, Object> ) {
+            params.each {key, value ->
+                setProp(precondition, key, value)
             }
         }
 
         preconditions << precondition
     }
 
-    /**
-     * Create a sqlCheck precondition.  This one needs some special handling because the SQL is in
-     * a nested closure.
+    /** Wrapper for PatchedObjectUtil.setProperty adds detailed error message */
+    private void setProp(Precondition precondition, String name, Object value) {
+        try {
+            if(value != null) {
+                PatchedObjectUtil.setProperty(precondition, name,
+                        DelegateUtil.expandExpressions(value.toString(), databaseChangeLog))
+            }
+        } catch (RuntimeException e) {
+            throw new ChangeLogParseException("$changeSetId: '$name' is an invalid property for '${precondition.name}'", e)
+        }
+    }
+
+    /** Executes an SQL string and checks the returned value. The SQL must return a single row with a single value.
      * @param params the attributes of the precondition
      * @param closure the SQL for the precondition
      * @return the newly created precondition.
      */
-    def sqlCheck(Map params = [:], Closure closure) {
+    def sqlCheck(Map<String, Object> params = [:],
+                 @DelegatesTo(value= SqlPrecondition, strategy=DELEGATE_ONLY) Closure closure) {
         def precondition = new SqlPrecondition()
         params.each { key, value ->
-            try {
-                PatchedObjectUtil.setProperty(precondition, key, DelegateUtil.expandExpressions(value, databaseChangeLog))
-            } catch (RuntimeException e) {
-                throw new ChangeLogParseException("ChangeSet '${changeSetId}': '${key}' is an invalid property for 'sqlCheck' preconditions.", e)
-            }
+            setProp precondition, key, value
         }
 
         def sql = DelegateUtil.expandExpressions(closure.call(), databaseChangeLog)
@@ -99,45 +112,39 @@ class PreconditionDelegate {
      * @param params the params for the precondition, such as the class name.
      * @param closure the closure with nested key/value pairs for the custom precondition.
      */
-    def customPrecondition(Map params = [:], Closure closure) {
-        def delegate = new KeyValueDelegate(changeSetId: changeSetId)
-        closure.delegate = delegate
-        closure.resolveStrategy = Closure.DELEGATE_FIRST
-        closure.call()
+    def customPrecondition(Map<String, Object> params = [:],
+                           @DelegatesTo(value=KeyValueDelegate, strategy = DELEGATE_ONLY) Closure closure) {
+        def delegate = new KeyValueDelegate('customPrecondition', changeSetId)
+        delegate.call(closure)
 
         def precondition = new CustomPreconditionWrapper()
         params.each { key, value ->
-            try {
-                def expandedValue = DelegateUtil.expandExpressions(value, databaseChangeLog)
-                PatchedObjectUtil.setProperty(precondition, key, expandedValue)
-            } catch (RuntimeException e) {
-                throw new ChangeLogParseException("ChangeSet '${changeSetId}': '${key}' is an invalid property for 'customPrecondition' preconditions.", e)
-            }
+            setProp(precondition, key, value)
         }
         delegate.map.each { key, value ->
-            // This is a key/value pair in the Liquibase object, so it won't fail.
-            def expandedValue = DelegateUtil.expandExpressions(value, databaseChangeLog).toString()
-            precondition.setParam(key, expandedValue)
+             // This is a key/value pair in the Liquibase object, so it won't fail.
+            def expandedValue = DelegateUtil.expandExpressions(value, databaseChangeLog)
+            precondition.setParam(key, expandedValue ? expandedValue : "null" )
         }
 
         preconditions << precondition
     }
 
-
-    def and(Closure closure) {
-        def precondition = nestedPrecondition(AndPrecondition, closure)
-        preconditions << precondition
+    /** logical AND operator */
+    def and(@DelegatesTo(value=PreconditionDelegate, strategy=DELEGATE_ONLY ) Closure closure) {
+        preconditions << nestedPrecondition(new AndPrecondition(), closure)
     }
 
-
-    def or(Closure closure) {
-        def precondition = nestedPrecondition(OrPrecondition, closure)
-        preconditions << precondition
+    /** logical OR operator */
+    def or(@DelegatesTo(value=PreconditionDelegate, strategy=DELEGATE_ONLY) Closure closure) {
+        preconditions << nestedPrecondition(new OrPrecondition(), closure)
     }
 
-    def not(Closure closure) {
-        def precondition = nestedPrecondition(NotPrecondition, closure)
-        preconditions << precondition
+    /** logical NOT operator
+        For multiple children AND logic is used
+     */
+    def not(@DelegatesTo(value=PreconditionDelegate, strategy=DELEGATE_ONLY) Closure closure) {
+        preconditions << nestedPrecondition(new NotPrecondition(), closure)
     }
 
     /**
@@ -149,12 +156,15 @@ class PreconditionDelegate {
      * @param closure nested closures to call.
      * @return the PreconditionContainer it builds.
      */
-    static PreconditionContainer buildPreconditionContainer(databaseChangeLog, Map<String, Object> params,
-                                                            Closure closure, String changeSetId = null) {
+    @TypeChecked(TypeCheckingMode.SKIP)
+    static PreconditionContainer buildPreconditionContainer(DatabaseChangeLog databaseChangeLog,
+                                                            Map<String, Object> params,
+                        @DelegatesTo(value= PreconditionDelegate, strategy=DELEGATE_ONLY) Closure closure,
+                                                            String changeSetId = null) {
         PreconditionContainer preconditions = new PreconditionContainer()
 
         // Process parameters.  3 of them need a special case.
-        params.each { key, value ->
+        params.each {key, value ->
             def paramValue = DelegateUtil.expandExpressions(value, databaseChangeLog)
             if ( key == "onFail" ) {
                 preconditions.onFail = FailOption."${paramValue}"
@@ -167,34 +177,20 @@ class PreconditionDelegate {
                 try {
                     PatchedObjectUtil.setProperty(preconditions, key, paramValue)
                 } catch (RuntimeException e) {
-                    String id = changeSetId ? "ChangeSet '${changeSetId}'" : 'databaseChangeLog'
-                    throw new ChangeLogParseException("${id}: '${key}' is an invalid property for 'preConditions'", e)
+                    throw new ChangeLogParseException("$changeSetId: '${key}' is an invalid property for 'preConditions'", e)
                 }
             }
         }
 
-        def delegate = new PreconditionDelegate(databaseChangeLog: databaseChangeLog,
-                changeSetId: changeSetId)
-        closure.delegate = delegate
-        closure.resolveStrategy = Closure.DELEGATE_FIRST
-        closure.call()
-
-        delegate.preconditions.each { precondition ->
-            preconditions.addNestedPrecondition(precondition)
-        }
-
-        return preconditions
+        def delegate = new PreconditionDelegate(databaseChangeLog, changeSetId)
+        delegate.nestedPrecondition(preconditions, closure, delegate)
     }
 
 
-    private def nestedPrecondition(Class preconditionClass, Closure closure) {
-
-        def nestedPrecondition = preconditionClass.newInstance()
-        def delegate = new PreconditionDelegate(databaseChangeLog: databaseChangeLog,
-                changeSetId: changeSetId)
-        closure.delegate = delegate
-        closure.resolveStrategy = Closure.DELEGATE_FIRST
-        closure.call()
+    private <T extends PreconditionLogic> T nestedPrecondition(T nestedPrecondition,
+           @DelegatesTo(strategy=DELEGATE_ONLY) Closure closure,
+           PreconditionDelegate delegate = new PreconditionDelegate(databaseChangeLog, changeSetId)) {
+        delegate.call(closure)
 
         delegate.preconditions.each { precondition ->
             nestedPrecondition.addNestedPrecondition(precondition)

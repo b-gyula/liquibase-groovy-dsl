@@ -1099,10 +1099,8 @@ databaseChangeLog {
     private def buildChangeLog(Closure closure) {
         def changelog = new DatabaseChangeLog(MOCK_CHANGELOG)
         changelog.changeLogParameters = new ChangeLogParameters()
-        closure.delegate = new DatabaseChangeLogDelegate(changelog)
-        closure.delegate.resourceAccessor = resourceAccessor
-        closure.resolveStrategy = Closure.DELEGATE_FIRST
-        closure.call()
+        new DatabaseChangeLogDelegate(changelog, resourceAccessor)
+                .call(closure)
         return changelog
     }
 

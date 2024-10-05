@@ -14,6 +14,8 @@
 
 package org.liquibase.groovy.delegate
 
+import liquibase.changelog.DatabaseChangeLog
+
 /**
  * Little utility with helper methods that all the delegates can use.
  *
@@ -27,7 +29,7 @@ class DelegateUtil {
      * @param databaseChangeLog the database change log
      * @return the text, after substitutions have been made.
      */
-    static def expandExpressions(expression, databaseChangeLog) {
+    static String expandExpressions(expression, DatabaseChangeLog databaseChangeLog) {
         // Don't expand a null into the text "null", just return null
         if ( expression == null ) {
             return null
