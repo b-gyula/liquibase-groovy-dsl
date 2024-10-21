@@ -38,7 +38,7 @@ class ModifySqlDelegate extends Delegatee{ // TODO check if can be embedded in c
     protected ChangeSet changeSet
 
     ModifySqlDelegate(Map params = [:], ChangeSet changeSet) {
-        super(changeSet.changeLog)
+        super(changeSet.changeLog, fullChangeSetId(changeSet) + '/modifySql')
         this.changeSet = changeSet
 
         // params are optional

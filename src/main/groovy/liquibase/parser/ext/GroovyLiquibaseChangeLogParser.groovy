@@ -22,7 +22,15 @@ import liquibase.exception.ChangeLogParseException
 import org.codehaus.groovy.control.CompilationFailedException
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.customizers.ImportCustomizer
+import org.codehaus.groovy.reflection.CachedMethod
 import org.codehaus.groovy.runtime.metaclass.MethodSelectionException
+import org.codehaus.groovy.util.FastArray
+
+import java.lang.reflect.Method
+import java.lang.reflect.Modifier
+import java.lang.reflect.Parameter
+
+import liquibase.parser.groovy.exception.*
 
 /**
  * This is the main parser class for the Liquibase Groovy DSL.  It is the integration point to
@@ -47,10 +55,9 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
         parse(inputStream, resourceAccessor, changeLogParameters, physicalChangeLogLocation)
     }
 
-    DatabaseChangeLog parse(InputStream inputStream, ResourceAccessor resourceAccessor,
+    static DatabaseChangeLog parse(InputStream inputStream, ResourceAccessor resourceAccessor,
                                    ChangeLogParameters changeLogParameters = new ChangeLogParameters(),
-                                   String physicalChangeLogLocation = 'memtest'
-                            ) {
+                                   String physicalChangeLogLocation = 'memtest' ) {
         try {
             DatabaseChangeLog changeLog = new DatabaseChangeLog(physicalChangeLogLocation)
             changeLog.setChangeLogParameters(changeLogParameters)
@@ -58,8 +65,12 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
             def binding = new Binding()
             def config = new CompilerConfiguration()
             config.scriptBaseClass = 'liquibase.parser.ext.ParserScript'
-            config.addCompilationCustomizers(new ImportCustomizer().
-                    addStaticStars('liquibase.database.ObjectQuotingStrategy')
+            config.addCompilationCustomizers(new ImportCustomizer()
+                .addStaticStars('liquibase.database.ObjectQuotingStrategy'
+                                ,'liquibase.changelog.ChangeSet.ValidationFailOption')
+                .addImports('liquibase.precondition.core.PreconditionContainer.OnSqlOutputOption'
+                            ,'liquibase.precondition.core.PreconditionContainer.ErrorOption'
+                            ,'liquibase.precondition.core.PreconditionContainer.FailOption')
             )
             def shell = new GroovyShell(binding, config)
 
@@ -76,14 +87,16 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
             } catch(MethodSelectionException e) {
                 String methodName = e.metaClass.getAttribute(e, 'methodName')
                 Class[] argTypes = e.metaClass.getAttribute(e, 'arguments') as Class[]
-                //def methods = e.metaClass.getAttribute(e, 'methods')
-                MetaMethod method = script.metaClass.methods.find {it.name == methodName}
-                println script.class.canonicalName
+                FastArray methods = e.metaClass.getAttribute(e, 'methods') as FastArray
+                //MetaMethod method = script.metaClass.methods.find {it.name == methodName}
+                MetaMethod method = methods.array.find { (it as CachedMethod).name == methodName} as MetaMethod
+
                 // Most common problem: closure missing as last parameter
-                if(requiresClosure( method ) &&
+                if(method.nativeParameterTypes.last() == Closure.class &&
                         (argTypes.length < 1 || argTypes.last() != Closure.class)) {
-                    throw ChangeLogParseExceptionWithfileAndLineNumber(changeLog, e, script.class,
-                            elemMissingRequiredClosure(methodName))
+                    throw ChangeLogParseExceptionWithfileAndLineNumber(changeLog,
+                            new MissingClosure(methodName), script.class,
+                            )
                 }
                 throw ChangeLogParseExceptionWithfileAndLineNumber(changeLog, e, script.class)
             }
@@ -103,9 +116,8 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
         }
     }
 
-
-    static boolean requiresClosure(MetaMethod method) {
-        method.nativeParameterTypes.last() == Closure.class // All method must have closure as last if required
+    static boolean requiresClosure(Method method) {
+        method.parameters.last().type == Closure.class // All method must have closure as last if required
     }
 
     // TODO get method by name and check if its declared in this class
@@ -120,39 +132,98 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
         PRIORITY_DEFAULT
     }
 
-    static String elemMissingRequiredClosure(String name) {"'$name' missing required closure"}
-    static final String databaseChangeMissingClosure = elemMissingRequiredClosure("databaseChangeLog")
-    static String databaseChangeLogInvalidArgs(Object[] args) { "databaseChangeLog element got invalid arguments ${argsToString(args)}" }
-    static final String elementWithClosure = "\nIt can take optional parameters followed by a required closure: 'databaseChangeLog { ... }' or 'databaseChangeLog(param1,...) { ... }'"
-    static final ChangeLogParseException unrecognizedRootElement(String name) {
-        new ChangeLogParseException("Unrecognized root element '${name}'! Only 'databaseChangeLog' expected")}
 
-    static String argsToString(Object[] args){
-        args.inject(""){ String acc, val ->
-            if(!acc.empty){
-                acc += ','
-            }
-            String v
-            if(val instanceof Closure) v = '{}'
-            else v = val.toString()
-            acc + v
-        }
-    }
 
-    /** Create a new ChangeLogParseException with the message `errMsg` if not null
-        otherwise t.message + the filename from `databaseChangeLog` and the line number from
-        the stacktrace of `t` searching for the classname of `clazz`
-        If errMsg is null, t added to the created exception as cause
+    /** If t is
+     * Create a new ChangeLogParseException with the message `errMsg` if not null
+     otherwise t.message + the filename from `databaseChangeLog` and the line number from
+     the stacktrace of `t` searching for the classname of `clazz`
+     If errMsg is null, t added to the created exception as cause
      */
     static ChangeLogParseException ChangeLogParseExceptionWithfileAndLineNumber(
-            DatabaseChangeLog databaseChangeLog, Throwable t, Class calzz, String errMsg = null) {
-        boolean bAddException = null == errMsg
+            DatabaseChangeLog databaseChangeLog, Throwable t, Class calzz) {
+
         StackTraceElement st = t.stackTrace.find { it.className.startsWith(calzz.name) }
-        if(!errMsg) errMsg = t.message
-        if ( st ) {
-            errMsg += ' @'+ databaseChangeLog.physicalFilePath + ":" + st.lineNumber
+        String fileNameAndLine = " @$databaseChangeLog.physicalFilePath:${st ? st.lineNumber : ''}"
+        if(t instanceof ParseErrorWithFileNLine) { // Do not deepen the stackTrace
+            ParseErrorWithFileNLine fn = t as ParseErrorWithFileNLine
+            fn.fileNameAndLine = fileNameAndLine
+            return t
         }
-        bAddException ? new ChangeLogParseException(errMsg, t) : new ChangeLogParseException(errMsg)
+        new ChangeLogParseException(t.message + fileNameAndLine, t)
     }
+
+
+    /** Collect all public methods with the longest parameter list starting with Map using java reflection
+     * DOES NOT WORK ON SCRIPT! */
+    static Map<String, Method> getMethods(Class cls) {
+        Map<String, Method> map = new HashMap<>()
+        //def s = cls.methods
+        cls.declaredMethods.each {
+            if(it.name.indexOf('$') == -1 && Modifier.isPublic(it.modifiers) ) {
+                Method stored = map[it.name]
+                if ( stored ) {
+                    //boolean isMap2 = it.parameters.first() instanceof Map
+                    if (stored.parameterTypes.length < it.parameterTypes.length
+                         && Map.class.isAssignableFrom (it.parameterTypes.first())) {
+                        map[it.name] = it // Update
+                    }
+                } else { // Store the first
+                    map.put(it.name, it)
+                }
+            }
+        }
+        map
+    }
+
+    static UnrecognizedElement unrecognizedRootElement(String name) {
+        new UnrecognizedElement(name, [],"Unrecognized root element '$name'! Only '$dbChangeLogTagName' expected")
+    }
+
+    static String nonEmptyParameterRequiredFor(Enum tag, String propName) {
+        nonEmptyParameterRequiredFor tag as String, propName
+    }
+
+    static String nonEmptyParameterRequiredFor(String tag, String propName) {
+        "'$propName' parameter cannot be empty for '$tag'"
+    }
+
+    /** Create human readable list of parameter names + types
+     * Expects Closure to be the last parameter */
+    static String asString(Parameter[] args) {
+        args.inject(new StringBuilder(args.length * 8).append( '(')) { r, p ->
+
+            switch ( p.type.simpleName ) {
+                case 'Closure': return r.append (') {}')
+                    break
+                case 'Map': break
+                default :
+                    if(r.size() > 1) r.append ', '
+                    r.append p.type.simpleName + ' ' + p.name
+            }
+            r
+        }.append (')')
+    }
+
+    static String dbChangeLogTagName = "databaseChangeLog"
+
+    static enum Tag { property, include, includeAll, changeSet, preConditions }
+
+    interface Arg {
+        static final String dbms = 'dbms'
+        static final String file = 'file'
+        static final String path = 'path'
+        static final String context = 'context'
+        static final String contextFilter = 'contextFilter'
+        static final String labels = 'labels'
+        static final String global = 'global'
+        static final String relativeToChangelogFile = 'relativeToChangelogFile'
+        static final String name = 'name'
+        static final String ignore = 'ignore'
+        static final String value = 'value'
+        static final String errorIfMissing = 'errorIfMissing'
+        static final String logicalFilePath = 'logicalFilePath'
+    }
+
 }
 

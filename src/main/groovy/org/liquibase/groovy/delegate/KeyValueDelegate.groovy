@@ -54,13 +54,13 @@ class KeyValueDelegate extends Delegatee {
             } else if ( key == "value" ) {
                 mapValue = value
             } else {
-                throw new ChangeLogParseException("'$changeSetId': '${key}' is an invalid property for '$parentName' parameters.")
+                throw new ChangeLogParseException("'$changeId': '${key}' is an invalid property for '$parentName' parameters.")
             }
         }
 
         // we don't need a value, but we do need a key
         if ( mapKey == null ) {
-            throw new ChangeLogParseException("'${changeSetId}': '$parentName' parameters need at least a name.")
+            throw new ChangeLogParseException("'${changeId}': '$parentName' parameters need at least a name.")
         }
         map[mapKey] = mapValue
     }

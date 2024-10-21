@@ -11,10 +11,12 @@ buildscript {
 }
 
 plugins {
-    id "com.vanniktech.maven.publish" version "0.32.0"
+    id "groovy"
+    id "maven-publish"
+    id "signing"
+    id "application"
+	 id "com.vanniktech.maven.publish" version "0.32.0"
 }
-apply plugin: "groovy"
-apply plugin: "signing"
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -48,6 +50,11 @@ dependencies {
     testRuntimeOnly "info.picocli:picocli:4.7.5"
 }
 
+// Configure the Groovy compiler
+tasks.withType(GroovyCompile).configureEach {
+        // Example: Additional compiler arguments
+    groovyOptions.parameters = true // Include parameter names in bytecode (JDK 8+)
+}
 
 task sourceJar(type: Jar) {
 	description = "An archive of the source code for Maven Central"

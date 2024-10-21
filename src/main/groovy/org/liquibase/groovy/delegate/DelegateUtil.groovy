@@ -14,6 +14,9 @@
 
 package org.liquibase.groovy.delegate
 
+import groovy.transform.CompileStatic
+import groovy.transform.stc.ClosureParams
+import groovy.transform.stc.FirstParam
 import liquibase.changelog.DatabaseChangeLog
 
 import liquibase.util.LiquibaseUtil
@@ -23,6 +26,7 @@ import liquibase.util.LiquibaseUtil
  *
  * @author Steven C. Saliman
  */
+@CompileStatic
 class DelegateUtil {
     /**
      * Helper method that expands a text expression, replacing variables inside strings with their
@@ -67,7 +71,22 @@ class DelegateUtil {
         if ( value instanceof String ) {
             return value.toBoolean()
         }
-        return value.asBoolean()
+        value
+    }
+
+    @CompileStatic
+    static class MapCategory {
+        /** If obj not null call the give closure */
+        static <I,O> O ifNotNull( I o, @ClosureParams(FirstParam) Closure<O> cl) {
+            if ( null != o ) {
+                cl(o)
+            }
+            else o as O
+        }
+        static Map<String, Object> putNotNull(Map<String, Object> map, String key, value) {
+            ifNotNull(value){map.put(key, it)}
+            map
+        }
     }
 
     /**

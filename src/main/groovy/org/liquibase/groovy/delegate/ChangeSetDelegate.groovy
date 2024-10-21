@@ -60,8 +60,8 @@ class ChangeSetDelegate extends Delegatee {
     protected ChangeFactory changeFactory = Scope.getCurrentScope().getSingleton(ChangeFactory.class)
     ChangeSetDelegate(ChangeSet changeSet, DatabaseChangeLog databaseChangeLog,
                       boolean bInRollback = false) {
-        super(databaseChangeLog, null)
-        inRollback = bInRollback
+        super(databaseChangeLog, fullChangeSetId(changeSet))
+        this.inRollback = bInRollback
         this.changeSet = changeSet
     }
     // -------------------------------------------------------------------------------------------
@@ -92,9 +92,10 @@ class ChangeSetDelegate extends Delegatee {
     void preConditions(Map params = [:],
                        @DelegatesTo(value=PreconditionDelegate, strategy=DELEGATE_ONLY) Closure closure) {
         changeSet.preconditions =
-                buildPreconditionContainer(databaseChangeLog, params, closure, changeSet.id)
+                buildPreconditionContainer(databaseChangeLog, params, closure, changeId)
     }
 
+    // 1:any | 1:all | 1:*
     void validCheckSum(String checksum) {
         changeSet.addValidCheckSum(checksum)
     }
@@ -120,8 +121,7 @@ class ChangeSetDelegate extends Delegatee {
      * @param closure the closure to evaluate.
      */
     void rollback(@DelegatesTo(value=ChangeSetDelegate, strategy = DELEGATE_ONLY) Closure closure) {
-        def x = new ChangeSetDelegate(changeSet, databaseChangeLog, true)
-            .call(closure)
+        def x = new ChangeSetDelegate(changeSet, databaseChangeLog, true)(closure)
         def sql = DelegateUtil.expandExpressions(x, databaseChangeLog)
         if ( sql ) {
             changeSet.addRollBackSQL(sql)
@@ -508,8 +508,7 @@ class ChangeSetDelegate extends Delegatee {
         addChange(change)
     }
 
-    /**
-     * Processes an update change, which takes a closure in addition to a  map.
+    /** Updates data in an existing table
      * @param params the properties to set on the new changes.
      * @param closure the closure to call with the nested columns for the change.
      */
