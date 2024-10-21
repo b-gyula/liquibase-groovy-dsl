@@ -10,9 +10,12 @@ buildscript {
 	}
 }
 
-apply plugin: "groovy"
-apply plugin: "maven-publish"
-apply plugin: "signing"
+plugins {
+    id "groovy"
+    id "maven-publish"
+    id "signing"
+    id "application"
+}
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -57,6 +60,11 @@ dependencies {
     implementation "org.apache.maven.wagon:wagon-ssh-external:${wagonVersion}"
 }
 
+// Configure the Groovy compiler
+tasks.withType(GroovyCompile).configureEach {
+        // Example: Additional compiler arguments
+    groovyOptions.parameters = true // Include parameter names in bytecode (JDK 8+)
+}
 
 task sourceJar(type: Jar) {
 	description = "An archive of the source code for Maven Central"
