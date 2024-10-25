@@ -85,6 +85,7 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
             } catch (CompilationFailedException e){
                 throw e // Contains file + line
             } catch(MethodSelectionException e) {
+                // Get private fields
                 String methodName = e.metaClass.getAttribute(e, 'methodName')
                 Class[] argTypes = e.metaClass.getAttribute(e, 'arguments') as Class[]
                 FastArray methods = e.metaClass.getAttribute(e, 'methods') as FastArray
@@ -132,8 +133,6 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
         PRIORITY_DEFAULT
     }
 
-
-
     /** If t is
      * Create a new ChangeLogParseException with the message `errMsg` if not null
      otherwise t.message + the filename from `databaseChangeLog` and the line number from
@@ -153,8 +152,7 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
         new ChangeLogParseException(t.message + fileNameAndLine, t)
     }
 
-
-    /** Collect all public methods with the longest parameter list starting with Map using java reflection
+    /** Collect all public methods with the longest parameter list not starting with Map using java reflection
      * DOES NOT WORK ON SCRIPT! */
     static Map<String, Method> getMethods(Class cls) {
         Map<String, Method> map = new HashMap<>()
@@ -165,16 +163,18 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
                 if ( stored ) {
                     //boolean isMap2 = it.parameters.first() instanceof Map
                     if (stored.parameterTypes.length < it.parameterTypes.length
-                         && Map.class.isAssignableFrom (it.parameterTypes.first())) {
+                         && !isMap(it.parameterTypes.first())) {
                         map[it.name] = it // Update
                     }
-                } else { // Store the first
+                } else if(it.parameterTypes.length > 0 && !isMap(it.parameterTypes.first())){ // Store the first
                     map.put(it.name, it)
                 }
             }
         }
         map
     }
+
+    static boolean isMap(Class cls) { Map.class.isAssignableFrom (cls)}
 
     static UnrecognizedElement unrecognizedRootElement(String name) {
         new UnrecognizedElement(name, [],"Unrecognized root element '$name'! Only '$dbChangeLogTagName' expected")
@@ -207,7 +207,7 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
 
     static String dbChangeLogTagName = "databaseChangeLog"
 
-    static enum Tag { property, include, includeAll, changeSet, preConditions }
+
 
     interface Arg {
         static final String dbms = 'dbms'

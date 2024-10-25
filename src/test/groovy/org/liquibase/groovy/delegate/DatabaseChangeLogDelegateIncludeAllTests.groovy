@@ -24,11 +24,9 @@ import liquibase.precondition.core.DBMSPrecondition
 import liquibase.precondition.core.RunningAsPrecondition
 import liquibase.resource.ClassLoaderResourceAccessor
 import liquibase.resource.DirectoryResourceAccessor
-import liquibase.resource.ResourceAccessor
 import org.junit.Before
 import org.junit.Test
 
-import static groovy.lang.Closure.DELEGATE_ONLY
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertNull
@@ -48,10 +46,8 @@ import static org.liquibase.groovy.helper.util.*
  * @author Steven C. Saliman
  */
 @CompileStatic
-class DatabaseChangeLogDelegateIncludeAllTests {
+class DatabaseChangeLogDelegateIncludeAllTests extends DatabaseChangeLogTests {
     // Let's define some paths and directories.  These should all be relative.
-    static final String ROOT_CHANGELOG_PATH = "src/test/changelog"
-    static final String TMP_CHANGELOG_PATH = ROOT_CHANGELOG_PATH + "/tmp"
     static final String INCLUDED_CHANGELOG_PATH = TMP_CHANGELOG_PATH + "/include"
     // The "3-" is important to put it between 2 filenames in the parent.
     static final String INCLUDED_CHANGELOG_SUB_PATH = TMP_CHANGELOG_PATH + "/include/3-subdirectory"
@@ -67,11 +63,6 @@ class DatabaseChangeLogDelegateIncludeAllTests {
     static final SECOND_INCLUDED_CHANGE_SET = 'second-included-change-set'
     static final THIRD_INCLUDED_CHANGE_SET = 'third-included-change-set'  // the one in the subdir
     static final FOURTH_INCLUDED_CHANGE_SET = 'fourth-included-change-set' // the sql file
-    // This one is not a real file, but it looks like a legit file.  It is used by tests that
-    // build changelogs on the fly.
-    static final String MOCK_CHANGELOG = "${ROOT_CHANGELOG_PATH}/mock-changelog.groovy"
-
-    ResourceAccessor resourceAccessor
 
     @Before
     void registerParser() {
@@ -236,6 +227,44 @@ databaseChangeLog {
 }
 """)
         verify parseDatabaseChangeLog (rootChangeLogFile, resourceAccessor)
+    }
+
+    @Test
+    void includeAllRelativeToRelativeChangeLogMixedConvert() {
+        createIncludedChangeLogFiles()
+        def rootChangeLogFile = createFileFrom(TMP_CHANGELOG_DIR, '.groovy', """
+databaseChangeLog {
+  preConditions {
+    dbms(type: 'mysql')
+  }
+  includeAll 'include', 'true', context: 'myContext'
+  changeSet(author: 'ssaliman', id: '${ROOT_CHANGE_SET}') {
+    addColumn(tableName: 'monkey') {
+      column(name: 'emotion', type: 'varchar(50)')
+    }
+  }
+}
+""")
+        verify parseDatabaseChangeLog(rootChangeLogFile, resourceAccessor)
+    }
+
+    @Test
+    void includeAllRelativeToRelativeChangeLogPositionalConvert() {
+        createIncludedChangeLogFiles()
+        def rootChangeLogFile = createFileFrom(TMP_CHANGELOG_DIR, '.groovy', """
+databaseChangeLog {
+  preConditions {
+    dbms(type: 'mysql')
+  }
+  includeAll 'include', 'true', 'myContext'
+  changeSet(author: 'ssaliman', id: '${ROOT_CHANGE_SET}') {
+    addColumn(tableName: 'monkey') {
+      column(name: 'emotion', type: 'varchar(50)')
+    }
+  }
+}
+""")
+        verify parseDatabaseChangeLog(rootChangeLogFile, resourceAccessor)
     }
 
     @Test
@@ -1050,20 +1079,6 @@ databaseChangeLog {
     }
 
     /**
-     * Helper method that builds a changeSet from the given closure.  Tests will use this to test
-     * parsing the various closures that make up the Groovy DSL.
-     * @param closure the closure containing changes to parse.
-     * @return the changeSet, with parsed changes from the closure added.
-     */
-    private DatabaseChangeLog buildChangeLog(@DelegatesTo(value=DatabaseChangeLogDelegate, strategy = DELEGATE_ONLY) Closure closure) {
-        def changelog = new DatabaseChangeLog(MOCK_CHANGELOG)
-        changelog.changeLogParameters = new ChangeLogParameters()
-        new DatabaseChangeLogDelegate(changelog, resourceAccessor)
-                .call(closure)
-        return changelog
-    }
-
-    /**
      * Helper method to create changelogs in a directory for testing the includeAll methods.  It
      * creates 4 files:
      * <ul>
@@ -1117,8 +1132,6 @@ databaseChangeLog {
   }
 }
 """)
-
-
         return INCLUDED_CHANGELOG_DIR.path.replaceAll("\\\\", "/")
     }
 

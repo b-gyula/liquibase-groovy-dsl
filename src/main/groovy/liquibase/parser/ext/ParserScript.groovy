@@ -16,12 +16,12 @@ package liquibase.parser.ext
 
 import liquibase.changelog.DatabaseChangeLog
 import liquibase.database.ObjectQuotingStrategy
-import liquibase.exception.ChangeLogParseException
 import liquibase.resource.ResourceAccessor
 import org.liquibase.groovy.delegate.*
-import static groovy.lang.Closure.DELEGATE_ONLY
+
+import static groovy.lang.Closure.DELEGATE_FIRST
 import static GroovyLiquibaseChangeLogParser.*
-import liquibase.parser.groovy.exception.*
+import static org.liquibase.groovy.delegate.DelegateUtil.objArr
 
 @groovy.transform.TypeChecked
 abstract class ParserScript extends Script {
@@ -46,7 +46,7 @@ abstract class ParserScript extends Script {
     void databaseChangeLog( Map<String, Object> args
                            ,String logicalFilePath = null, String contextFilter = null // These are required for mixed parameter calls
                            ,ObjectQuotingStrategy objectQuotingStrategy = null
-                           ,@DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_ONLY) Closure closure) {
+                           ,@DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_FIRST) Closure closure) {
         // It is required to accept all versions containing named parameter must remain for backward compatibility!!!
         args = argsToMap( args, logicalFilePath, contextFilter, objectQuotingStrategy, closure)
         new DatabaseChangeLogDelegate(getProperty('changeLog') as DatabaseChangeLog,
@@ -73,13 +73,13 @@ abstract class ParserScript extends Script {
      */
     void databaseChangeLog(String logicalFilePath = null, String contextFilter = null,
                            ObjectQuotingStrategy objectQuotingStrategy = null,
-                           @DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_ONLY) Closure closure) {
+                           @DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_FIRST) Closure closure) {
          databaseChangeLog [:], logicalFilePath, contextFilter, objectQuotingStrategy, closure
     }
 
     /** Possible method calls with forgotten parameters */
     def propertyMissing(String name)  {
-        methodMissing( name, null)
+        methodMissing( name, objArr())
     }
 
     /** Handled cases:
@@ -91,13 +91,10 @@ abstract class ParserScript extends Script {
             throw unrecognizedRootElement(name)
         }
         Object[] args = params as Object[]
-        if(!args || // called from propertyMissing
-            !(args.last() instanceof Closure)) {
-                throw new MissingClosure(name)
-            }
-        Closure cl = args.last() as Closure
+
         // Put the parameters into the map, it must handle all types anyways
         Map map = argsToMap( args)
+        Closure cl = args.last() as Closure
         databaseChangeLog( map, cl )
         null
     }
@@ -105,6 +102,6 @@ abstract class ParserScript extends Script {
     protected static Map argsToMap(Object... args) {
         Delegatee.argsToMap(null, dbChangeLogTagName, true,
         "(String logicalFilePath, String contextFilter, ObjectQuotingStrategy objectQuotingStrategy) {}",
-                ['m', 'logicalFilePath', 'contextFilter', 'objectQuotingStrategy','cl'], args)
+                ['logicalFilePath', 'contextFilter', 'objectQuotingStrategy', 'cl'], args)
     }
 }

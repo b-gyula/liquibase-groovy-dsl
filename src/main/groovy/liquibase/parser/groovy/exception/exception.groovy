@@ -9,8 +9,8 @@ class ParseErrorWithFileNLine extends ChangeLogParseException {
     String fileNameAndLine = ""
     String prefix
 
-    ParseErrorWithFileNLine(String msg, String prefix){
-        super(msg)
+    ParseErrorWithFileNLine(String msg, String prefix, Throwable t=null){
+        super(msg, t)
         this.prefix = prefix
     }
 

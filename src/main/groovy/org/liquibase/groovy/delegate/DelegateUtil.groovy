@@ -89,6 +89,8 @@ class DelegateUtil {
         }
     }
 
+    static Object[] objArr(Object... o){o}
+
     /**
      * Compare the version of Liquibase being used to a target semver and return if we're using a
      * version of Liquibase that is at least at the version of the target.
