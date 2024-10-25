@@ -36,7 +36,7 @@ import liquibase.parser.ext.GroovyLiquibaseChangeLogParser.Arg
 import java.lang.reflect.Method
 
 import static PreconditionDelegate.buildPreconditionContainer
-import static groovy.lang.Closure.DELEGATE_ONLY
+import static groovy.lang.Closure.DELEGATE_FIRST
 import static groovy.transform.TypeCheckingMode.SKIP
 import static liquibase.parser.ext.GroovyLiquibaseChangeLogParser.*
 import static org.liquibase.groovy.delegate.DelegateUtil.*
@@ -48,8 +48,11 @@ import liquibase.parser.groovy.exception.*
  * @author Steven C. Saliman
  */
 @groovy.transform.CompileStatic
-class DatabaseChangeLogDelegate extends Delegatee {
+class DatabaseChangeLogDelegate extends Delegatee<Tag> {
+    static enum Tag { property, include, includeAll, changeSet, preConditions }
+
     protected final ResourceAccessor resourceAccessor
+
 	DatabaseChangeLogDelegate(DatabaseChangeLog databaseChangeLog, ResourceAccessor resourceAccessor,
                               Map<String, Object> params = [:]) {
 		super( databaseChangeLog, dbChangeLogTagName )
@@ -151,7 +154,7 @@ class DatabaseChangeLogDelegate extends Delegatee {
                    Boolean runInTransaction = null, String runOrder = null, Boolean failOnError = null,
                    ObjectQuotingStrategy objectQuotingStrategy = null, String runWith = null,
                    String created = null, String runWithSpoolFile = null, Boolean ignore = null,
-                   @DelegatesTo(value=ChangeSetDelegate, strategy=DELEGATE_ONLY) Closure closure) {
+                   @DelegatesTo(value=ChangeSetDelegate, strategy=DELEGATE_FIRST) Closure closure) {
         changeSet( [:], id, author, runOnChange, contextFilter, runAlways, labels, dbms,
                     logicalFilePath, onValidationFail, runInTransaction, runOrder, failOnError ,
                     objectQuotingStrategy, runWith, created, runWithSpoolFile, ignore, closure)
@@ -166,7 +169,7 @@ class DatabaseChangeLogDelegate extends Delegatee {
                    Boolean runInTransaction = null, String runOrder = null, Boolean failOnError = null,
                    ObjectQuotingStrategy objectQuotingStrategy = null, String runWith = null,
                    String created = null, String runWithSpoolFile = null, Boolean ignore = null,
-                   @DelegatesTo(value=ChangeSetDelegate, strategy=DELEGATE_ONLY) Closure closure) {
+                   @DelegatesTo(value=ChangeSetDelegate, strategy=DELEGATE_FIRST) Closure closure) {
             // TODO user methodDefs
         changeSet checker( Tag.changeSet, args)
             .putNotNull('id', id)
@@ -191,7 +194,7 @@ class DatabaseChangeLogDelegate extends Delegatee {
 
     /** {@link #changeSet} */
 	void changeSet(Map<String, Object> params,
-                   @DelegatesTo(value = ChangeSetDelegate, strategy = DELEGATE_ONLY)  Closure closure) {
+                   @DelegatesTo(value = ChangeSetDelegate, strategy = DELEGATE_FIRST)  Closure closure) {
 		// Most of the time, we just pass any parameters through to a newly created Liquibase
         // object, but we need to do things a little differently for a ChangeSet because the
         // Liquibase object does not have setters for its properties. We'll need to figure it all
@@ -614,7 +617,7 @@ class DatabaseChangeLogDelegate extends Delegatee {
 	void preConditions( FailOption onFail = null, ErrorOption onError = null,
                         String onFailMessage = null, String onErrorMessage = null,
                        OnSqlOutputOption onUpdateSql = null,
-                       @DelegatesTo(value= PreconditionDelegate, strategy=DELEGATE_ONLY) Closure closure) {
+                       @DelegatesTo(value= PreconditionDelegate, strategy=DELEGATE_FIRST) Closure closure) {
         preConditions [:], onFail, onError, onFailMessage, onErrorMessage, onUpdateSql, closure
     }
 
@@ -623,7 +626,7 @@ class DatabaseChangeLogDelegate extends Delegatee {
                        FailOption onFail = null, ErrorOption onError = null,
                        String onFailMessage = null, String onErrorMessage = null,
                        OnSqlOutputOption onUpdateSql = null,
-                       @DelegatesTo(value= PreconditionDelegate, strategy=DELEGATE_ONLY) Closure closure) {
+                       @DelegatesTo(value= PreconditionDelegate, strategy=DELEGATE_FIRST) Closure closure) {
         checker(Tag.preConditions, params)
                 .putNotNull('onError', onError)
                 .putNotNull('onFail', onFail)
@@ -828,7 +831,7 @@ class DatabaseChangeLogDelegate extends Delegatee {
 		if (changeLogParameters.hasValue(name, databaseChangeLog)) { // TODO: Test?
 			return changeLogParameters.getValue(name, databaseChangeLog)
 		} else {
-            methodMissing( name, null)
+            methodMissing( name, objArr())
 		}
 	}
 
@@ -840,15 +843,20 @@ class DatabaseChangeLogDelegate extends Delegatee {
 	 */
 	protected def methodMissing(String name, params) {
         Method method = methodDefs[name]
-        if(method){
-            Object[] args = params as Object[]
-            if(requiresClosure(method)
-                    && (!args || args.length < 1 || !(args.last() instanceof Closure)) ) {
-                error new MissingClosure(name)
-            }
-            error new InvalidArgument( name, asString(method.parameters), args)
+        if(!method) {
+            error new UnrecognizedElement(name, knownElements())
         }
-        error new UnrecognizedElement(name, knownElements())
+        Object[] args = params as Object[]
+        boolean needsClosure = requiresClosure(method)
+        Map map = argsToMap( changeId, name, needsClosure, asString(method.parameters),
+                method.parameters*.name, args)
+        // Make sure it exists to avoid infinite loop
+        def m = metaClass.pickMethod(name, (needsClosure ? [Map, Closure] : [Map]) as Class[])
+        if(!m) {
+            throw new ParseErrorWithFileNLine("Unable to find method: '$name' for object $this with args: Map, Closure", changeId)
+        }
+
+        needsClosure ? m.invoke (this, objArr(map, args.last())) : m.invoke (this, map)
 	}
 
 

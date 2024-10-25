@@ -33,7 +33,6 @@ import static org.junit.Assert.assertNotNull
 import static org.junit.Assert.assertNull
 import static org.junit.Assert.assertTrue
 import static org.liquibase.groovy.helper.util.*
-import static groovy.lang.Closure.DELEGATE_ONLY
 
 /**
  * One of several test classes for the {@link DatabaseChangeLogDelegate}.  The number of tests for
@@ -43,19 +42,11 @@ import static groovy.lang.Closure.DELEGATE_ONLY
  * @author Steven C. Saliman
  */
 @CompileStatic
-class DatabaseChangeLogDelegateIncludeTests {
+class DatabaseChangeLogDelegateIncludeTests extends DatabaseChangeLogTests {
     // Let's define some paths and directories.  These should all be relative.
-    static final String ROOT_CHANGELOG_PATH = "src/test/changelog"
-    static final String TMP_CHANGELOG_PATH = ROOT_CHANGELOG_PATH + "/tmp"
     static final String INCLUDED_CHANGELOG_PATH = TMP_CHANGELOG_PATH + "/include"
     static final File TMP_CHANGELOG_DIR = new File(TMP_CHANGELOG_PATH)
     static final File INCLUDED_CHANGELOG_DIR = new File(INCLUDED_CHANGELOG_PATH)
-    // This one is not a real file, but it looks like a legit file.  It is used by tests that
-    // build changelogs on the fly.
-    static final String MOCK_CHANGELOG = "${ROOT_CHANGELOG_PATH}/mock-changelog.groovy"
-
-    ResourceAccessor resourceAccessor
-
 
     @Before
     void registerParser() {
@@ -221,7 +212,7 @@ databaseChangeLog {
   preConditions {
     dbms(type: 'mysql')
   }
-  include 'include/${includedChangeLogFile.name}', true, 'myContext', 'myLabel'
+  include 'include/${includedChangeLogFile.name}', 1, 'myContext', 'myLabel'
   changeSet(author: 'ssaliman', id: 'ROOT_CHANGE_SET') {
     addColumn(tableName: 'monkey') {
       column(name: 'emotion', type: 'varchar(50)')
@@ -301,20 +292,6 @@ databaseChangeLog {
 }
 """)
         validateChangeLog parseDatabaseChangeLog(rootChangeLogFile, resourceAccessor)
-    }
-
-    /**
-     * Helper method that builds a changeSet from the given closure.  Tests will use this to test
-     * parsing the various closures that make up the Groovy DSL.
-     * @param closure the closure containing changes to parse.
-     * @return the changeSet, with parsed changes from the closure added.
-     */
-    private DatabaseChangeLog buildChangeLog(@DelegatesTo(value=DatabaseChangeLogDelegate, strategy = DELEGATE_ONLY) Closure closure) {
-        def changelog = new DatabaseChangeLog(MOCK_CHANGELOG)
-        changelog.changeLogParameters = new ChangeLogParameters()
-        new DatabaseChangeLogDelegate(changelog, resourceAccessor)
-           .call(closure)
-        return changelog
     }
 
 

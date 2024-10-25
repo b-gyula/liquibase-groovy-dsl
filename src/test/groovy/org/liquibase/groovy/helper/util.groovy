@@ -8,19 +8,24 @@ import liquibase.parser.ext.GroovyLiquibaseChangeLogParser
 import liquibase.parser.groovy.exception.*
 import liquibase.precondition.Precondition
 import liquibase.precondition.core.PreconditionContainer
+import org.liquibase.groovy.delegate.DatabaseChangeLogDelegate
 import org.liquibase.groovy.delegate.Delegatee
 import liquibase.resource.ResourceAccessor
 
+import java.nio.charset.StandardCharsets
 import java.lang.reflect.Field
 
+import static groovy.lang.Closure.DELEGATE_FIRST
 import static org.junit.Assert.assertEquals
 import static liquibase.parser.ext.GroovyLiquibaseChangeLogParser.*
 
-
-import java.nio.charset.StandardCharsets
-
 @groovy.transform.CompileStatic
 class util {
+    static final String ROOT_CHANGELOG_PATH = "src/test/changelog"
+
+    // This one is not a real file, but it looks like a legit file.  It is used by tests that
+    // build changelogs on the fly.
+    static final String MOCK_CHANGELOG = "${ROOT_CHANGELOG_PATH}/mock-changelog.groovy"
 
     /** parserFactory with GroovyLiquibaseChangeLogParser registered */
     static @Lazy ChangeLogParserFactory parserFactory = registerParser()
@@ -58,16 +63,16 @@ class util {
         file << text
     }
 
-    static IO io(String i, o) { new IO ( i, o)}
+    static <I,O> IO io( I i, O o) { new IO ( i, o)}
     @TupleConstructor()
-    static class IO { String i; Object o }
+    static class IO<I,O> { I i; O o }
 
     static failedCase(String c, Throwable t){
         throw new AssertionError("Case '$c' thrown: $t.class.simpleName: $t.message", t)
     }
 
     @Category(Delegatee)
-    static class DelegateeCategory {
+    static class DelegateeCategory<Tag> {
 
         String invalidElement(String name) {
             this.prefix( new UnrecognizedElement(name, this.knownElements())).message
@@ -89,7 +94,15 @@ class util {
         }
     }
 
-    /** Validate if all keys in {@link expected} are also in {@link actual} and the values are matching
+
+    /** Validate if all keys in {@code expected} are set as property in {@code actual} and the values are matching
+        If the type do not match their String representation is compared
+     */
+    static void assertPropsSet(Map<String, Object> expected, actual) {
+        assertMapEquals expected, actual.properties
+    }
+
+    /** Validate if all keys in {@code expected} are also in {@code actual} and the values are matching
         If the type do not match compare their String representation
       */
     static void assertMapEquals(Map<String, Object> expected, Map<String, Object> actual) {
@@ -147,5 +160,39 @@ class util {
             }
         }
         return actualPreconditions
+    }
+
+    static class DatabaseChangeLogTests {
+        static final String TMP_CHANGELOG_PATH = ROOT_CHANGELOG_PATH + "/tmp"
+        ResourceAccessor resourceAccessor
+        /**
+         * Helper method that builds a changeSet from the given closure.  Tests will use this to test
+         * parsing the various closures that make up the Groovy DSL.
+         * @param closure the closure containing changes to parse.
+         * @return the changeSet, with parsed changes from the closure added.
+         */
+        DatabaseChangeLog buildChangeLog(
+                @DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_FIRST) Closure closure) {
+            return buildChangeLog(null, closure)//args,
+        }
+
+        /**
+         * Helper method that builds a changeSet from the given closure.  Tests will use this to test
+         * parsing the various closures that make up the Groovy DSL.
+         * @param closure the closure containing changes to parse.
+         * @return the changeSet, with parsed changes from the closure added.
+         */
+        DatabaseChangeLog buildChangeLog(ChangeLogParameters parameters,
+           @DelegatesTo(value = DatabaseChangeLogDelegate, strategy=DELEGATE_FIRST) Closure closure) {
+            def changelog = new DatabaseChangeLog(MOCK_CHANGELOG)
+            if ( parameters == null ) {
+                changelog.changeLogParameters = new ChangeLogParameters()
+            } else {
+                changelog.changeLogParameters = parameters
+            }
+            new DatabaseChangeLogDelegate(changelog, resourceAccessor)
+                    .call(closure)
+            return changelog
+        }
     }
 }

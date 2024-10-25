@@ -15,7 +15,7 @@ import liquibase.parser.groovy.exception.*
 
 @groovy.transform.CompileStatic
 /** Class for generic functions in ...Delegate classes */
-abstract class Delegatee {
+abstract class Delegatee<Tag> {
     protected final DatabaseChangeLog databaseChangeLog
     String changeId // used for error messages
     /** method cache for error messages */
@@ -29,7 +29,7 @@ abstract class Delegatee {
     }
 
     /** call the given closure with this as delegate */
-    def call(@DelegatesTo(strategy = DELEGATE_ONLY) Closure closure, Object... args) {
+    def call(@DelegatesTo(strategy = DELEGATE_FIRST) Closure closure, args = null) {
         closure.delegate = this
         closure.resolveStrategy = DELEGATE_FIRST
         closure.call(args)
@@ -49,8 +49,8 @@ abstract class Delegatee {
     /** Create generic ChangeLogParseException with the message msg prefixed with the changeId
         For specific cases specific Exception shall be used
      */
-    protected ChangeLogParseException changeLogParseException(String msg) {
-        new ChangeLogParseException(prefix(msg))
+    protected ParseErrorWithFileNLine changeLogParseException(String msg, Throwable t=null) {
+        new ParseErrorWithFileNLine(msg, changeId, t)
     }
 
     /** object to allow fluently call {@link #putNotNull} */
@@ -77,42 +77,59 @@ abstract class Delegatee {
     }
 
     Map<String, Object> argsAsMap(Tag tag, Object... args ) {
-        String methodName = tag as String
+        argsAsMap tag as String, args
+    }
+
+    Map<String, Object> argsAsMap(String methodName, Object... args ) {
         Method method = methodDefs[methodName]
-        argsToMap changeId, methodName, requiresClosure(method), asString(method.parameters),
+        argsAsMap method, args
+    }
+
+    Map<String, Object> argsAsMap(Method method, Object... args ) {
+        argsToMap changeId, method.name, requiresClosure(method), asString(method.parameters),
                 method.parameters*.name, args
     }
 
     /**
      * @param args expected to get all arguments including the starting Map and closing Closure
-     * @param argNames expected to contain all parameter names including also expected Map's name
+     * @param argNames expected to contain all parameter names excluding the first Map parameter
+     * @throws InvalidArgument
      */
     static Map<String, Object> argsToMap(String prefix, String methodName, boolean needsClosure,
                                          String fnDef, List<String> argNames, Object... args )
         throws ArgumentSetTwice, InvalidArgument {
-        int cl = needsClosure? 1 : 0
-        int i = args.first() instanceof Map ? 1 : 0
+        assert argNames.size() > 0
 
-        // Make sure there are no more ars, than expected
-        if(args.length <= argNames.size() ) {
-            Map<String, Object> map = i ? args.first() as Map : [:]
-            for(int n =1;i < args.length-cl; i++) {
-                String name = argNames[n++]
-                if(args[i] != null) {
-                    if(map[name] != null){
-                        throw new ArgumentSetTwice(methodName, name, prefix)
-                    }
-                    map[name] = args[i]
-                }
-            }
-            return map
+        int cl = needsClosure ? 1 : 0
+        // Make sure there are at least 1 args if needed
+        if( !args || !args.length ) {
+            throw needsClosure ? new MissingClosure(methodName, prefix)
+                   : new InvalidArgument(methodName, fnDef, prefix, args)
         }
-        throw new InvalidArgument(methodName, fnDef, prefix, args)
+        if(needsClosure && !Closure.isAssignableFrom(args.last().class)) {
+            throw new MissingClosure(methodName, prefix)
+        }
+        int i = args.first() instanceof Map ? 1 : 0
+        Map<String, Object> map = i ? (Map)args.first(): new LinkedHashMap<>()
+        // Make sure there are no more args, than expected
+        if(args.length - i > argNames.size()) {
+            throw new InvalidArgument(methodName, fnDef, prefix, args)
+        }
+        for(int n = 0; i < args.length-cl; i++) {
+            String name = argNames[n++]
+            if(args[i] != null) {
+                if(map[name] != null){
+                    throw new ArgumentSetTwice(methodName, name, prefix)
+                }
+                map[name] = args[i]
+            }
+        }
+        map
     }
 
-    /** Log a warning prefixed with the change id*/
+    /** Log a warning prefixed with the change id using Liquibase's logger*/
     void logWarning(String msg) {
-        getCurrentScope().getLog(getClass()).warning(prefix(msg));
+        getCurrentScope().getLog(getClass()).warning(prefix(msg))
     }
 
     static String fullChangeSetId(ChangeSet changeSet){"changeSet ${changeSet.toString(false)}"}

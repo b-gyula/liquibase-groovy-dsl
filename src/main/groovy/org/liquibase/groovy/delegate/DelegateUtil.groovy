@@ -86,4 +86,6 @@ class DelegateUtil {
             map
         }
     }
+
+    static Object[] objArr(Object... o){o}
 }

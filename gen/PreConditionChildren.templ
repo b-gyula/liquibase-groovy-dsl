@@ -1,0 +1,23 @@
+package org.liquibase.groovy.delegate
+${timestamp}
+import groovy.transform.CompileStatic
+import groovy.transform.SelfType
+import liquibase.database.ObjectQuotingStrategy
+import static org.liquibase.groovy.delegate.PreconditionDelegate.Tag.*
+
+@CompileStatic
+@SelfType(PreconditionDelegate)
+trait PreConditionChildren {
+<% methods.findAll{it.args && !it.hasChild}.each { m -> %>
+    ${m.javadoc()}
+    void $m.name(${m.argList(true)}) {
+        addPrecondition $m.name, [:], ${m.argList()}
+    }
+<% if(m.args.size() > 2) { %>
+    ${m.javadoc()}
+    void $m.name(Map<String, Object> namedArgs, ${m.argList(true)}) {
+        addPrecondition $m.name, namedArgs, ${m.argList()}
+    }
+<% } // if
+  } // each %>
+}
