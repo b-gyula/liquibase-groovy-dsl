@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Tim Berglund and Steven C. Saliman
+ * Copyright 2011-2025 Tim Berglund and Steven C. Saliman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.  You may obtain a copy of the License at
@@ -269,6 +269,9 @@ databaseChangeLog {
      * This test is looking at the relativeToChangeLogFile parameter.  For this test, the included
      * changelogs are not in the same directory as (or a subdirectory of) the root changelog.  The
      * main thing here is to make sure paths like "../somedir" work.
+     * <p>
+     * This test also uses the liquibase 4.30+ logicalFilePath attribute to make sure it cascades
+     * to the generated change sets.
      */
     @Test
     void includeAllRelativeToRelativeChangeLogParent() {

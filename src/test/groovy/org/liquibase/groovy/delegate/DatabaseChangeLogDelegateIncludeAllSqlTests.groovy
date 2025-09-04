@@ -1,5 +1,5 @@
 /*
- * Copyright 2011-2024 Tim Berglund and Steven C. Saliman
+ * Copyright 2011-2025 Tim Berglund and Steven C. Saliman
  *
  * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
  * in compliance with the License.  You may obtain a copy of the License at
@@ -1072,6 +1072,7 @@ databaseChangeLog {
              objectQuotingStrategy: 'QUOTE_ONLY_RESERVED_WORDS',
              created: 'test_created',
              ignore: true,
+             logicalFilePath: 'logical/path',
              runWith: 'my_executor',
              runWithSpoolFile: 'my.log',
              idKeepsExtension: true,
@@ -1113,6 +1114,7 @@ databaseChangeLog {
         assertEquals ObjectQuotingStrategy.QUOTE_ONLY_RESERVED_WORDS, changeSet.objectQuotingStrategy
         assertEquals 'test_created', changeSet.created
         assertTrue changeSet.ignore
+        assertEquals 'logical/path', changeSet.logicalFilePath
         assertEquals 'my_executor', changeSet.runWith
         assertEquals 'my.log', changeSet.runWithSpoolFile
 
