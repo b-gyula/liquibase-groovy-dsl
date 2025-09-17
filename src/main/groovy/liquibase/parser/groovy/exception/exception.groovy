@@ -1,7 +1,8 @@
 package liquibase.parser.groovy.exception
 
 import groovy.transform.CompileStatic
-import liquibase.exception.ChangeLogParseException;
+import liquibase.exception.ChangeLogParseException
+import org.liquibase.groovy.delegate.DelegateUtil.CollectionStringBuilder;
 
 @CompileStatic
 /** Helper class to add prefix, file name and line number to the exception after created (not to deepen the stacktrace ) */
@@ -9,7 +10,7 @@ class ParseErrorWithFileNLine extends ChangeLogParseException {
     String fileNameAndLine = ""
     String prefix
 
-    ParseErrorWithFileNLine(String msg, String prefix, Throwable t=null){
+    ParseErrorWithFileNLine(String msg, String prefix = null, Throwable t=null){
         super(msg, t)
         this.prefix = prefix
     }
@@ -35,31 +36,39 @@ class ArgumentSetTwice extends ParseErrorWithFileNLine {
 @CompileStatic
 class UnrecognizedElement extends ParseErrorWithFileNLine {
     UnrecognizedElement(String tagName, Collection<String> knownElements, String prefix = null,
-            String msg = "Unrecognized element: '$tagName'! Valid elements are ${knownElements.toListString()}"
+            String msg = "Unrecognized element: '$tagName'! ${knownElements ? 'Valid elements are'+ knownElements.toListString() :''}"
     ) {
         super(msg, prefix)
     }
 }
 
 @CompileStatic
-class InvalidArgument extends ParseErrorWithFileNLine {
-    InvalidArgument(String tagName, String fnDef, String prefix = null, Object[] args) {
+class InvalidArguments extends ParseErrorWithFileNLine {
+    InvalidArguments(String tagName, String fnDef, String prefix = null, Object[] args) {
         super("'$tagName' element got invalid arguments ${argsToString(args)}. Valid arguments are: $fnDef", prefix )
     }
 
     static String argsToString(Object[] args){
-        if(null == args ) {
+        if(null == args.toArrayString() ) {
             return '[]'
         }
-        args.inject("["){ String acc, val ->
-            if(acc.length() > 1){
-                acc += ','
-            }
+        CollectionStringBuilder sb = new CollectionStringBuilder("[")
+        args.each{ val ->
             String v
             if(val instanceof Closure) v = '{}'
             else if(val instanceof String) v = "'$val'"
             else v = val.toString()
-            acc + v
+            sb << v
         } + ']'
+    }
+}
+
+@CompileStatic
+class InvalidAttribute extends ParseErrorWithFileNLine {
+    InvalidAttribute(String tagName, String attrib, String prefix, String validArgs, String parentName = '',
+                     Throwable cause = null) {
+        super( "'$attrib' is not valid attribute for '$tagName'" +
+                (parentName ? " in '$parentName' changes." :'') +
+                (validArgs ? " Valid attributes are: $validArgs" :''), prefix, cause)
     }
 }

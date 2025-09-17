@@ -11,20 +11,18 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-package liquibase.util;
+package liquibase.util
 
-import liquibase.exception.UnexpectedLiquibaseException;
-import liquibase.statement.DatabaseFunction;
-import liquibase.statement.SequenceCurrentValueFunction;
+import groovy.transform.CompileStatic
+import liquibase.exception.UnexpectedLiquibaseException
+import liquibase.statement.DatabaseFunction
+import liquibase.statement.SequenceCurrentValueFunction
 import liquibase.statement.SequenceNextValueFunction
-import liquibase.structure.core.ForeignKeyConstraintType;
+import org.liquibase.groovy.delegate.DelegateUtil
 
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.Locale;
-import java.util.Map;
+import java.lang.reflect.InvocationTargetException
+import java.lang.reflect.Method
+import static java.util.Optional.ofNullable
 
 /**
  * This class is a copy of the ObjectUtil class in Liquibase itself, but patched to work with the
@@ -36,11 +34,12 @@ import java.util.Map;
  * @author Nathan Voxland
  * @author Steven C. Saliman
  */
+@CompileStatic
 class PatchedObjectUtil {
 
-    private static Map<Class<?>, Method[]> methodCache = new HashMap<Class<?>, Method[]>();
+    private static Map<Class<?>, Map<String, List<Method>>> methodCache = [:];
 
-    static Object getProperty(Object object, String propertyName) throws IllegalAccessException, InvocationTargetException {
+/*    static Object getProperty(Object object, String propertyName) throws IllegalAccessException, InvocationTargetException {
         Method readMethod = getReadMethod(object, propertyName);
         if ( readMethod == null ) {
             throw new UnexpectedLiquibaseException("Property '" + propertyName + "' not found on object type " + object.getClass().getName());
@@ -59,33 +58,42 @@ class PatchedObjectUtil {
 
     static boolean hasWriteProperty(Object object, String propertyName) {
         return getWriteMethod(object, propertyName) != null;
+    }*/
+
+    static <T> T convert(Object o, Class<T> type) {
+        if(null == o) return o
+        if(! type.isAssignableFrom(o.class)) {
+            if ( type.equals(Boolean.class) || type.equals(boolean.class) ) {
+                return DelegateUtil.parseTruth(o);
+            } else if ( type.equals(Integer.class) ) {
+                return o as Integer
+            } else if ( type.equals(Long.class) ) {
+                return o as Long
+            } else if ( type.equals(BigInteger.class) ) {
+                return o as BigInteger
+            } else if ( type.equals(DatabaseFunction.class) ) {
+                return new DatabaseFunction(o as String);
+            } else if ( type.equals(SequenceNextValueFunction.class) ) {
+                return new SequenceNextValueFunction(o as String);
+            } else if ( type.equals(SequenceCurrentValueFunction.class) ) {
+                return new SequenceCurrentValueFunction(o as String);
+            } else if ( Enum.class.isAssignableFrom(type) ) { // TODO add nicer error  than 'type' is not a valid column attribute for 'loadData' changes
+                return Enum.valueOf((Class<Enum>) type, o as String);
+            } else if( type.equals(String.class)) {
+                return o as String
+            }
+        }
+        o
     }
 
-    static void setProperty(Object object, String propertyName, String propertyValue) {
-        Method method = getWriteMethod(object, propertyName);
+    static void setProperty(Object object, String propertyName, propertyValue) {
+        Method method = getWriteMethod(object, propertyName, propertyValue.class)
         if ( method == null ) {
             throw new UnexpectedLiquibaseException("Property '" + propertyName + "' not found on object type " + object.getClass().getName());
         }
 
         Class<?> parameterType = method.getParameterTypes()[0];
-        Object finalValue = propertyValue;
-        if ( parameterType.equals(Boolean.class) || parameterType.equals(boolean.class) ) {
-            finalValue = Boolean.valueOf(propertyValue);
-        } else if ( parameterType.equals(Integer.class) ) {
-            finalValue = Integer.valueOf(propertyValue);
-        } else if ( parameterType.equals(Long.class) ) {
-            finalValue = Long.valueOf(propertyValue);
-        } else if ( parameterType.equals(BigInteger.class) ) {
-            finalValue = new BigInteger(propertyValue);
-        } else if ( parameterType.equals(DatabaseFunction.class) ) {
-            finalValue = new DatabaseFunction(propertyValue);
-        } else if ( parameterType.equals(SequenceNextValueFunction.class) ) {
-            finalValue = new SequenceNextValueFunction(propertyValue);
-        } else if ( parameterType.equals(SequenceCurrentValueFunction.class) ) {
-            finalValue = new SequenceCurrentValueFunction(propertyValue);
-        } else if ( Enum.class.isAssignableFrom(parameterType) ) {
-            finalValue = Enum.valueOf((Class<Enum>) parameterType, propertyValue);
-        }
+        Object finalValue = convert( propertyValue, parameterType)
         try {
             method.invoke(object, finalValue);
         } catch (IllegalAccessException e) {
@@ -97,6 +105,7 @@ class PatchedObjectUtil {
         }
     }
 
+/*
     private static Method getReadMethod(Object object, String propertyName) {
         String getMethodName = "get" + propertyName.substring(0, 1).toUpperCase(Locale.ENGLISH) + propertyName.substring(1);
         String isMethodName = "is" + propertyName.substring(0, 1).toUpperCase(Locale.ENGLISH) + propertyName.substring(1);
@@ -135,25 +144,60 @@ class PatchedObjectUtil {
                         c.equals(Long.class) ||
                         c.equals(BigInteger.class) ||
                         c.equals(DatabaseFunction.class) ||
+                        c.equals(Date.class) ||
                         c.equals(SequenceNextValueFunction.class) ||
                         c.equals(SequenceCurrentValueFunction.class) ||
                         c.equals(String.class) ||
-                        (Enum.class.isAssignableFrom(c)) && !c.equals(ForeignKeyConstraintType.class) ) {
-                    return method;
+
+                     (Enum.class.isAssignableFrom(c) && !c.equals(ForeignKeyConstraintType.class) ) {
+                        break;
+                    }
+                    return method
                 }
             }
         }
         return null;
     }
+*/
 
-    private static Method[] getMethods(Object object) {
-        Method[] methods = methodCache.get(object.getClass());
+    /** Get the write method of the property matching the supplied type
+     * If not found return the string version
+     * If that is not found either return the first
+     * @param object
+     * @param propName
+     * @param type
+     * @return
+     */
+    static Method getWriteMethod(Object object, String propName, Class type) {
+        List<Method> methods = getMethods(object, propName)
+        if(methods)
+            methods.find {it.parameterTypes[0].isAssignableFrom(type) } ?:
+                methods.find {it.parameterTypes[0].isAssignableFrom(String) } ?:
+                        methods.first()
+        else null
+    }
 
-        if ( methods == null ) {
-            methods = object.getClass().getMethods();
-            methodCache.put(object.getClass(), methods);
+    static String propSetLike(String name, String prefix) {
+        name.startsWith(prefix) && Character.isUpperCase(name.charAt(prefix.length())) ?
+                name[prefix.length()].toLowerCase(Locale.ENGLISH) + name.substring(prefix.length()+1)
+        : null
+    }
+
+    static Map<String, List<Method>> getWriteMethods(Class cls) {
+        Method[] methods = cls.getMethods()
+        Map<String, List<Method>> r = [:]
+
+        methods.each { m ->
+            if( m.parameterTypes.length == 1 )
+                ofNullable( propSetLike( m.name, 'set'))
+                        .or({ ofNullable( propSetLike( m.name, 'should')) })
+                        .ifPresent { p -> r.computeIfAbsent(p,{[]}) add m }
         }
-        return methods;
+        r
+    }
+
+    static List<Method> getMethods(Object object, String prop) {
+        methodCache.computeIfAbsent(object.class, PatchedObjectUtil::getWriteMethods )[prop]
     }
 
 }

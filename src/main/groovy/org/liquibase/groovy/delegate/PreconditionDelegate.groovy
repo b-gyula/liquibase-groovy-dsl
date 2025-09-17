@@ -18,7 +18,6 @@ import groovy.transform.TypeChecked
 import groovy.transform.TypeCheckingMode
 import liquibase.changelog.DatabaseChangeLog
 import liquibase.exception.ChangeLogParseException
-import liquibase.parser.groovy.exception.ParseErrorWithFileNLine
 import liquibase.precondition.Precondition
 import liquibase.precondition.PreconditionLogic
 import liquibase.precondition.core.AndPrecondition
@@ -33,33 +32,27 @@ import liquibase.precondition.core.PreconditionContainer.ErrorOption
 import liquibase.precondition.core.PreconditionContainer.FailOption
 import liquibase.util.PatchedObjectUtil
 
-import java.lang.reflect.Method
-
 import static groovy.lang.Closure.DELEGATE_FIRST
+import static groovy.lang.Closure.DELEGATE_ONLY
 import static liquibase.parser.ext.GroovyLiquibaseChangeLogParser.dbChangeLogTagName
-import static liquibase.parser.groovy.exception.InvalidArgument.argsToString
-import static org.liquibase.groovy.delegate.PreconditionDelegate.Tag.indexExists
-import static org.liquibase.groovy.delegate.PreconditionDelegate.Tag.indexExists
+import static liquibase.parser.groovy.exception.InvalidArguments.argsToString
 
 @groovy.transform.CompileStatic
 /** Delegate for the preConditions element used both in changeSet and databaseChangeLog */
 class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildren {
     static enum Tag { changeLogPropertyDefined, changeSetExecuted, columnExists, dbms,
                       expectedQuotingStrategy,  foreignKeyConstraintExists, indexExists,
-                      primaryKeyExists, rowCount, runningAs, sequenceExists, tableExists,
-                      tableIsEmpty, uniqueConstraintExists, viewExists }
+                      primaryKeyExists, rowCount, runningAs, sequenceExists, sqlCheck,
+                      tableExists, tableIsEmpty, uniqueConstraintExists, viewExists }
 
     protected final List<Precondition> preconditions = []
 
     PreconditionDelegate(DatabaseChangeLog dbChangeLog, String changeId){
-        super(dbChangeLog, changeId + '/preConditions')
+        super(dbChangeLog, changeId + '/preConditions', 'preConditions')
     }
 
-    protected void propertyMissing(String name) {
-        methodMissing name, null
-    }
 
-    protected void methodMissing(String name, args) {
+    protected def methodMissing(String name, args) {
         addPrecondition name, args as Object[]
     }
 
@@ -86,9 +79,9 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
             throw changeLogParseException("'${name}' is an invalid precondition.")
         }
 
-        Method m = methodDefs[name]
+        MethodDef m = methodDefs[name]
         if(m) { // There is a dedicated method
-            setProps precondition, argsAsMap(m, args)
+            setProps precondition, argsAsMap(name, m, args)
         }
         else if ( args != null && args[0] instanceof Map<String, Object> ) {
             setProps(precondition, args[0] as Map<String, Object>)
@@ -99,28 +92,9 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
         preconditions << precondition
     }
 
-    protected void setProps(Precondition precondition, Map<String, Object> props) {
-        props.each {key, value ->
-            setProp(precondition, key, value)
-        }
-    }
-
-    /** Wrapper for PatchedObjectUtil.setProperty adds detailed error message */
-    private void setProp(Precondition precondition, String name, Object value) {
-        try {
-            if(value != null) {
-                PatchedObjectUtil.setProperty(precondition, name,
-                        DelegateUtil.expandExpressions(value.toString(), databaseChangeLog))
-            }
-        } catch (RuntimeException e) {
-            throw new ChangeLogParseException("$changeId: '$name' is an invalid property for '${precondition.name}'", e)
-        }
-    }
-
     /** Executes an SQL string and checks the returned value. The SQL must return a single row with a single value.
      * @param params the attributes of the precondition
      * @param closure the SQL for the precondition
-     * @return the newly created precondition.
      */
     def sqlCheck(Map<String, Object> params = [:],
                  @DelegatesTo(value= SqlPrecondition, strategy=DELEGATE_FIRST) Closure closure) {
@@ -143,17 +117,16 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
      * @param closure the closure with nested key/value pairs for the custom precondition.
      */
     def customPrecondition(Map<String, Object> params = [:],
-                           @DelegatesTo(value=KeyValueDelegate, strategy = DELEGATE_FIRST) Closure closure) {
+                           @DelegatesTo(value=KeyValueDelegate, strategy = DELEGATE_ONLY) Closure closure) {
         def delegate = new KeyValueDelegate('customPrecondition', changeId)
         delegate.call(closure)
 
         def precondition = new CustomPreconditionWrapper()
-        params.each { key, value ->
-            setProp(precondition, key, value)
-        }
+        setProps(precondition, params)
+
         delegate.map.each { key, value ->
              // This is a key/value pair in the Liquibase object, so it won't fail.
-            def expandedValue = DelegateUtil.expandExpressions(value, databaseChangeLog)
+            def expandedValue = expandExpressions(value as String)
             precondition.setParam(key, expandedValue ? expandedValue : "null" )
         }
 
@@ -161,19 +134,19 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
     }
 
     /** logical AND operator */
-    def and(@DelegatesTo(value=PreconditionDelegate, strategy=DELEGATE_FIRST ) Closure closure) {
+    def and(@DelegatesTo(value=PreconditionDelegate, strategy=DELEGATE_ONLY ) Closure closure) {
         preconditions << nestedPrecondition(new AndPrecondition(), closure)
     }
 
     /** logical OR operator */
-    def or(@DelegatesTo(value=PreconditionDelegate, strategy=DELEGATE_FIRST) Closure closure) {
+    def or(@DelegatesTo(value=PreconditionDelegate, strategy=DELEGATE_ONLY) Closure closure) {
         preconditions << nestedPrecondition(new OrPrecondition(), closure)
     }
 
     /** logical NOT operator
         For multiple children AND logic is used
      */
-    def not(@DelegatesTo(value=PreconditionDelegate, strategy=DELEGATE_FIRST) Closure closure) {
+    def not(@DelegatesTo(value=PreconditionDelegate, strategy=DELEGATE_ONLY) Closure closure) {
         preconditions << nestedPrecondition(new NotPrecondition(), closure)
     }
 
@@ -189,17 +162,17 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
     @TypeChecked(TypeCheckingMode.SKIP)
     static PreconditionContainer buildPreconditionContainer(DatabaseChangeLog databaseChangeLog,
                                                             Map<String, Object> params,
-                        @DelegatesTo(value= PreconditionDelegate, strategy=DELEGATE_FIRST) Closure closure,
+                        @DelegatesTo(value= PreconditionDelegate, strategy=DELEGATE_ONLY) Closure closure,
                                                             String changeSetId = dbChangeLogTagName) {
         PreconditionContainer preconditions = new PreconditionContainer()
-
+        // TODO use setProps(preconditions, params)
         // Process parameters.  3 of them need a special case.
         params.each {key, value ->
             def paramValue = DelegateUtil.expandExpressions(value, databaseChangeLog)
             if ( key == "onFail" ) {
-                preconditions.onFail = FailOption."${paramValue}" // TODO is it required?
+                preconditions.onFail = FailOption."${paramValue}"
             } else if ( key == "onError" ) {
-                preconditions.onError = ErrorOption."${paramValue}"
+                preconditions.onError = ErrorOption."${paramValue}" // TODO limit according to changeset or databaseChangeLog
             } else if ( key == "onUpdateSql" || key == "onUpdateSql" ) {
                 preconditions.onSqlOutput = OnSqlOutputOption."${paramValue}"
             } else {
@@ -216,11 +189,10 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
         delegate.nestedPrecondition(preconditions, closure, delegate)
     }
 
-
     private <T extends PreconditionLogic> T nestedPrecondition(T nestedPrecondition,
-           @DelegatesTo(strategy=DELEGATE_FIRST) Closure closure,
+           @DelegatesTo(strategy=DELEGATE_ONLY) Closure preConditions,
            PreconditionDelegate delegate = new PreconditionDelegate(databaseChangeLog, changeId)) {
-        delegate.call(closure)
+        delegate.call(preConditions)
 
         delegate.preconditions.each { precondition ->
             nestedPrecondition.addNestedPrecondition(precondition)

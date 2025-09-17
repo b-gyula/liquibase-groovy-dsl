@@ -13,7 +13,6 @@
  */
 package org.liquibase.groovy.delegate
 
-
 import liquibase.change.visitor.AddColumnChangeVisitor
 import liquibase.changelog.ChangeLogParameters
 import liquibase.changelog.ChangeSet
@@ -23,6 +22,8 @@ import liquibase.exception.ChangeLogParseException
 import liquibase.precondition.Precondition
 import liquibase.precondition.core.DBMSPrecondition
 import liquibase.precondition.core.PreconditionContainer
+import liquibase.precondition.core.PreconditionContainer.ErrorOption
+import liquibase.precondition.core.PreconditionContainer.FailOption
 import liquibase.resource.DirectoryResourceAccessor
 import org.junit.After
 import org.junit.Before
@@ -30,6 +31,7 @@ import org.junit.Test
 import liquibase.parser.ext.GroovyLiquibaseChangeLogParser.Arg
 import java.lang.reflect.Field
 import org.liquibase.groovy.delegate.DatabaseChangeLogDelegate.Tag
+import liquibase.parser.groovy.exception.*
 
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertFalse
@@ -38,10 +40,10 @@ import static org.junit.Assert.assertNull
 import static org.junit.Assert.assertTrue
 import static liquibase.parser.ext.GroovyLiquibaseChangeLogParser.*
 import static org.liquibase.groovy.helper.util.*
-
 import static liquibase.database.ObjectQuotingStrategy.*
-import liquibase.parser.groovy.exception.*
-import static groovy.lang.Closure.DELEGATE_ONLY
+import static org.liquibase.groovy.helper.constants.*
+import static liquibase.precondition.core.PreconditionContainer.OnSqlOutputOption.*
+import static org.liquibase.groovy.delegate.DelegateUtil.cast
 
 /**
  * One of several test classes for the {@link DatabaseChangeLogDelegate}.  The number of tests for
@@ -127,6 +129,23 @@ class DatabaseChangeLogDelegateTests extends DatabaseChangeLogTests {
         def changeSets = changeLog.changeSets
         // We don't care much about how this one parses, just that it did parse.
         assertTrue changeSets.size() > 1
+    }
+
+    @Test
+    void parseFullChangelog4() {
+        String fullChangeLog = "${ROOT_CHANGELOG_PATH}/full-changelog4.groovy"
+        def parser = parserFactory.getParser(fullChangeLog, resourceAccessor)
+
+        assertNotNull "Groovy changelog parser was not found", parser
+
+        def changeLog = parser.parse(fullChangeLog, new ChangeLogParameters(), resourceAccessor)
+        assertNotNull "Parsed DatabaseChangeLog was null", changeLog
+        assertTrue "Parser result was not a DatabaseChangeLog", changeLog instanceof DatabaseChangeLog
+        assertEquals '.', changeLog.logicalFilePath
+
+        def changeSets = changeLog.changeSets
+        // We don't care much about how this one parses, just that it did parse.
+        assertTrue changeSets.size() > 1
 
     }
 
@@ -156,24 +175,18 @@ databaseChangeLog()
      */
     @Test
     void preconditionParametersWithOnUpdateSql() {
-        def closure = {
-            preConditions(onFail: 'WARN', onError: 'MARK_RAN', onUpdateSql: 'TEST', onFailMessage: 'fail-message!!!1!!1one!', onErrorMessage: 'error-message') {
 
-            }
+        def databaseChangeLog = buildChangeLog{
+            preConditions(onFail: 'WARN', onError: 'MARK_RAN', onUpdateSql: 'TEST', onFailMessage: 'fail-message!!!1!!1one!', onErrorMessage: 'error-message') {}
         }
-
-        def databaseChangeLog = new DatabaseChangeLog('changelog.xml')
-        databaseChangeLog.changeLogParameters = new ChangeLogParameters()
-        new DatabaseChangeLogDelegate(databaseChangeLog, resourceAccessor)
-            .call(closure)
 
         // Liquibase now wraps the container in a container.  I don't know why.
         Precondition preconditions = databaseChangeLog.preconditions.nestedPreconditions[0]
         assertNotNull preconditions
         assertTrue preconditions instanceof PreconditionContainer
-        assertEquals PreconditionContainer.FailOption.WARN, preconditions.onFail
-        assertEquals PreconditionContainer.ErrorOption.MARK_RAN, preconditions.onError
-        assertEquals PreconditionContainer.OnSqlOutputOption.TEST, preconditions.onSqlOutput
+        assertEquals FailOption.WARN, preconditions.onFail
+        assertEquals ErrorOption.MARK_RAN, preconditions.onError
+        assertEquals TEST, preconditions.onSqlOutput
         assertEquals 'fail-message!!!1!!1one!', preconditions.onFailMessage
         assertEquals 'error-message', preconditions.onErrorMessage
     }
@@ -184,26 +197,21 @@ databaseChangeLog()
      */
     @Test
     void preconditionParametersWithOnSqlOutput() {
-        def closure = {
-            preConditions(onFail: 'WARN', onError: 'MARK_RAN', onSqlOutput: 'TEST', onFailMessage: 'fail-message!!!1!!1one!', onErrorMessage: 'error-message') {
+        [ named: { preConditions(onFail: 'WARN', onError: 'MARK_RAN', onSqlOutput: TEST,
+                                onFailMessage: fail, onErrorMessage: err) {}}
+         ,positional: { preConditions( 'WARN', 'MARK_RAN', fail, err, TEST) {}}
+         ,mixed: { preConditions( 'WARN', 'MARK_RAN', fail, onSqlOutput: TEST, err) {}}
+        ].each { c, cl ->
+            try {
+                DatabaseChangeLog changelog = buildChangeLog cl
 
+                // Liquibase now wraps the container in a container.  I don't know why.
+                assertPropsSet ChangeSetPreconditionTests.expPropsPreConditions,
+                        cast(changelog.preconditions.nestedPreconditions[0], PreconditionContainer)
+            } catch (e) {
+                failedCase(c, e)
             }
         }
-
-        def databaseChangeLog = new DatabaseChangeLog('changelog.xml')
-        databaseChangeLog.changeLogParameters = new ChangeLogParameters()
-        new DatabaseChangeLogDelegate(databaseChangeLog, resourceAccessor)
-                .call(closure)
-
-        // Liquibase now wraps the container in a container.  I don't know why.
-        def preconditions = databaseChangeLog.preconditions.nestedPreconditions[0]
-        assertNotNull preconditions
-        assertTrue preconditions instanceof PreconditionContainer
-        assertEquals PreconditionContainer.FailOption.WARN, preconditions.onFail
-        assertEquals PreconditionContainer.ErrorOption.MARK_RAN, preconditions.onError
-        assertEquals PreconditionContainer.OnSqlOutputOption.TEST, preconditions.onSqlOutput
-        assertEquals 'fail-message!!!1!!1one!', preconditions.onFailMessage
-        assertEquals 'error-message', preconditions.onErrorMessage
     }
 
     /**
@@ -333,7 +341,7 @@ databaseChangeLog()
                             runOrder, failOnError,
                             'QUOTE_ALL_OBJECTS', runWith,
                             created, runWithSpoolFile, ignore) {
-                        comment(comments)
+                        comment(changeSetExpectedArgs.comments)
                     }
                 }
             }
@@ -354,7 +362,7 @@ databaseChangeLog()
                           runOrder, failOnError,
                           objectQuotingStrategy, runWith,
                           created, runWithSpoolFile, ignore) {
-                    comment(comments)
+                    comment(changeSetExpectedArgs.comments)
                 }
             }
         }
@@ -1037,16 +1045,18 @@ emotion=angry
     @Test
     void changeSetPositionalParams() {
         [
-         'positional only': "changeSet('i', 'a'){}", // name + value
-         'map only':"changeSet(id:'i', author: 'a'){}",
-         'mixed 1': "changeSet(author: 'a', 'i'){}",
-         'mixed 2': "changeSet('i',  author: 'a'){}",
+         'positional': "changeSet('1', 'a'){}", // name + value
+         'map only':"changeSet(id:'1', author: 'a'){}",
+         'mixed 1': "changeSet(author: 'a', '1'){}",
+         'mixed 2': "changeSet('1',  author: 'a'){}",
+         'mixed different type': "changeSet(1, author: 'a'){}",
+         'positional different type': "changeSet(1, 'a'){}",
         ].each {
             try {
                 DatabaseChangeLog changeLog = parseDatabaseChangeLog "databaseChangeLog{\n${it.value}\n}"
                 assertEquals 1, changeLog.changeSets.size()
                 ChangeSet c = changeLog.changeSets[0] as ChangeSet
-                assertEquals 'id', 'i', c.id
+                assertEquals 'id', '1', c.id
                 assertEquals 'author', 'a', c.author
             } catch(e) {
                 failedCase(it.key, e)

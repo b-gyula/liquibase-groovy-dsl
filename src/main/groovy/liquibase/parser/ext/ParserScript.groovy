@@ -19,8 +19,8 @@ import liquibase.database.ObjectQuotingStrategy
 import liquibase.resource.ResourceAccessor
 import org.liquibase.groovy.delegate.*
 
-import static groovy.lang.Closure.DELEGATE_FIRST
 import static GroovyLiquibaseChangeLogParser.*
+import static groovy.lang.Closure.DELEGATE_ONLY
 import static org.liquibase.groovy.delegate.DelegateUtil.objArr
 
 @groovy.transform.TypeChecked
@@ -46,7 +46,7 @@ abstract class ParserScript extends Script {
     void databaseChangeLog( Map<String, Object> args
                            ,String logicalFilePath = null, String contextFilter = null // These are required for mixed parameter calls
                            ,ObjectQuotingStrategy objectQuotingStrategy = null
-                           ,@DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_FIRST) Closure closure) {
+                           ,@DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_ONLY) Closure closure) {
         // It is required to accept all versions containing named parameter must remain for backward compatibility!!!
         args = argsToMap( args, logicalFilePath, contextFilter, objectQuotingStrategy, closure)
         new DatabaseChangeLogDelegate(getProperty('changeLog') as DatabaseChangeLog,
@@ -73,12 +73,12 @@ abstract class ParserScript extends Script {
      */
     void databaseChangeLog(String logicalFilePath = null, String contextFilter = null,
                            ObjectQuotingStrategy objectQuotingStrategy = null,
-                           @DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_FIRST) Closure closure) {
+                           @DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_ONLY) Closure closure) {
          databaseChangeLog [:], logicalFilePath, contextFilter, objectQuotingStrategy, closure
     }
 
     /** Possible method calls with forgotten parameters */
-    def propertyMissing(String name)  {
+    protected def propertyMissing(String name)  {
         methodMissing( name, objArr())
     }
 
@@ -86,7 +86,7 @@ abstract class ParserScript extends Script {
         @throw MissingClosure if last parameter is not a required closure
         @throw exception if
      */
-    Object methodMissing(String name, Object params) {
+    protected Object methodMissing(String name, Object params) {
         if (dbChangeLogTagName != name){
             throw unrecognizedRootElement(name)
         }

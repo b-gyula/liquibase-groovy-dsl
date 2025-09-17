@@ -33,10 +33,8 @@ import liquibase.resource.ResourceAccessor
 import liquibase.util.FileUtil
 import liquibase.parser.ext.GroovyLiquibaseChangeLogParser.Arg
 
-import java.lang.reflect.Method
-
 import static PreconditionDelegate.buildPreconditionContainer
-import static groovy.lang.Closure.DELEGATE_FIRST
+import static groovy.lang.Closure.DELEGATE_ONLY
 import static groovy.transform.TypeCheckingMode.SKIP
 import static liquibase.parser.ext.GroovyLiquibaseChangeLogParser.*
 import static org.liquibase.groovy.delegate.DelegateUtil.*
@@ -144,8 +142,7 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
      <dt><a href='https://docs.liquibase.com/concepts/changelogs/attributes/ignore.html'>ignore</a></dt>
      <dd>treat changeset as if it does not exist. Default: false. since: v3.6</dd>
      </dl>
-     @param closure the closure containing, among other things, all the refactoring changes the
-      change set should make.
+     @param changes closure containing, the refactoring changes the change set should make.
      */
     void changeSet(String id, String author = null, Boolean runOnChange = null,
                    String contextFilter = null, Boolean runAlways = null, String labels = null,
@@ -154,24 +151,24 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
                    Boolean runInTransaction = null, String runOrder = null, Boolean failOnError = null,
                    ObjectQuotingStrategy objectQuotingStrategy = null, String runWith = null,
                    String created = null, String runWithSpoolFile = null, Boolean ignore = null,
-                   @DelegatesTo(value=ChangeSetDelegate, strategy=DELEGATE_FIRST) Closure closure) {
+                   @DelegatesTo(value=ChangeSetDelegate, strategy=DELEGATE_ONLY) Closure changes) {
         changeSet( [:], id, author, runOnChange, contextFilter, runAlways, labels, dbms,
                     logicalFilePath, onValidationFail, runInTransaction, runOrder, failOnError ,
-                    objectQuotingStrategy, runWith, created, runWithSpoolFile, ignore, closure)
+                    objectQuotingStrategy, runWith, created, runWithSpoolFile, ignore, changes)
     }
     // TODO annotate mandatory params
     // TODO alias annotation for deprecated names
     /** {@link #changeSet} */
-    void changeSet(Map<String, Object> args, String id, String author = null,
+    void changeSet(Map<String, Object> namedArgs, String id, String author = null,
                    Boolean runOnChange = null, String contextFilter = null,
                    Boolean runAlways = null, String labels = null, String dbms = null,
                    String logicalFilePath = null, ValidationFailOption onValidationFail = null,
                    Boolean runInTransaction = null, String runOrder = null, Boolean failOnError = null,
                    ObjectQuotingStrategy objectQuotingStrategy = null, String runWith = null,
                    String created = null, String runWithSpoolFile = null, Boolean ignore = null,
-                   @DelegatesTo(value=ChangeSetDelegate, strategy=DELEGATE_FIRST) Closure closure) {
-            // TODO user methodDefs
-        changeSet checker( Tag.changeSet, args)
+                   @DelegatesTo(value=ChangeSetDelegate, strategy=DELEGATE_ONLY) Closure changes) {
+            // TODO use methodDefs
+        changeSet checker( Tag.changeSet, namedArgs)
             .putNotNull('id', id)
             .putNotNull('author', author)
             .putNotNull(Arg.dbms, dbms)
@@ -187,14 +184,14 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
             .putNotNull('created', created)
             .putNotNull('runOrder', runOrder)
             .putNotNull(Arg.ignore, ignore)
-            .putNotNull('runWith', runWith)
-            .putNotNull('runWithSpoolFile', runWithSpoolFile) // since...
-            .asMap, closure
+            .putNotNull(Arg.runWith, runWith)
+            .putNotNull(Arg.runWithSpoolFile, runWithSpoolFile) // TODO since...
+            .asMap, changes
     }
 
     /** {@link #changeSet} */
 	void changeSet(Map<String, Object> params,
-                   @DelegatesTo(value = ChangeSetDelegate, strategy = DELEGATE_FIRST)  Closure closure) {
+                   @DelegatesTo(value = ChangeSetDelegate, strategy = DELEGATE_ONLY)  Closure changes) {
 		// Most of the time, we just pass any parameters through to a newly created Liquibase
         // object, but we need to do things a little differently for a ChangeSet because the
         // Liquibase object does not have setters for its properties. We'll need to figure it all
@@ -223,8 +220,8 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
 				'created',
 				'runOrder',
 				Arg.ignore,
-				'runWith',
-                'runWithSpoolFile'
+                Arg.runWith,
+                Arg.runWithSpoolFile
 		]
 		if (unsupportedKeys.size() > 0) {
 			throw new ChangeLogParseException("ChangeSet '${params.id}': ${unsupportedKeys.toArray()[0]} is not a supported ChangeSet attribute")
@@ -258,13 +255,18 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
                 filePath,
                 DelegateUtil.expandExpressions(contextFilter, databaseChangeLog),
                 DelegateUtil.expandExpressions(params.dbms, databaseChangeLog),
-                DelegateUtil.expandExpressions(params.runWith, databaseChangeLog),
-                DelegateUtil.expandExpressions(params.runWithSpoolFile, databaseChangeLog),
+                //DelegateUtil.expandExpressions(params.runWith, databaseChangeLog),
+                //DelegateUtil.expandExpressions(params.runWithSpoolFile, databaseChangeLog),
                 DelegateUtil.parseTruth(params.runInTransaction, true),
                 objectQuotingStrategy,
                 databaseChangeLog)
 
         changeSet.changeLogParameters = databaseChangeLog.changeLogParameters
+
+        if(params.runWith && changeSet.hasProperty(Arg.runWith))
+            changeSet.runWith = expandExpressions(params.runWith, databaseChangeLog)
+        if(params.runWithSpoolFile && changeSet.hasProperty(Arg.runWithSpoolFile))
+            changeSet.runWithSpoolFile = expandExpressions(params.runWithSpoolFile, databaseChangeLog)
 
 		if ( params.containsKey('failOnError') ) {
 			changeSet.failOnError = DelegateUtil.parseTruth(params.failOnError, false)
@@ -290,7 +292,7 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
 			changeSet.ignore = DelegateUtil.parseTruth(params.ignore, false)
 		}
 
-		new ChangeSetDelegate(changeSet, databaseChangeLog)(closure)
+		new ChangeSetDelegate(changeSet)(changes)
 
 		databaseChangeLog.addChangeSet(changeSet)
 	}
@@ -319,10 +321,10 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
     }
 
     /** {@link #include} */
-	void include(Map<String, Object> params, String file, Boolean relativeToChangelogFile = null,
+	void include(Map<String, Object> namedArgs, String file, Boolean relativeToChangelogFile = null,
                  String contextFilter = null, String labels = null,
                  Boolean errorIfMissing = null, Boolean ignore = null) {
-        include checker(Tag.include, params)
+        include checker(Tag.include, namedArgs)
             .putNotNull(Arg.file, file)
             .putNotNull(Arg.relativeToChangelogFile, relativeToChangelogFile)
             .putNotNull(Arg.contextFilter, contextFilter)
@@ -347,8 +349,8 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
 			throw new ChangeLogParseException("DatabaseChangeLog: '${unsupportedKeys.toArray()[0]}' is not a supported attribute of the 'include' element.")
 		}
 
-		def relativeToChangelogFile = DelegateUtil.parseTruth(params.relativeToChangelogFile, false)
-		def errorIfMissing = DelegateUtil.parseTruth(params.errorIfMissing, true)
+		def relativeToChangelogFile = parseTruth(params.relativeToChangelogFile, false)
+		def errorIfMissing = parseTruth(params.errorIfMissing, true)
 
 	   	String fileName = databaseChangeLog
 			    .changeLogParameters
@@ -356,7 +358,7 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
         String context = params.contextFilter? params.contextFilter : params.context
 		def includeContexts = new ContextExpression(context)
 		def labels = new Labels(params.labels.toString())
-		boolean ignore = DelegateUtil.parseTruth(params.ignore, false)
+		boolean ignore = parseTruth(params.ignore, false)
 
         // TODO not 3.10.3 compatible
         // The Resource Accessor we need to use depends on whether we are including a relative file
@@ -423,13 +425,13 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
     }
 
     /** {@link #includeAll} */
-    void includeAll(Map<String, Object> map, String path, Boolean relativeToChangelogFile=null,
+    void includeAll(Map<String, Object> namedArgs, String path, Boolean relativeToChangelogFile=null,
                     String contextFilter=null, String labels=null,
                     String endsWithFilter=null, String filter=null,
                     Integer maxDepth=null, Integer minDepth=null,
                     String resourceComparator=null,
                     Boolean errorIfMissingOrEmpty=null, Boolean ignore = null) {
-        includeAll argsAsMap(Tag.includeAll, map, path, relativeToChangelogFile,
+        includeAll argsAsMap(Tag.includeAll, namedArgs, path, relativeToChangelogFile,
                     contextFilter, labels,
                     endsWithFilter, filter,
                     maxDepth, minDepth,
@@ -610,30 +612,23 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
      <dd>Provides a custom message to output when preconditions fail. Since 2.0</dd>
      <dt>{@code onSqlOutput}</dt>
      <dd>Controls how preconditions are evaluated with the update-sql command for XML, YAML, and JSON changelogs. Since 1.9.5</dd>
-     <dt>{@code onUpdateSql}</dt>
-     <dd>Controls how preconditions are evaluated with the update-sql command for formatted SQL changelogs.</dd>
-     </dl>
+      </dl>
      */
 	void preConditions( FailOption onFail = null, ErrorOption onError = null,
                         String onFailMessage = null, String onErrorMessage = null,
-                       OnSqlOutputOption onUpdateSql = null,
-                       @DelegatesTo(value= PreconditionDelegate, strategy=DELEGATE_FIRST) Closure closure) {
-        preConditions [:], onFail, onError, onFailMessage, onErrorMessage, onUpdateSql, closure
+                       OnSqlOutputOption onSqlOutput = null,
+                       @DelegatesTo(value= PreconditionDelegate, strategy=DELEGATE_ONLY) Closure preconditions) {
+        preConditions [:], onFail, onError, onFailMessage, onErrorMessage, onSqlOutput, preconditions
     }
 
     /** {@link #preConditions} */
-    void preConditions(Map params,
+    void preConditions(Map namedArgs,
                        FailOption onFail = null, ErrorOption onError = null,
                        String onFailMessage = null, String onErrorMessage = null,
-                       OnSqlOutputOption onUpdateSql = null,
-                       @DelegatesTo(value= PreconditionDelegate, strategy=DELEGATE_FIRST) Closure closure) {
-        checker(Tag.preConditions, params)
-                .putNotNull('onError', onError)
-                .putNotNull('onFail', onFail)
-                .putNotNull('onErrorMessage', onErrorMessage)
-                .putNotNull('onFailMessage', onFailMessage)
-                .putNotNull('onUpdateSql', onUpdateSql)
-		databaseChangeLog.preconditions = buildPreconditionContainer(databaseChangeLog, params, closure)
+                       OnSqlOutputOption onSqlOutput = null,
+                       @DelegatesTo(value= PreconditionDelegate, strategy=DELEGATE_ONLY) Closure preconditions) {
+        argsAsMap(Tag.preConditions, namedArgs, onFail, onError, onFailMessage, onErrorMessage, onSqlOutput, preconditions)
+		databaseChangeLog.preconditions = buildPreconditionContainer(databaseChangeLog, namedArgs, preconditions)
 	}
 
     /**
@@ -666,10 +661,10 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
     }
 
     /** {@link #property} */
-    void property(Map<String, Object> args, String name, String value,
+    void property(Map<String, Object> namedArgs, String name, String value,
                   String contextFilter = null, String labels = null,
                   String dbms = null, Boolean global = null) {
-        property checker(Tag.property, args)
+        property checker(Tag.property, namedArgs)
                 .putNotNull(Arg.name, name)
                 .putNotNull(Arg.value, value)
                 .putNotNull(Arg.contextFilter, contextFilter)
@@ -713,10 +708,10 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
     }
 
     /** {@link #property} */
-    void property(Map<String, Object> params, String file, Boolean relativeToChangelogFile = null,
+    void property(Map<String, Object> namedArgs, String file, Boolean relativeToChangelogFile = null,
                   String contextFilter = null, String labels = null,
                   String dbms = null, Boolean global = null, Boolean errorIfMissing = null) {
-        property checker(Tag.property, params) // TODO use method definition
+        property checker(Tag.property, namedArgs) // TODO use method definition
                 .putNotNull(Arg.contextFilter, contextFilter)
                 .putNotNull(Arg.labels, labels)
                 .putNotNull(Arg.file, file)
@@ -765,7 +760,7 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
             if(!file) {
                 throw changeLogParseException(nonEmptyParameterRequiredFor(Tag.property, Arg.file))
             }
-            if(params.name || params.value){ // Should go into Liquibase
+            if(params.name || params.value){ // TODO: Should go into Liquibase
                 logWarning("'name' and 'value' parameters are ignored if 'file' is set")
             }
             def relativeTo = null // Default to a path relative to the working directory
@@ -834,31 +829,6 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
             methodMissing( name, objArr())
 		}
 	}
-
-    /**
-	 * Groovy calls methodMissing when it can't find a matching method to call.
-	 * We use it to tell the user which changeSet had the invalid element.
-	 * @param name the name of the method Groovy wanted to call.
-	 * @param args the original arguments to that method.
-	 */
-	protected def methodMissing(String name, params) {
-        Method method = methodDefs[name]
-        if(!method) {
-            error new UnrecognizedElement(name, knownElements())
-        }
-        Object[] args = params as Object[]
-        boolean needsClosure = requiresClosure(method)
-        Map map = argsToMap( changeId, name, needsClosure, asString(method.parameters),
-                method.parameters*.name, args)
-        // Make sure it exists to avoid infinite loop
-        def m = metaClass.pickMethod(name, (needsClosure ? [Map, Closure] : [Map]) as Class[])
-        if(!m) {
-            throw new ParseErrorWithFileNLine("Unable to find method: '$name' for object $this with args: Map, Closure", changeId)
-        }
-
-        needsClosure ? m.invoke (this, objArr(map, args.last())) : m.invoke (this, map)
-	}
-
 
     /**
      * Helper method that "fixes" incoming parameters to be used with includeAll and includeAllSql

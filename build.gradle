@@ -1,15 +1,6 @@
 #!groovy
 // The above triggers groovy syntax highlighting in vim
 
-buildscript {
-	repositories {
-		mavenCentral()
-		maven {
-			url "https://plugins.gradle.org/m2/"
-		}
-	}
-}
-
 plugins {
     id "groovy"
     id "maven-publish"
@@ -47,14 +38,15 @@ dependencies {
     // compile, but that dependency doesn't transfer to the unit tests, so we also need
     // testCompile.
 	compileOnly "org.liquibase:liquibase-core:${liquibaseVersion}"
-	testImplementation "org.liquibase:liquibase-core:${liquibaseVersion}"
+	implementation "org.liquibase:liquibase-core:${liquibaseVersion}"
     testImplementation "junit:junit:${junitVersion}"
-    testImplementation 'org.spockframework:spock-core:2.3-groovy-3.0'
+    testImplementation "org.spockframework:spock-core:2.3-groovy-${groovyVersion[0]}.0"
+    testImplementation 'org.junit.vintage:junit-vintage-engine'
     testRuntimeOnly "com.h2database:h2:${h2Version}"
     testRuntimeOnly "ch.qos.logback:logback-classic:${logbackVersion}"
     testRuntimeOnly "info.picocli:picocli:4.7.5"
-    implementation "org.apache.maven.wagon:wagon-ssh:${wagonVersion}"
-    implementation "org.apache.maven.wagon:wagon-ssh-external:${wagonVersion}"
+    compileOnly "org.apache.maven.wagon:wagon-ssh:${wagonVersion}"
+    compileOnly "org.apache.maven.wagon:wagon-ssh-external:${wagonVersion}"
 }
 
 test {
@@ -72,7 +64,6 @@ task sourceJar(type: Jar) {
     archiveClassifier = "sources"
 	from sourceSets.main.allSource
 }
-
 
 task groovydocJar(type: Jar, dependsOn: groovydoc) {
 	description = "An archive of the GroovyDocs for Maven Central"

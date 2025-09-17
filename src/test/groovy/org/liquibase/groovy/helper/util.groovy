@@ -14,10 +14,13 @@ import liquibase.resource.ResourceAccessor
 
 import java.nio.charset.StandardCharsets
 import java.lang.reflect.Field
+import java.sql.Timestamp
+import java.text.SimpleDateFormat
 
-import static groovy.lang.Closure.DELEGATE_FIRST
+import static groovy.lang.Closure.DELEGATE_ONLY
 import static org.junit.Assert.assertEquals
 import static liquibase.parser.ext.GroovyLiquibaseChangeLogParser.*
+import static org.junit.Assert.assertNotNull
 
 @groovy.transform.CompileStatic
 class util {
@@ -85,7 +88,7 @@ class util {
 
         /** Convert Tag to String */
         String invalidArgs(Tag name, Object... args) {
-            this.prefix(new InvalidArgument( name as String, '', args)).message
+            this.prefix(new InvalidArguments( name as String, '', args)).message
         }
 
         /** Convert Tag to String */
@@ -98,24 +101,25 @@ class util {
     /** Validate if all keys in {@code expected} are set as property in {@code actual} and the values are matching
         If the type do not match their String representation is compared
      */
-    static void assertPropsSet(Map<String, Object> expected, actual) {
-        assertMapEquals expected, actual.properties
+    static void assertPropsSet(Map expected, actual) {
+        assertNotNull actual
+        assertMapEquals expected as Map<String, Object>, actual.properties
     }
 
     /** Validate if all keys in {@code expected} are also in {@code actual} and the values are matching
         If the type do not match compare their String representation
       */
     static void assertMapEquals(Map<String, Object> expected, Map<String, Object> actual) {
-        expected.each {
-            def act = actual[it.key]
-            def exp = it.value
-            if(null != act && exp.class != act.class) {
+        expected.each { key, exp ->
+            def act = actual[key]
+            // Use String representation if different types
+            if(null != act && exp != null && exp.class != act.class) {
                 act = act as String // Convert actual
-                if ( exp.class != String ) { // If we have only th string representation
+                if ( exp.class != String ) { // If we have only the string representation
                     exp = exp as String // Convert both to String
                 }
             }
-            assertEquals it.key, exp, act
+            assertEquals key, exp, act
         }
     }
 
@@ -162,6 +166,7 @@ class util {
         return actualPreconditions
     }
 
+    /** Parent for DatabaseChangeLog tests */
     static class DatabaseChangeLogTests {
         static final String TMP_CHANGELOG_PATH = ROOT_CHANGELOG_PATH + "/tmp"
         ResourceAccessor resourceAccessor
@@ -172,8 +177,8 @@ class util {
          * @return the changeSet, with parsed changes from the closure added.
          */
         DatabaseChangeLog buildChangeLog(
-                @DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_FIRST) Closure closure) {
-            return buildChangeLog(null, closure)//args,
+                @DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_ONLY) Closure closure) {
+            return buildChangeLog(null, closure)
         }
 
         /**
@@ -183,7 +188,7 @@ class util {
          * @return the changeSet, with parsed changes from the closure added.
          */
         DatabaseChangeLog buildChangeLog(ChangeLogParameters parameters,
-           @DelegatesTo(value = DatabaseChangeLogDelegate, strategy=DELEGATE_FIRST) Closure closure) {
+           @DelegatesTo(value = DatabaseChangeLogDelegate, strategy=DELEGATE_ONLY) Closure closure) {
             def changelog = new DatabaseChangeLog(MOCK_CHANGELOG)
             if ( parameters == null ) {
                 changelog.changeLogParameters = new ChangeLogParameters()
@@ -195,4 +200,52 @@ class util {
             return changelog
         }
     }
+
+    public static final SimpleDateFormat simpleDF = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+
+    /**
+     * Small helper to parse a string into a Timestamp
+     * @param dateTimeString the string to parse
+     * @return the parsed string
+     */
+    public static Timestamp parseSqlTimestamp(String dateTime) {
+        new Timestamp(simpleDF.parse(dateTime).time)
+    }
+/*
+    static class ChangeSpec extends Specification {
+        String ID = 'changeset-id'
+        String AUTHOR = 'tlberglund'
+        String FILEPATH = '/filePath'
+        String CONTEXT = 'mycontext'
+        String DBMS = 'mysql'
+
+        ChangeSet newChangeSet(String id = ID, String author = AUTHOR,
+                                  boolean alwaysRun = false, boolean runOnChange = false,
+                                  String filePath = FILEPATH, String contextFilter = CONTEXT,
+                                  String dbmsList = DBMS) {
+            def changeLog = new DatabaseChangeLog(filePath)
+            changeLog.changeLogParameters = new ChangeLogParameters()
+            new ChangeSet(id, author, alwaysRun, runOnChange, filePath, contextFilter, dbmsList,
+                    changeLog)
+        }
+
+        *//**
+         * Helper method that builds a changeSet from the given closure.  Tests will use this to test
+         * parsing the various closures that make up the Groovy DSL.
+         * @param closure the closure containing changes to parse.
+         * @return the changeSet, with parsed changes from the closure added.
+         *//*
+        ChangeSet buildChangeSet(Map args = null, @ClosureParams(FirstParam.class)
+            @DelegatesTo(value = ChangeSetDelegate, strategy=DELEGATE_ONLY) Closure closure) {
+            ChangeSet changeSet = newChangeSet()
+            def changelog = changeSet.changeLog
+            changelog.addChangeSet(changeSet)
+            changelog.changeLogParameters = new ChangeLogParameters()
+            changelog.changeLogParameters.set('database.typeName', DBMS)
+
+            new ChangeSetDelegate(changeSet).call(closure, args)
+            changeSet
+        }
+    }*/
 }
+

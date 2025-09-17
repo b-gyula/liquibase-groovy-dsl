@@ -13,19 +13,17 @@
  */
 package org.liquibase.groovy.delegate
 
-import groovy.transform.stc.ClosureParams
-import groovy.transform.stc.FirstParam
+
 import liquibase.exception.ChangeLogParseException
 import liquibase.changelog.ChangeLogParameters
 import liquibase.changelog.DatabaseChangeLog
 import liquibase.precondition.Precondition
 import liquibase.precondition.core.*
 import liquibase.precondition.CustomPreconditionWrapper
-import org.junit.Test
 
 import static groovy.lang.Closure.DELEGATE_FIRST
-import static liquibase.parser.ext.GroovyLiquibaseChangeLogParser.*
 import static org.liquibase.groovy.helper.util.*
+import static org.liquibase.groovy.helper.constants.*
 import static liquibase.database.ObjectQuotingStrategy.QUOTE_ALL_OBJECTS
 
 import spock.lang.*
@@ -42,7 +40,6 @@ import spock.lang.*
  */
 class PreconditionDelegateTests extends Specification {
 
-    static final String mysql = 'mysql'
     /** Try creating a dbms precondition  */
     void "dbms #type arguments"() {
         List<Precondition> preconditions = buildPreconditions cl
@@ -89,10 +86,7 @@ class PreconditionDelegateTests extends Specification {
     ]
     /** Try creating a dbms precondition  */
     void "changeLogPropertyDefined #type arguments"() {
-        List<Precondition> preconditions = buildPreconditions (expChangeLogPropertyDefined, cl)
-        expect:
-        1 == preconditions.size()
-        assertPropsSet expChangeLogPropertyDefined, (preconditions[0] as ChangeLogPropertyDefinedPrecondition)
+        verify(expChangeLogPropertyDefined, cl, ChangeLogPropertyDefinedPrecondition)
 
         where:
         type        | cl
@@ -109,10 +103,7 @@ class PreconditionDelegateTests extends Specification {
 
     /** Try creating a changeSetExecuted precondition.  */
     void "changeSetExecuted #type arguments"() {
-        List<Precondition> preconditions = buildPreconditions (expChangeSetExecuted, cl)
-        expect:
-        1 == preconditions.size()
-        assertPropsSet expChangeSetExecuted, (preconditions[0] as ChangeSetExecutedPrecondition)
+        verify (expChangeSetExecuted, cl, ChangeSetExecutedPrecondition)
 
         where:
         type         | cl
@@ -121,79 +112,46 @@ class PreconditionDelegateTests extends Specification {
         'positional' | { changeSetExecuted it.id, tlberglund, changeLogXML }
     }
 
-    static final String tableName = 'monkey'
-    static final String columnName = 'emotion'
 
-    static final expTableExists = [
-            schemaName: 'schema'
-            ,tableName: tableName
-            ,catalogName: 'cat'
-    ]
 
     /** Try creating a columnExists precondition.  */
     void "columnExists #type arguments"() {
-        List<Precondition> preconditions = buildPreconditions( expColumnExists, cl )
-        expect:
-        1 == preconditions.size()
-        assertPropsSet expColumnExists, (preconditions[0] as ColumnExistsPrecondition)
+        verify( expPropsColumnTableSchemaCatalogName, cl, ColumnExistsPrecondition)
 
         where:
         type         | cl
         'named'      | {
-            columnExists expColumnExists}
+            columnExists expPropsColumnTableSchemaCatalogName}
         'positional' | {
             columnExists( columnName, tableName, schemaName, catalogName) }
         'mixed'      | {
             columnExists( catalogName: catalogName, columnName, tableName, schemaName)}
     }
 
-    static final expColumnExists = expTableExists + [columnName: columnName ]
-
     /** try creating a tableExists precondition. */
     void "tableExists #type arguments"() {
-        List<Precondition> preconditions = buildPreconditions( expTableExists, cl )
-
-        expect:
-        1 == preconditions.size()
-        assertPropsSet expTableExists, (preconditions[0] as TableExistsPrecondition)
+        verify( expPropsTableSchemaCatalogName, cl, TableExistsPrecondition)
 
         where:
         type         | cl
-        'named'      | { tableExists(expTableExists)}
+        'named'      | { tableExists(expPropsTableSchemaCatalogName)}
         'positional' | { tableExists( tableName, schemaName, catalogName) }
         'mixed'      | { tableExists( catalogName: catalogName, tableName, schemaName)}
     }
 
     void "tableExists #type arguments"() {
-        List<Precondition> preconditions = buildPreconditions( expTableExists, cl )
-
-        expect:
-        1 == preconditions.size()
-        assertPropsSet expTableExists, (preconditions[0] as TableIsEmptyPrecondition)
+        verify( expPropsTableSchemaCatalogName, cl, TableIsEmptyPrecondition)
 
         where:
         type         | cl
-        'named'      | { tableIsEmpty(expTableExists)}
+        'named'      | { tableIsEmpty(expPropsTableSchemaCatalogName)}
         'positional' | { tableIsEmpty( tableName, schemaName, catalogName) }
         'mixed'      | { tableIsEmpty( catalogName: catalogName, tableName, schemaName)}
     }
 
-    static final String schemaName = 'schema'
-    static final String catalogName = 'cat'
-
-    static final expViewExists = [
-            schemaName: schemaName
-            ,viewName: 'monkey_view'
-            ,catalogName: catalogName
-    ]
-
-    /** Try creating a vewExists precondition. */
+     /** Try creating a vewExists precondition. */
     void "viewExists #type arguments"() {
-        List<Precondition> preconditions = buildPreconditions( expViewExists, cl )
-
-        expect:
-        1 == preconditions.size()
-        assertPropsSet expViewExists, (preconditions[0] as ViewExistsPrecondition)
+        verify( expPropsViewSchemaCatalogName, cl, ViewExistsPrecondition)
 
         where:
         type         | cl
@@ -205,20 +163,14 @@ class PreconditionDelegateTests extends Specification {
             viewExists( catalogName: catalogName, it.viewName, schemaName)}
     }
 
-    static final expForeignKeyConstraintExists = [
-            schemaName: schemaName
-            ,foreignKeyName: 'fk_monkey_key'
+    static final expForeignKeyConstraintExists = expPropsSchemaAndCatalogName + [
+            foreignKeyName: 'fk_monkey_key'
             ,foreignKeyTableName: tableName
-            ,catalogName: catalogName
     ]
 
     /** Try creating a foreignKeyConstraintExists precondition */
     void "foreignKeyConstraintExists #type arguments"() {
-        List<Precondition> preconditions = buildPreconditions( expForeignKeyConstraintExists, cl )
-
-        expect:
-        1 == preconditions.size()
-        assertPropsSet expForeignKeyConstraintExists, (preconditions[0] as ForeignKeyExistsPrecondition)
+        verify expForeignKeyConstraintExists, cl, ForeignKeyExistsPrecondition
 
         where:
         type         | cl
@@ -230,19 +182,14 @@ class PreconditionDelegateTests extends Specification {
             foreignKeyConstraintExists catalogName: catalogName, it.foreignKeyName, tableName, schemaName}
     }
 
-    static final String columnNames = 'col1,col2'
-    static final expIndexExists = expTableExists + [
+    static final expIndexExists = expPropsTableSchemaCatalogName + [
             indexName: 'index'
            ,columnNames: columnNames // Either or indexName
     ]
 
     /** Try creating an indexExists precondition. */
     void "indexExists #type arguments"() {
-        List<Precondition> preconditions = buildPreconditions( expIndexExists, cl )
-
-        expect:
-        1 == preconditions.size()
-        assertPropsSet expIndexExists, (preconditions[0] as IndexExistsPrecondition)
+        verify expIndexExists, cl, IndexExistsPrecondition
 
         where:
         type         | cl
@@ -254,16 +201,12 @@ class PreconditionDelegateTests extends Specification {
             indexExists catalogName: catalogName, it.indexName, tableName, columnNames, schemaName}
     }
 
-    static final expRowCount = expTableExists + [
+    static final expRowCount = expPropsTableSchemaCatalogName + [
         expectedRows: 1
     ]
 
     void "rowCount #type arguments"() {
-        List<Precondition> preconditions = buildPreconditions( expRowCount, cl )
-
-        expect:
-        1 == preconditions.size()
-        assertPropsSet expRowCount, (preconditions[0] as RowCountPrecondition)
+        verify expRowCount, cl, RowCountPrecondition
 
         where:
         type         | cl
@@ -272,19 +215,13 @@ class PreconditionDelegateTests extends Specification {
         'mixed'      | { rowCount( catalogName: catalogName, '1', tableName, schemaName)} // int as string
     }
 
-    static final expSequenceExists = [
-            sequenceName: 'seq_next_monkey'
-            ,schemaName: schemaName
-            ,catalogName: catalogName
+    static final expSequenceExists = expPropsSchemaAndCatalogName + [
+            sequenceName: sequenceName
     ]
 
     /** Try creating a sequenceExists precondition. */
     void "sequenceExists #type arguments"() {
-        List<Precondition> preconditions = buildPreconditions( expSequenceExists, cl )
-
-        expect:
-        1 == preconditions.size()
-        assertPropsSet expSequenceExists, (preconditions[0] as SequenceExistsPrecondition)
+        verify expSequenceExists, cl, SequenceExistsPrecondition
 
         where:
         type         | cl
@@ -293,17 +230,13 @@ class PreconditionDelegateTests extends Specification {
         'mixed'      | { sequenceExists( catalogName: catalogName, it.sequenceName, schemaName)}
     }
 
-    static final expPrimaryKeyExists = expTableExists + [
-            primaryKeyName: 'pk_monkey'
+    static final expPrimaryKeyExists = expPropsTableSchemaCatalogName + [
+            primaryKeyName: primaryKeyName
     ]
 
     /** Try creating a primaryKeyExists precondition. */
     void "primaryKeyExists #type arguments"() {
-        List<Precondition> preconditions = buildPreconditions( expPrimaryKeyExists, cl )
-
-        expect:
-        1 == preconditions.size()
-        assertPropsSet expPrimaryKeyExists, (preconditions[0] as PrimaryKeyExistsPrecondition)
+        verify( expPrimaryKeyExists, cl, PrimaryKeyExistsPrecondition)
 
         where:
         type         | cl
@@ -312,18 +245,14 @@ class PreconditionDelegateTests extends Specification {
         'mixed'      | { primaryKeyExists( catalogName: catalogName, it.primaryKeyName, tableName , schemaName)}
     }
 
-    static final expUniqueConstraintExists = expTableExists + [
-            constraintName: 'uk_monkey_name'
+    static final expUniqueConstraintExists = expPropsTableSchemaCatalogName + [
+            constraintName: constraintName
             ,columnNames: columnNames
     ]
 
     /** Try creating a uniqueConstraintExists precondition.  */
     void "uniqueConstraintExists #type arguments"() {
-        List<Precondition> preconditions = buildPreconditions( expUniqueConstraintExists, cl )
-
-        expect:
-        1 == preconditions.size()
-        assertPropsSet expUniqueConstraintExists, (preconditions[0] as UniqueConstraintExistsPrecondition)
+        verify( expUniqueConstraintExists, cl , UniqueConstraintExistsPrecondition)
 
         where:
         type         | cl
@@ -336,7 +265,7 @@ class PreconditionDelegateTests extends Specification {
     void andClause() {
         def preconditions = buildPreconditions {
             and {
-                dbms( 'mysql')
+                dbms( mysql)
                 runningAs( 'tlberglund')
             }
         }
@@ -531,15 +460,26 @@ class PreconditionDelegateTests extends Specification {
         then: thrown(ChangeLogParseException)
     }
 
+    /** Verify if the one and only precondition built using the {@code closure} has all the properties set
+     * as defined in the {@code exp} map. See {@link util.assertPropsSet()}
+     * @param expectedProps expected (name ->) property values map
+     * @param closure used to create the precondition
+     * @param cls Class of the expected precondition
+     */
+    static verify(Map expectedProps, closure, Class cls) {
+        List<Precondition> preconditions = buildPreconditions( expectedProps, closure )
+        assert 1 == preconditions.size()
+        assertPropsSet expectedProps, cls.cast(preconditions[0] )
+    }
+
     /**
      * Helper method to run the precondition with the first parameter as argument closure and return the preconditions.
      * @param args optional Map parameter for the closure (for expected parameters)
      * @param closure the closure to call
      * @return the preconditions that were created.
      */
-    private List<Precondition> buildPreconditions( Map args = null, @ClosureParams(FirstParam.class)
+    static List<Precondition> buildPreconditions( Map args = null,
             @DelegatesTo(value = PreconditionDelegate, strategy=DELEGATE_FIRST) Closure closure) {
-        //Map defs
         def changelog = new DatabaseChangeLog()
         changelog.changeLogParameters = new ChangeLogParameters()
         def delegate = new PreconditionDelegate(changelog,'')
@@ -547,7 +487,7 @@ class PreconditionDelegateTests extends Specification {
         delegate.preconditions
     }
 
-    void "errors"(){
+    void "errors"(){ // TODO test  error cases
         // viewExists( it.tableName, columnName, schemaName, catalogName) }
     }
 }

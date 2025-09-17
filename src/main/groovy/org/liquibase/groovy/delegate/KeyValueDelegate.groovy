@@ -32,9 +32,10 @@ import liquibase.exception.ChangeLogParseException
  * @author Steven C. Saliman
  */
 @groovy.transform.CompileStatic
-class KeyValueDelegate extends Delegatee {
+class KeyValueDelegate extends Delegatee<Tag> {
     final Map<String, Object> map = [:]
     protected final String parentName
+    enum Tag {param}
     KeyValueDelegate(String parentName, String changeSetId){
         super(null, changeSetId)
         this.parentName = parentName
@@ -71,7 +72,7 @@ class KeyValueDelegate extends Delegatee {
      * @param name
      * @param args
      */
-    void methodMissing(String name, args) {
+    protected def methodMissing(String name, args) {
         if ( args != null && args instanceof Object[]) {
             if(args.size() == 1 ) {
                 map[name] = args[0]

@@ -22,17 +22,21 @@ import liquibase.change.core.CreateTableChange
 import liquibase.change.core.DeleteDataChange
 import liquibase.change.core.LoadDataChange
 import liquibase.change.core.UpdateDataChange
-import liquibase.exception.ChangeLogParseException
+import liquibase.change.core.LoadDataColumnConfig
+import liquibase.changelog.ChangeSet
+import liquibase.changelog.ChangeLogParameters
+import liquibase.changelog.DatabaseChangeLog
+import liquibase.parser.groovy.exception.InvalidAttribute
+import liquibase.parser.groovy.exception.UnrecognizedElement
 import liquibase.statement.DatabaseFunction
 import liquibase.statement.SequenceCurrentValueFunction
 import liquibase.statement.SequenceNextValueFunction
 import org.junit.Test
+
+import static groovy.lang.Closure.DELEGATE_FIRST
 import static org.junit.Assert.*
-import java.sql.Timestamp
-import liquibase.change.core.LoadDataColumnConfig
-import liquibase.changelog.ChangeLogParameters
-import liquibase.changelog.DatabaseChangeLog
-import java.text.SimpleDateFormat
+
+import static org.liquibase.groovy.helper.util.parseSqlTimestamp
 
 /**
  * Test class for the {@link ColumnDelegate}.  As usual, we're only verifying that we can pass
@@ -45,8 +49,8 @@ import java.text.SimpleDateFormat
  *
  * @author Steven C. Saliman
  */
-class ColumnDelegateTests {
-    def sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+class ColumnDelegateTests { // TODO add positional cases
+    // TODO add error cases
 
     /**
      * Build a column with no attributes and no closure to make sure we don't introduce any
@@ -520,6 +524,22 @@ class ColumnDelegateTests {
         assertEquals "angry", column.value
     }
 
+    /* TODO add
+    def delegate = buildColumnDelegate(new DeleteDataChange(), ColumnConfig.class) {
+        where "emotion=':emotion'"
+        whereParams{
+            param(name: 'emotion',
+                    value: 'angry',
+                    valueNumeric: 1,
+                    valueBoolean: false,
+                    valueDate: dateValue,
+                    valueComputed: 'databaseValue',
+                    valueSequenceNext: 'sequenceNext',
+                    valueSequenceCurrent: 'sequenceCurrent'
+            )
+        }
+    }
+*/
     /**
      * {@code delete} changes will have a where clause, but no actual columns.  Make sure we can
      * handle this.  We'll also use this test to put every documented attribute of a whereParam to
@@ -564,20 +584,19 @@ class ColumnDelegateTests {
      * Try using a "where" clause in a change that doesn't support them, like the CreateTableChange.
      * Expect a ChangeLogParseException.
      */
-    @Test(expected = ChangeLogParseException)
+    @Test(expected = UnrecognizedElement)
     void invalidUseOfWhere() {
         buildColumnDelegate(new CreateTableChange(), ColumnConfig.class) {
             column(name: 'monkey', type: 'VARCHAR(50)')
             where "emotion='angry'"
         }
-
     }
 
     /**
      * Try using a "whereParams" clause in a change that doesn't support them, like the
      * CreateTableChange. Expect a ChangeLogParseException.
      */
-    @Test(expected = ChangeLogParseException)
+    @Test(expected = UnrecognizedElement)
     void invalidUseOfWhereParams() {
         buildColumnDelegate(new CreateTableChange(), ColumnConfig.class) {
             column(name: 'monkey', type: 'VARCHAR(50)')
@@ -592,7 +611,7 @@ class ColumnDelegateTests {
      * Try an invalid method in the closure to make sure we get our ChangeLogParseException instead
      * of the standard MissingMethodException.
      */
-    @Test(expected = ChangeLogParseException)
+    @Test(expected = UnrecognizedElement)
     void invalidMethodInClosure() {
         buildColumnDelegate(new CreateTableChange(), ColumnConfig.class) {
             table(name: 'monkey')
@@ -604,7 +623,7 @@ class ColumnDelegateTests {
      * ChangeLogParseException, which will have our pretty message? We try to trick the system by
      * using what is a valid "loadData" column attribute on a normal ColumnConfig.
      */
-    @Test(expected = ChangeLogParseException)
+    @Test(expected = InvalidAttribute )
     void columnWithInvalidAttribute() {
         buildColumnDelegate(new CreateTableChange(), ColumnConfig.class) {
             column(header: 'invalid')
@@ -618,10 +637,15 @@ class ColumnDelegateTests {
      * @param closure the closure to execute with our column attributes.
      * @return the new delegate.
      */
-    private def buildColumnDelegate(Change change, Class columnConfigClass, Closure closure) {
+    private static def buildColumnDelegate(Change change, ignored,
+                                           @DelegatesTo(strategy = DELEGATE_FIRST)  Closure closure) {
         def changelog = new DatabaseChangeLog()
         changelog.changeLogParameters = new ChangeLogParameters()
-        def columnDelegate = new ColumnDelegate(
+        ChangeSetDelegate changSet = new ChangeSetDelegate(
+                new ChangeSet(changelog)
+        )
+        changSet.callOnDelegate(change, closure)
+/*        def columnDelegate = new ColumnDelegate(
                 columnConfigClass: columnConfigClass,
                 databaseChangeLog: changelog,
                 changeSetId: 'test-change-set',
@@ -632,15 +656,8 @@ class ColumnDelegateTests {
         closure.resolveStrategy = Closure.DELEGATE_FIRST
         closure.call()
 
-        return columnDelegate
+
+        return columnDelegate*/
     }
 
-    /**
-     * Helper method to parse a string into a date.
-     * @param dateTimeString the string to parse
-     * @return the parsed string
-     */
-    private Timestamp parseSqlTimestamp(dateTimeString) {
-        new Timestamp(sdf.parse(dateTimeString).time)
-    }
 }

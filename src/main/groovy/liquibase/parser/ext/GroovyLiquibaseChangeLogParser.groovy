@@ -25,8 +25,11 @@ import org.codehaus.groovy.control.customizers.ImportCustomizer
 import org.codehaus.groovy.reflection.CachedMethod
 import org.codehaus.groovy.runtime.metaclass.MethodSelectionException
 import org.codehaus.groovy.util.FastArray
+import org.liquibase.groovy.delegate.DelegateUtil.CollectionStringBuilder
+import org.liquibase.groovy.delegate.Delegatee
+import org.liquibase.groovy.delegate.MethodDef
 
-import java.lang.reflect.Method
+
 import java.lang.reflect.Modifier
 import java.lang.reflect.Parameter
 
@@ -67,10 +70,13 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
             config.scriptBaseClass = 'liquibase.parser.ext.ParserScript'
             config.addCompilationCustomizers(new ImportCustomizer()
                 .addStaticStars('liquibase.database.ObjectQuotingStrategy'
-                                ,'liquibase.changelog.ChangeSet.ValidationFailOption')
+                                        ,'liquibase.changelog.ChangeSet.ValidationFailOption'
+                                       ,'liquibase.database.ColumnParentTypeEnum'
+//                                        ,'liquibase.database.FkCascadeActionOptions'
+                )
                 .addImports('liquibase.precondition.core.PreconditionContainer.OnSqlOutputOption'
-                            ,'liquibase.precondition.core.PreconditionContainer.ErrorOption'
-                            ,'liquibase.precondition.core.PreconditionContainer.FailOption')
+                                    ,'liquibase.precondition.core.PreconditionContainer.ErrorOption'
+                                    ,'liquibase.precondition.core.PreconditionContainer.FailOption')
             )
             def shell = new GroovyShell(binding, config)
 
@@ -117,10 +123,6 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
         }
     }
 
-    static boolean requiresClosure(Method method) {
-        method.parameters.last().type == Closure.class // All method must have closure as last if required
-    }
-
     // TODO get method by name and check if its declared in this class
     static List<MetaMethod> findMethod(MetaClass metaClass, String name) {
         metaClass.methods.findAll {it.name == name }}
@@ -153,21 +155,26 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
     }
 
     /** Collect all public methods with the longest parameter list not starting with Map using java reflection
-     * DOES NOT WORK ON SCRIPT! */
-    static Map<String, Method> getMethods(Class cls) {
-        Map<String, Method> map = new HashMap<>()
-        //def s = cls.methods
+     * DOES NOT WORK ON Script`! */
+    static Map<String, MethodDef> getMethods(Class cls) {
+        Map<String, MethodDef> map = new HashMap<>()
+        //def s = cls.methods return all methods
         cls.declaredMethods.each {
-            if(it.name.indexOf('$') == -1 && Modifier.isPublic(it.modifiers) ) {
-                Method stored = map[it.name]
+            if(it.name.indexOf('$') == -1
+               && Modifier.isPublic(it.modifiers)
+              // && it.name != 'methodMissing'
+               && it.parameterTypes.length > 0 && !isMap(it.parameterTypes.first())) {
+                MethodDef stored = map[it.name]
                 if ( stored ) {
-                    //boolean isMap2 = it.parameters.first() instanceof Map
-                    if (stored.parameterTypes.length < it.parameterTypes.length
-                         && !isMap(it.parameterTypes.first())) {
-                        map[it.name] = it // Update
+                    // Found a longer param list
+                    if (stored.argCount() < it.parameterCount ) {
+                        map[it.name].args = it.parameters // Update
                     }
-                } else if(it.parameterTypes.length > 0 && !isMap(it.parameterTypes.first())){ // Store the first
-                    map.put(it.name, it)
+                    else { // param list is shorter
+                        stored.needsClosure &= MethodDef.lastParamClosure(it.parameters)
+                    }
+                } else if(it.parameterTypes.length > 0 ){ // Store the first
+                    map[it.name] = new MethodDef(it.parameters)
                 }
             }
         }
@@ -188,26 +195,7 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
         "'$propName' parameter cannot be empty for '$tag'"
     }
 
-    /** Create human readable list of parameter names + types
-     * Expects Closure to be the last parameter */
-    static String asString(Parameter[] args) {
-        args.inject(new StringBuilder(args.length * 8).append( '(')) { r, p ->
-
-            switch ( p.type.simpleName ) {
-                case 'Closure': return r.append (') {}')
-                    break
-                case 'Map': break
-                default :
-                    if(r.size() > 1) r.append ', '
-                    r.append p.type.simpleName + ' ' + p.name
-            }
-            r
-        }.append (')')
-    }
-
     static String dbChangeLogTagName = "databaseChangeLog"
-
-
 
     interface Arg {
         static final String dbms = 'dbms'
@@ -223,6 +211,8 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
         static final String value = 'value'
         static final String errorIfMissing = 'errorIfMissing'
         static final String logicalFilePath = 'logicalFilePath'
+        static final String runWith = 'runWith'
+        static final String runWithSpoolFile = 'runWithSpoolFile'
     }
 
 }
