@@ -14,12 +14,16 @@
 
 package org.liquibase.groovy.delegate
 
-import liquibase.change.ConstraintsConfig
-import liquibase.changelog.ChangeLogParameters
+import groovy.transform.CompileStatic
+import groovy.transform.TypeChecked
+import groovy.transform.TypeCheckingMode
+import liquibase.change.core.ExecuteShellCommandChange
+import liquibase.changelog.ChangeSet
 import liquibase.changelog.DatabaseChangeLog
 import liquibase.exception.ChangeLogParseException
 import org.junit.Test
 
+import static groovy.lang.Closure.DELEGATE_ONLY
 import static org.junit.Assert.*
 
 /**
@@ -28,6 +32,7 @@ import static org.junit.Assert.*
  *
  * @author Steven C. Saliman
  */
+@CompileStatic
 class ArgumentDelegateTests {
 
     /**
@@ -123,6 +128,7 @@ class ArgumentDelegateTests {
      * Try calling an invalid method in the closure.  Make sure we get our ChangeLogParseException
      * and not Groovy's standard MethodMissingException.
      */
+    @TypeChecked(TypeCheckingMode.SKIP)
     @Test(expected = ChangeLogParseException)
     void invalidClosure() {
         buildArguments {
@@ -146,13 +152,15 @@ class ArgumentDelegateTests {
      * @param closure
      * @return
      */
-    def buildArguments(Closure closure) {
-        def delegate = new ArgumentDelegate(changeSetId: 'test-change-set',
-                                            changeName: 'executeCommand')
-        closure.delegate = delegate
-        closure.resolveStrategy = Closure.DELEGATE_FIRST
-        closure.call()
+    List<String> buildArguments(@DelegatesTo(value=ArgumentDelegate, strategy=DELEGATE_ONLY) Closure closure) {
+        def changelog = new DatabaseChangeLog()
+        ChangeSetDelegate changeSet = new ChangeSetDelegate(
+                new ChangeSet(changelog)
+        )
+        ExecuteShellCommandChange change = changeSet.lookupChange('executeCommand')
+        def delegate = new ArgumentDelegate(changeSet, change)
+        changeSet.callOnDelegate(change, closure)
 
-        return delegate.args
+        return change.args
     }
 }

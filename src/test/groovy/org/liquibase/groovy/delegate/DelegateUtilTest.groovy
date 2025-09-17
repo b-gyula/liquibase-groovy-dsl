@@ -199,14 +199,14 @@ class DelegateUtilTest {
     void argsToMapErrorInvalidArg() {
         exp.with {
             // The one and only argument is missing
-            verifyException 'invalid arg', new InvalidArgument(method, fnDef, prefix),
+            verifyException 'invalid arg', new InvalidArguments(method, fnDef, prefix),
                     false, [arg1]
             def args = objArr('arg1', 1, 2)
-            verifyException 'invalid arg', new InvalidArgument(method, fnDef, prefix, args),
+            verifyException 'invalid arg', new InvalidArguments(method, fnDef, prefix, args),
                     false, [arg1, arg2], args
 
             args += {}
-            verifyException 'invalid arg', new InvalidArgument(method, fnDef, prefix, args),
+            verifyException 'invalid arg', new InvalidArguments(method, fnDef, prefix, args),
                     true, [arg1, arg2, cl], args
         }
     }
@@ -228,5 +228,19 @@ class DelegateUtilTest {
             assertMapEquals res,
                     argsToMap(prefix, method, false, fnDef, [arg1, arg2, cl], '1', 2)
          }
+    }
+
+    @Test
+    void testCompareSemvers() {
+        ['2.1/2.2': -1
+        ,'1.1/1.1': 0
+        ,'1.2/1.1': 1
+        ,'1.2.1/1.2.2': -1
+        ,'1.10.1/1.9.1': 1
+        ,'1.2/1.2.1': -1
+        ].each {def v = it.key.split('/')
+            assertEquals v[0]+ ' ? ' +v[1], it.value, compareSemvers(v[0],v[1])
+        }
+
     }
 }

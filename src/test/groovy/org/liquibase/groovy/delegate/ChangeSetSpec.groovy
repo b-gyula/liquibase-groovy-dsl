@@ -1,0 +1,850 @@
+package org.liquibase.groovy.delegate
+
+import liquibase.change.core.AddAutoIncrementChange
+import liquibase.change.core.AddColumnChange
+import liquibase.change.core.AddDefaultValueChange
+import liquibase.change.core.AddForeignKeyConstraintChange
+import liquibase.change.core.AddLookupTableChange
+import liquibase.change.core.AddNotNullConstraintChange
+import liquibase.change.core.AddPrimaryKeyChange
+import liquibase.change.core.AddUniqueConstraintChange
+import liquibase.change.core.AlterSequenceChange
+import liquibase.change.core.CreateIndexChange
+import liquibase.change.core.CreateSequenceChange
+import liquibase.change.core.CreateTableChange
+import liquibase.change.core.CreateViewChange
+import liquibase.change.core.DeleteDataChange
+import liquibase.change.core.DropAllForeignKeyConstraintsChange
+import liquibase.change.core.DropColumnChange
+import liquibase.change.core.DropDefaultValueChange
+import liquibase.change.core.DropForeignKeyConstraintChange
+import liquibase.change.core.DropIndexChange
+import liquibase.change.core.DropNotNullConstraintChange
+import liquibase.change.core.DropPrimaryKeyChange
+import liquibase.change.core.DropProcedureChange
+import liquibase.change.core.DropSequenceChange
+import liquibase.change.core.DropTableChange
+import liquibase.change.core.DropUniqueConstraintChange
+import liquibase.change.core.DropViewChange
+import liquibase.change.core.ExecuteShellCommandChange
+import liquibase.change.core.InsertDataChange
+import liquibase.change.core.LoadDataChange
+import liquibase.change.core.LoadUpdateDataChange
+import liquibase.change.core.MergeColumnChange
+import liquibase.change.core.ModifyDataTypeChange
+import liquibase.change.core.RawSQLChange
+import liquibase.change.core.RenameColumnChange
+import liquibase.change.core.RenameSequenceChange
+import liquibase.change.core.RenameTableChange
+import liquibase.change.core.RenameViewChange
+import liquibase.change.core.SQLFileChange
+import liquibase.change.core.SetColumnRemarksChange
+import liquibase.change.core.SetTableRemarksChange
+import liquibase.change.core.UpdateDataChange
+import spock.lang.*
+import static ChangeSetTests.*
+import static org.liquibase.groovy.helper.constants.*
+import static org.liquibase.groovy.helper.util.*
+
+/**
+ * @author Gyula Bibernath
+ */
+class ChangeSetSpec extends Specification {
+    /** StructuralRefactoringTests **/
+    /**
+     * Test adding a column with a full set of attributes, and only one column, which does not have
+     * any constraints.  We don't worry about the contents of the column itself, as we do that when
+     * we test the ColumnDelegate.
+     */
+    void "addColumn with #type arguments"() {
+        AddColumnChange ch = verify(expPropsTableSchemaCatalogName, cl, AddColumnChange)
+
+        expect:
+        2 == ch.columns.size()
+        ch.columns.eachWithIndex { c, i -> assertPropsSet(expAddColumns[i], c) }
+
+        where:
+        type         | cl
+        'named'      | { addColumn expPropsTableSchemaCatalogName, addColumns }
+        'positional' | { addColumn tableName, schemaName, catalogName, addColumns }
+        'mixed'      | { addColumn tableName, catalogName: catalogName, schemaName, addColumns }
+    }
+
+    static final expPropsCreateTable = expPropsTableSchemaCatalogName + [
+            remarks    : remarks,
+            ifNotExists: false,
+            tablespace : tablespace,
+            //rowDependencies: true, // since 4.29
+            tableType  : 'rhesus']
+
+    static final expAddColumns = [
+            [name: columnName, type: intType],
+            [name: column2Name, type: dataType]
+    ]
+
+    static final Closure addColumns = {
+        column columnName, intType
+        column column2Name, dataType
+    }
+
+    /**
+     * Test parsing a createView change with all supported attributes and a closure.
+     */
+    void "createTable with #type arguments"() {
+        CreateTableChange ch = verify(expPropsCreateTable, cl, CreateTableChange)
+
+        expect:
+        2 == ch.columns.size()
+        ch.columns.eachWithIndex { c, i -> assertPropsSet(expAddColumns[i], c) }
+
+        where:
+        type         | cl
+        'named'      | { createTable expPropsCreateTable, addColumns }
+        'positional' | { createTable tableName, it.ifNotExists, schemaName, catalogName, tablespace, it.tableType, remarks, addColumns }
+        'mixed'      | { createTable tableName, it.ifNotExists, schemaName, catalogName, tablespace, remarks: remarks, it.tableType, addColumns }
+    }
+
+
+    static final expPropsCreateView = expPropsViewSchemaCatalogName + [
+            remarks                : 'monkey see, monkey do',
+            replaceIfExists        : false,
+            fullDefinition         : false,
+            path                   : 'monkey_view.sql',
+            encoding               : utf8,
+            relativeToChangelogFile: true]
+
+    /**
+     * Test parsing a createView change with all supported attributes, but no closure
+     */
+    void "createView from path with #type arguments"() {
+        CreateViewChange ch = verify(expPropsCreateView, cl, CreateViewChange)
+        expect:
+        null == ch.selectQuery
+        where:
+        type         | cl
+        'named'      | { createView(expPropsCreateView) }
+        'positional' | { createView(viewName, it.replaceIfExists, it.fullDefinition, it.path, true, it.remarks, utf8, schemaName, catalogName) }
+        'mixed'      | { createView(viewName, it.replaceIfExists, it.fullDefinition, catalogName: catalogName, it.path, it.relativeToChangelogFile, it.remarks, utf8, schemaName) }
+    }
+
+    /** Test parsing a dropColumn change without a closure. This is the use case when we put the
+     * column name in the columnName attribute instead of the closure
+     */
+    void "dropColumn single column with #type arguments"() {
+        DropColumnChange ch = verify(expPropsColumnTableSchemaCatalogName, cl, DropColumnChange)
+        expect:
+        0 == ch.columns.size()
+        where:
+        type         | cl
+        'named'      | { dropColumn expPropsColumnTableSchemaCatalogName }
+        'positional' | { dropColumn columnName, tableName, schemaName, catalogName }
+        'mixed'      | { dropColumn columnName, tableName, catalogName: catalogName, schemaName }
+    }
+
+    /** Test parsing a dropColumn change with a closure containing the column names to drop.
+     */
+    void "dropColumn multiple columns with  #type arguments"() {
+        DropColumnChange ch = verify(expPropsTableSchemaCatalogName, cl, DropColumnChange)
+        expect:
+        2 == ch.columns.size()
+        columnName == ch.columns[0].name
+        column2Name == ch.columns[1].name
+        null == ch.columnName
+        where:
+        type         | cl
+        'named'      | {
+            dropColumn expPropsTableSchemaCatalogName, {
+                column name: columnName
+                column name: column2Name
+            }
+        }
+        'positional' | {
+            dropColumn tableName, schemaName, catalogName, {
+                column columnName
+                column column2Name
+            }
+        }
+        'mixed'      | {
+            dropColumn tableName, catalogName: catalogName, schemaName, {
+                column columnName
+                column column2Name
+            }
+        }
+    }
+
+    static final expPropsDropProcedure = expPropsSchemaAndCatalogName + [
+            procedureName: procedureName
+    ]
+
+    void "dropProcedure with #type arguments"() {
+        verify(expPropsDropProcedure, cl, DropProcedureChange)
+        where:
+        type         | cl
+        'named'      | { dropProcedure expPropsDropProcedure }
+        'positional' | { dropProcedure procedureName, schemaName, catalogName }
+        'mixed'      | { dropProcedure procedureName, catalogName: catalogName, schemaName }
+    }
+
+    static final expDropTableProps = expPropsTableSchemaCatalogName + [
+            cascadeConstraints: true
+    ]
+
+    void "dropTable with #type arguments"() {
+        verify(expDropTableProps, cl, DropTableChange)
+        where:
+        type         | cl
+        'named'      | { dropTable expDropTableProps }
+        'positional' | { dropTable tableName, true, schemaName, catalogName }
+        'mixed'      | { dropTable tableName, true, catalogName: catalogName, schemaName }
+    }
+
+    static final expPropsDropView = expPropsViewSchemaCatalogName + [
+            ifExists: true
+    ]
+
+    void "dropView with #type arguments"() {
+        verify(expPropsDropView, cl, DropViewChange)
+        where:
+        type         | cl
+        'named'      | { dropView expPropsDropView }
+        'positional' | { dropView viewName, true, schemaName, catalogName }
+        'mixed'      | { dropView viewName, true, catalogName: catalogName, schemaName }
+    }
+
+    static final expPropsMergeColumns = expPropsTableSchemaCatalogName + [
+            column1Name    : columnName,
+            column2Name    : column2Name,
+            finalColumnName: 'full_name',
+            finalColumnType: 'varchar(99)',
+            joinString     : ' '
+    ]
+
+    void "mergeColumns with #type arguments"() {
+        verify(expPropsMergeColumns, cl, MergeColumnChange)
+        where:
+        type         | cl
+        'named'      | { mergeColumns expPropsMergeColumns }
+        'positional' | { mergeColumns columnName, it.joinString, column2Name, it.finalColumnName, it.finalColumnType, tableName, schemaName, catalogName }
+        'mixed'      | { mergeColumns columnName, it.joinString, column2Name, it.finalColumnName, it.finalColumnType, tableName, catalogName: catalogName, schemaName }
+    }
+    static final expPropsModifyDataType = expPropsColumnTableSchemaCatalogName + [
+            newDataType: dataType
+    ]
+
+    void "modifyDataType with #type arguments"() {
+        verify(expPropsModifyDataType, cl, ModifyDataTypeChange)
+        where:
+        type         | cl
+        'named'      | { modifyDataType expPropsModifyDataType }
+        'positional' | { modifyDataType it.newDataType, columnName, tableName, schemaName, catalogName }
+        'mixed'      | { modifyDataType catalogName: catalogName, dataType, columnName, tableName, schemaName }
+    }
+
+    static final expPropsRenameColumn = expPropsTableSchemaCatalogName + [
+            oldColumnName : columnName,
+            newColumnName : column2Name,
+            columnDataType: dataType,
+            remarks       : remarks
+    ]
+
+    void "renameColumn with #type arguments"() {
+        verify(expPropsRenameColumn, cl, RenameColumnChange)
+        where:
+        type         | cl
+        'named'      | { renameColumn expPropsRenameColumn }
+        'positional' | { renameColumn columnName, column2Name, tableName, schemaName, catalogName, dataType, remarks }
+        'mixed'      | { renameColumn remarks: remarks, columnName, column2Name, tableName, schemaName, catalogName, dataType }
+    }
+
+    static final expPropsRenameTable = expPropsSchemaAndCatalogName + [
+            oldTableName: tableName,
+            newTableName: 'win_table'
+    ]
+
+    void "renameTable with #type arguments"() {
+        verify(expPropsRenameTable, cl, RenameTableChange)
+        where:
+        type         | cl
+        'named'      | { renameTable expPropsRenameTable }
+        'positional' | { renameTable tableName, it.newTableName, schemaName, catalogName }
+        'mixed'      | { renameTable tableName, it.newTableName, catalogName: catalogName, schemaName }
+    }
+
+    static final expPropsRenameView = expPropsSchemaAndCatalogName + [
+            oldViewName: viewName,
+            newViewName: 'win_view'
+    ]
+
+    void "renameView with #type arguments"() {
+        verify(expPropsRenameView, cl, RenameViewChange)
+        where:
+        type         | cl
+        'named'      | { renameView expPropsRenameView }
+        'positional' | { renameView viewName, it.newViewName, schemaName, catalogName }
+        'mixed'      | { renameView viewName, it.newViewName, catalogName: catalogName, schemaName }
+    }
+
+    /***** ReferentialIntegrityRefactoringTests ******/
+    static final expPropsAddForeignKeyConstraint = [
+            constraintName            : constraintName,
+            baseTableCatalogName      : catalogName,
+            baseTableSchemaName       : schemaName,
+            baseColumnNames           : columnNames,
+            baseTableName             : tableName,
+            referencedTableCatalogName: 'referenced_catalog',
+            referencedTableSchemaName : 'referenced_schema',
+            referencedTableName       : 'emotions',
+            referencedColumnNames     : 'id',
+            deferrable                : true,
+            initiallyDeferred         : false,
+            onDelete                  : 'RESTRICT',
+            onUpdate                  : 'CASCADE',
+            validate                  : false
+    ]
+
+    void "addForeignKeyConstraint with #type arguments"() {
+        verify(expPropsAddForeignKeyConstraint, cl, AddForeignKeyConstraintChange)
+        where:
+        type         | cl
+        'named'      | { addForeignKeyConstraint expPropsAddForeignKeyConstraint }
+        'positional' | {
+            addForeignKeyConstraint tableName, schemaName, catalogName, columnNames, constraintName, it.referencedTableName,
+                    it.referencedColumnNames, it.referencedTableSchemaName, it.referencedTableCatalogName,
+                    it.deferrable, it.initiallyDeferred, it.deleteCascade, it.onDelete, it.onUpdate,
+                    it.referencesUniqueColumn, it.validate
+        }
+        'mixed'      | {
+            addForeignKeyConstraint tableName, schemaName, catalogName, columnNames, constraintName, it.referencedTableName,
+                    it.referencedColumnNames, it.referencedTableSchemaName, it.referencedTableCatalogName,
+                    it.deferrable, it.initiallyDeferred, it.deleteCascade, it.onDelete, it.onUpdate,
+                    validate: it.validate, it.referencesUniqueColumn
+        }
+    }
+
+    static final expPropsAddPrimaryKey = expPropsTableSchemaCatalogName + [
+            constraintName     : constraintName,
+            columnNames        : columnNames,
+            tablespace         : tablespace,
+            clustered          : true,
+            forIndexCatalogName: 'index_catalog',
+            forIndexSchemaName : 'index_schema',
+            forIndexName       : 'pk_monkey_idx',
+            validate           : false
+    ]
+
+    void "addPrimaryKey with #type arguments"() {
+        verify(expPropsAddPrimaryKey, cl, AddPrimaryKeyChange)
+        where:
+        type         | cl
+        'named'      | { addPrimaryKey expPropsAddPrimaryKey }
+        'positional' | {
+            addPrimaryKey columnNames, tableName, schemaName, catalogName, constraintName, tablespace,
+                    it.clustered, it.forIndexName, it.forIndexSchemaName, it.forIndexCatalogName, it.validate
+        }
+        'mixed'      | {
+            addPrimaryKey columnNames, tableName, schemaName, catalogName, constraintName, tablespace,
+                    it.clustered, it.forIndexName, it.forIndexSchemaName, validate: it.validate, it.forIndexCatalogName
+        }
+    }
+    static final expPropsDropPrimaryKey = expPropsTableSchemaCatalogName + [
+            constraintName: constraintName,
+            dropIndex     : false
+    ]
+
+    void "dropPrimaryKey with #type arguments"() {
+        verify(expPropsDropPrimaryKey, cl, DropPrimaryKeyChange)
+        where:
+        type         | cl
+        'named'      | { dropPrimaryKey expPropsDropPrimaryKey }
+        'positional' | { dropPrimaryKey constraintName, tableName, schemaName, catalogName, it.dropIndex }
+        'mixed'      | { dropPrimaryKey constraintName, tableName, schemaName, dropIndex: it.dropIndex, catalogName }
+    }
+
+    static final expPropsDropAllForeignKeyConstraints = [
+            baseTableCatalogName: catalogName,
+            baseTableSchemaName : schemaName,
+            baseTableName       : tableName,
+    ]
+
+    void "dropAllForeignKeyConstraints with #type arguments"() {
+        verify(expPropsDropAllForeignKeyConstraints, cl, DropAllForeignKeyConstraintsChange)
+        where:
+        type         | cl
+        'named'      | { dropAllForeignKeyConstraints expPropsDropAllForeignKeyConstraints }
+        'positional' | { dropAllForeignKeyConstraints tableName, schemaName, catalogName }
+        'mixed'      | { dropAllForeignKeyConstraints tableName, baseTableCatalogName: catalogName, schemaName }
+    }
+
+    static final expPropsDropForeignKeyConstraint = expPropsDropAllForeignKeyConstraints + [
+            constraintName: constraintName
+    ]
+
+    void "dropForeignKeyConstraint with #type arguments"() {
+        verify(expPropsDropForeignKeyConstraint, cl, DropForeignKeyConstraintChange)
+        where:
+        type         | cl
+        'named'      | { dropForeignKeyConstraint expPropsDropForeignKeyConstraint }
+        'positional' | { dropForeignKeyConstraint constraintName, tableName, schemaName, catalogName }
+        'mixed'      | { dropForeignKeyConstraint constraintName, tableName, baseTableCatalogName: catalogName, schemaName }
+    }
+
+    /**** NonRefactoringTransformationTests ****/
+    static final whereClause = "emotion='angry' AND active=true"
+    static final expPropsDelete = expPropsTableSchemaCatalogName + [where: whereClause]
+
+    void "delete with where with #type arguments"() {
+        verify(expPropsDelete, cl, DeleteDataChange)
+
+        where:
+        type         | cl
+        'mixed'      | { delete tableName, catalogName: catalogName, schemaName, { where whereClause } }
+        'named'      | { delete expPropsDelete, { where whereClause } }
+        'positional' | { delete tableName, schemaName, catalogName, { where whereClause } }
+    }
+
+    void "delete with #type arguments"() {
+        verify(expPropsTableSchemaCatalogName, cl, DeleteDataChange)
+        where:
+        type         | cl
+        'named'      | { delete expPropsTableSchemaCatalogName }
+        'positional' | { delete tableName, schemaName, catalogName }
+        'mixed'      | { delete tableName, catalogName: catalogName, schemaName }
+    }
+
+    static final expPropsSetColumnRemarks = expPropsColumnTableSchemaCatalogName + [
+            remarks         : remarks,
+            columnDataType  : dataType,
+            columnParentType: 'VIEW'
+    ]
+
+    void "setColumnRemarks with #type arguments"() {
+        verify(expPropsSetColumnRemarks, cl, SetColumnRemarksChange)
+        where:
+        type         | cl
+        'named'      | { setColumnRemarks expPropsSetColumnRemarks }
+        'positional' | { setColumnRemarks remarks, columnName, tableName, schemaName, catalogName, dataType, it.columnParentType }
+        'mixed'      | { setColumnRemarks remarks, columnName, tableName, schemaName, catalogName, columnParentType: it.columnParentType, dataType }
+    }
+
+    static final expPropsSetTableRemarks = expPropsTableSchemaCatalogName + [
+            remarks: remarks,
+    ]
+
+    void "setTableRemarks with #type arguments"() {
+        verify(expPropsSetTableRemarks, cl, SetTableRemarksChange)
+        where:
+        type         | cl
+        'named'      | { setTableRemarks expPropsSetTableRemarks }
+        'positional' | { setTableRemarks remarks, tableName, schemaName, catalogName }
+        'mixed'      | { setTableRemarks remarks, tableName, catalogName:catalogName, schemaName }
+    }
+
+
+    static final expPropsDataColumns = [
+            [name: columnName, value: intType],
+            [name: column2Name, value: dataType]
+    ]
+
+    static final Closure dataColumnsAndWhere = {
+        column columnName, intType
+        column column2Name, dataType
+        where whereClause // TODO add whereParams
+    }
+
+    void "update with where #type arguments"() {
+        UpdateDataChange ch = verify(expPropsTableSchemaCatalogName, cl, UpdateDataChange)
+
+        expect:
+        2 == ch.columns.size()
+        ch.columns.eachWithIndex { c, i -> assertPropsSet(expPropsDataColumns[i], c) }
+        ch.where == whereClause
+
+        where:
+        type         | cl
+        'named'      | { update expPropsTableSchemaCatalogName, dataColumnsAndWhere }
+        'positional' | { update tableName, schemaName, catalogName, dataColumnsAndWhere }
+        'mixed'      | { update tableName, catalogName: catalogName, schemaName, dataColumnsAndWhere }
+    }
+
+    static final expPropsInsert = expPropsTableSchemaCatalogName + [
+            dbms: mysql,
+    ]
+
+    static final Closure dataColumns = {
+        column columnName, intType
+        column column2Name, dataType
+    }
+
+    void "insert with #type arguments"() {
+        InsertDataChange ch = verify(expPropsInsert, cl, InsertDataChange)
+
+        expect:
+        2 == ch.columns.size()
+        ch.columns.eachWithIndex { c, i -> assertPropsSet(expPropsDataColumns[i], c) }
+
+        where:
+        type         | cl
+        'named'      | { insert expPropsInsert, dataColumns }
+        'positional' | { insert tableName, schemaName, catalogName, mysql, dataColumns }
+        'mixed'      | { insert tableName, dbms: mysql, schemaName, catalogName, dataColumns }
+    }
+
+    static final expPropsLoadData = expPropsTableSchemaCatalogName + [
+            file: file,
+            relativeToChangelogFile: true,
+            usePreparedStatements: false,
+            encoding: utf8,
+            separator: ';',
+            quotchar: "'",
+            commentLineStartsWith: "-"
+    ]
+
+    static final expLoadDataColumns = [
+            [name: columnName, type: NUMERIC] // TODO change loadData type to LOADDATA_TYPE
+            ,[name: column2Name, type: STRING]
+    ]
+
+    static final Closure loadDataColumns = {
+        column columnName, NUMERIC
+        column column2Name, STRING
+    }
+
+    void "loadData with #type arguments"() {
+        LoadDataChange ch = verify(expPropsLoadData, cl, LoadDataChange)
+
+        expect:
+        2 == ch.columns.size()
+        ch.columns.eachWithIndex { c, i -> assertPropsSet(expLoadDataColumns[i], c) }
+
+        where:
+        type         | cl
+        'named'      | { loadData expPropsLoadData, loadDataColumns }
+        'positional' | { loadData tableName, file, it.relativeToChangelogFile, it.encoding, it.separator, it.quotchar, it.commentLineStartsWith, it.usePreparedStatements, schemaName, catalogName, loadDataColumns }
+        'mixed'      | { loadData tableName, catalogName: catalogName, file, it.relativeToChangelogFile, it.encoding, it.separator, it.quotchar, it.commentLineStartsWith, it.usePreparedStatements, schemaName, loadDataColumns }
+    }
+
+    static final expPropsLoadUpdateData = expPropsLoadData + [
+            primaryKey: columnName
+            ,onlyUpdate: true
+    ]
+
+    void "loadUpdateData with #type arguments"() {
+        LoadUpdateDataChange ch = verify(expPropsLoadUpdateData, cl, LoadUpdateDataChange)
+
+        expect:
+        2 == ch.columns.size()
+        ch.columns.eachWithIndex { c, i -> assertPropsSet(expLoadDataColumns[i], c) }
+
+        where:
+        type         | cl
+        'named'      | { loadUpdateData expPropsLoadUpdateData, loadDataColumns }
+        'positional' | { loadUpdateData tableName, it.primaryKey, file, it.relativeToChangelogFile, it.encoding, it.separator, it.quotchar, it.commentLineStartsWith, it.usePreparedStatements, schemaName, catalogName, it.onlyUpdate, loadDataColumns }
+        'mixed'      | { loadUpdateData tableName, onlyUpdate:it.onlyUpdate, it.primaryKey, file, it.relativeToChangelogFile, it.encoding, it.separator, it.quotchar, it.commentLineStartsWith, it.usePreparedStatements, schemaName, catalogName, loadDataColumns }
+    }
+
+    /**** DataQualityRefactoringTests ****/
+    static final expPropsAddAutoIncrement = expPropsColumnTableSchemaCatalogName + [
+            columnDataType: dataType,
+            startWith: 10,
+            incrementBy: 5,
+            defaultOnNull: true,
+            generationType: 'magic'
+    ]
+
+    void "addAutoIncrement with #type arguments"() {
+        verify(expPropsAddAutoIncrement, cl, AddAutoIncrementChange)
+
+        where:
+        type         | cl
+        'named'      | { addAutoIncrement expPropsAddAutoIncrement }
+        'positional' | { addAutoIncrement columnName, tableName, dataType, it.startWith, it.incrementBy, it.defaultOnNull, it.generationType, schemaName, catalogName}
+        'mixed'      | { addAutoIncrement columnName, tableName, dataType, catalogName: catalogName, it.startWith, it.incrementBy, it.defaultOnNull, it.generationType, schemaName}
+    }
+
+    static final expPropsDropDefaultValue = expPropsColumnTableSchemaCatalogName + [
+            columnDataType: dataType
+    ]
+
+    void "dropDefaultValue with #type arguments"() {
+        verify(expPropsDropDefaultValue, cl, DropDefaultValueChange)
+
+        where:
+        type         | cl
+        'named'      | { dropDefaultValue expPropsDropDefaultValue }
+        'positional' | { dropDefaultValue columnName, tableName, schemaName, catalogName, dataType}
+        'mixed'      | { dropDefaultValue columnName, tableName, schemaName, columnDataType: dataType, catalogName}
+    }
+
+    static final expPropsAddDefaultValue = expPropsDropDefaultValue + [
+            defaultValue: 'extremely',
+            defaultValueBoolean: true,
+            defaultValueComputed: 'max',
+            defaultValueDate: '20101109T130400Z',
+            defaultValueNumeric: '2.718281828459045',
+            defaultValueSequenceNext: 'sequence',
+            defaultValueConstraintName: 'monkey_strength_default'
+    ]
+
+    void "addDefaultValue with #type arguments"() {
+        verify(expPropsAddDefaultValue, cl, AddDefaultValueChange)
+
+        where:
+        type         | cl
+        'named'      | { addDefaultValue expPropsAddDefaultValue }
+        'positional' | { addDefaultValue columnName, tableName, it.defaultValue, it.defaultValueNumeric, it.defaultValueDate, it.defaultValueBoolean, it.defaultValueComputed, it.defaultValueSequenceNext, it.defaultValueConstraintName, dataType, schemaName, catalogName}
+        'mixed'      | { addDefaultValue columnName, tableName, catalogName: catalogName, it.defaultValue, it.defaultValueNumeric, it.defaultValueDate, it.defaultValueBoolean, it.defaultValueComputed, it.defaultValueSequenceNext, it.defaultValueConstraintName, dataType, schemaName}
+    }
+
+    static final expPropsAddLookupTable =  [
+            existingTableCatalogName: catalogName,
+            existingTableSchemaName: schemaName,
+            existingTableName: tableName,
+            existingColumnName: columnName,
+            newTableCatalogName: 'new_catalog',
+            newTableSchemaName: 'new_schema',
+            newTableName: 'monkey_emotion',
+            newColumnName: 'emotion_display',
+            newColumnDataType: dataType,
+            constraintName: constraintName
+    ]
+
+    void "addLookupTable with #type arguments"() {
+        verify(expPropsAddLookupTable, cl, AddLookupTableChange)
+
+        where:
+        type         | cl
+        'named'      | { addLookupTable expPropsAddLookupTable }
+        'positional' | { addLookupTable catalogName, schemaName, tableName, columnName, it.newTableCatalogName, it.newTableSchemaName, it.newTableName, it.newColumnName, dataType, constraintName}
+        'mixed'      | { addLookupTable catalogName, schemaName, tableName, columnName, constraintName: constraintName, it.newTableCatalogName, it.newTableSchemaName, it.newTableName, it.newColumnName, dataType}
+    }
+
+    static final expPropsDropNotNullConstraint = expPropsColumnTableSchemaCatalogName + [
+            columnDataType: dataType,
+            constraintName: constraintName
+    ]
+
+
+    void "dropNotNullConstraint with #type arguments"() {
+        verify(expPropsDropNotNullConstraint, cl, DropNotNullConstraintChange)
+
+        where:
+        type         | cl
+        'named'      | { dropNotNullConstraint expPropsDropNotNullConstraint }
+        'positional' | { dropNotNullConstraint constraintName, tableName, schemaName, catalogName, columnName, dataType }
+        'mixed'      | { dropNotNullConstraint constraintName, tableName, schemaName, catalogName, columnDataType: dataType, columnName }
+    }
+
+    static final expPropsAddNotNullConstraint = expPropsDropNotNullConstraint + [
+            defaultNullValue: 'angry',
+            validate: true
+    ]
+
+    void "addNotNullConstraint with #type arguments"() {
+        verify(expPropsAddNotNullConstraint, cl, AddNotNullConstraintChange)
+
+        where:
+        type         | cl
+        'named'      | { addNotNullConstraint expPropsAddNotNullConstraint }
+        'positional' | { addNotNullConstraint columnName, tableName, schemaName, catalogName, it.defaultNullValue, dataType, constraintName, it.validate}
+        'mixed'      | { addNotNullConstraint columnName, tableName, schemaName, catalogName, validate: it.validate, it.defaultNullValue, dataType, constraintName}
+    }
+
+    static final expPropsAddUniqueConstraint = expPropsTableSchemaCatalogName + [
+            tablespace: tablespace,
+            columnNames: columnNames,
+            constraintName: constraintName,
+            deferrable: true,
+            initiallyDeferred: false,
+            disabled: false,
+            forIndexCatalogName: 'index_catalog',
+            forIndexSchemaName: 'index_schema',
+            forIndexName: 'unique_constraint_idx',
+            validate: false,
+            clustered: false
+    ]
+
+    void "addUniqueConstraint with #type arguments"() {
+        verify(expPropsAddUniqueConstraint, cl, AddUniqueConstraintChange)
+
+        where:
+        type         | cl
+        'named'      | { addUniqueConstraint expPropsAddUniqueConstraint }
+        'positional' | { addUniqueConstraint columnNames, tableName, schemaName, catalogName, constraintName, tablespace, it.disabled, it.deferrable, it.initiallyDeferred, it.forIndexCatalogName, it.forIndexSchemaName, it.forIndexName, it.clustered, it.validate }
+        'mixed'      | { addUniqueConstraint columnNames, tableName, schemaName, catalogName, constraintName, tablespace, validate: it.validate, it.disabled, it.deferrable, it.initiallyDeferred, it.forIndexCatalogName, it.forIndexSchemaName, it.forIndexName, it.clustered }
+    }
+
+    static final expPropsDropUniqueConstraint = expPropsTableSchemaCatalogName + [
+        constraintName: constraintName,
+        uniqueColumns: columnNames
+    ]
+    void "dropUniqueConstraint with #type arguments"() {
+        verify(expPropsDropUniqueConstraint, cl, DropUniqueConstraintChange)
+
+        where:
+        type         | cl
+        'named'      | { dropUniqueConstraint expPropsDropUniqueConstraint }
+        'positional' | { dropUniqueConstraint constraintName, tableName, schemaName, catalogName, columnNames }
+        'mixed'      | { dropUniqueConstraint constraintName, tableName, schemaName, uniqueColumns:columnNames, catalogName }
+    }
+
+    static final expPropsAlterSequence = expPropsSequenceSchemaCatalogName + [
+            dataType: dataType,
+            incrementBy: 314,
+            minValue: 300,
+            maxValue: 400,
+            ordered: true,
+            cacheSize: 10,
+            cycle: true,
+    ]
+
+    void "alterSequence with #type arguments"() {
+        verify(expPropsAlterSequence, cl, AlterSequenceChange)
+
+        where:
+        type         | cl
+        'named'      | { alterSequence expPropsAlterSequence }
+        'positional' | { alterSequence sequenceName, it.incrementBy, it.minValue, it.maxValue, it.ordered, it.cacheSize, dataType, it.cycle, schemaName, catalogName }
+        'mixed'      | { alterSequence sequenceName, it.incrementBy, it.minValue, it.maxValue, catalogName: catalogName, it.ordered, it.cacheSize, dataType, it.cycle, schemaName }
+    }
+
+    static final expPropsCreateSequence = expPropsAlterSequence + [
+            startValue: 301
+    ]
+
+    void "createSequence with #type arguments"() {
+        verify(expPropsCreateSequence, cl, CreateSequenceChange)
+
+        where:
+        type         | cl
+        'named'      | { createSequence expPropsCreateSequence }
+        'positional' | { createSequence sequenceName, it.startValue, it.incrementBy, it.minValue, it.maxValue, it.ordered, it.cacheSize, dataType, it.cycle, schemaName, catalogName }
+        'mixed'      | { createSequence sequenceName, it.startValue, it.incrementBy, it.minValue, it.maxValue, catalogName: catalogName, it.ordered, it.cacheSize, dataType, it.cycle, schemaName }
+    }
+
+    void "dropSequence with #type arguments"() {
+        verify(expPropsSequenceSchemaCatalogName, cl, DropSequenceChange)
+
+        where:
+        type         | cl
+        'named'      | { dropSequence expPropsSequenceSchemaCatalogName }
+        'positional' | { dropSequence sequenceName, schemaName, catalogName }
+        'mixed'      | { dropSequence sequenceName, catalogName: catalogName, schemaName }
+    }
+
+
+    static final expPropsRenameSequence = expPropsSchemaAndCatalogName + [
+            oldSequenceName: sequenceName,
+            newSequenceName: 'new_sequence'
+    ]
+
+    void "renameSequence with #type arguments"() {
+        verify(expPropsRenameSequence, cl, RenameSequenceChange)
+
+        where:
+        type         | cl
+        'named'      | { renameSequence expPropsRenameSequence }
+        'positional' | { renameSequence sequenceName, it.newSequenceName, schemaName, catalogName }
+        'mixed'      | { renameSequence sequenceName, it.newSequenceName, catalogName: catalogName, schemaName }
+    }
+
+    /**** ArchitecturalRefactoringTests ****/
+
+    static final expPropsCreateIndex = expPropsIndexTableSchemaCatalogName + [
+            tablespace: tablespace,
+            unique: true,
+            clustered: false,
+            associatedWith: 'foreignKey'
+    ]
+
+    static final expCreateIndexColumns = [
+            [name: columnName]
+            ,[name: column2Name] //TODO , included: true
+    ]
+
+    static final Closure createIndexColumns = {
+        column columnName
+        column column2Name //TODO     , true
+    }
+
+    void "createIndex with #type arguments"() {
+        CreateIndexChange ch = verify(expPropsCreateIndex, cl, CreateIndexChange)
+
+        expect:
+        expCreateIndexColumns.size() == ch.columns.size()
+        ch.columns.eachWithIndex { c, i -> assertPropsSet(expCreateIndexColumns[i], c) }
+
+        where:
+        type         | cl
+        'named'      | { createIndex expPropsCreateIndex, createIndexColumns }
+        'positional' | { createIndex indexName, tableName, schemaName, catalogName, it.associatedWith, it.unique, it.clustered, tablespace, createIndexColumns }
+        'mixed'      | { createIndex indexName, tableName, schemaName, catalogName, it.associatedWith, it.unique, tablespace:tablespace, it.clustered, createIndexColumns }
+    }
+
+    static final expPropsDropIndex = expPropsIndexTableSchemaCatalogName + [
+            associatedWith: 'foreignKey'
+    ]
+
+    void "dropIndex with #type arguments"() {
+        verify(expPropsDropIndex, cl, DropIndexChange)
+
+        where:
+        type         | cl
+        'named'      | { dropIndex expPropsDropIndex }
+        'positional' | { dropIndex indexName, tableName, schemaName, catalogName, it.associatedWith }
+        'mixed'      | { dropIndex indexName, tableName, schemaName, catalogName, associatedWith:it.associatedWith }
+    }
+
+    static final expPropsSql = [
+            stripComments:true,
+            splitStatements:true,
+            endDelimiter: ',',
+            dbms: mysql
+            ]
+
+    void "sql with #type arguments"() {
+        verify(expPropsSql, cl, RawSQLChange)
+
+        where:
+        type         | cl
+        'named'      | { sql expPropsSql }
+        'positional' | { sql it.stripComments, it.splitStatements, it.endDelimiter, it.dbms }
+        'mixed'      | { sql it.stripComments, it.splitStatements, dbms: it.dbms, it.endDelimiter }
+    }
+
+    static final expPropsSqlFile = expPropsSql + [
+            path: file,
+            relativeToChangelogFile: true,
+            encoding: 'ASCII'
+    ]
+
+    void "sqlFile with #type arguments"() {
+        verify(expPropsSqlFile, cl, SQLFileChange)
+
+        where:
+        type         | cl
+        'named'      | { sqlFile expPropsSqlFile }
+        'positional' | { sqlFile file, it.relativeToChangelogFile, it.stripComments, it.splitStatements, it.endDelimiter, it.dbms, it.encoding }
+        'mixed'      | { sqlFile file, it.relativeToChangelogFile, it.stripComments, it.splitStatements, it.endDelimiter, encoding: it.encoding, it.dbms }
+    }
+
+
+    // TODO createProcedure
+
+    static final mac = 'mac'
+
+    static final expPropsExecuteCommand = [
+        executable: 'ls',
+        timeout: '10s'
+        ]
+
+    void "executeCommand with #type arguments"() {
+        verify(expPropsExecuteCommand + [os: [mac]], cl, ExecuteShellCommandChange)
+
+        where:
+        type         | cl
+        'named'      | { executeCommand expPropsExecuteCommand + [os: mac] }
+        'positional' | { executeCommand it.executable, mac, it.timeout }
+        'mixed'      | { executeCommand it.executable, timeout: it.timeout, mac }
+    }
+
+}

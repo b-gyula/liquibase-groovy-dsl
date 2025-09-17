@@ -15,6 +15,8 @@
 package org.liquibase.groovy.delegate
 
 import groovy.transform.CompileStatic
+import groovy.transform.SelfType
+import groovy.transform.TupleConstructor
 import groovy.transform.stc.ClosureParams
 import groovy.transform.stc.FirstParam
 import liquibase.changelog.DatabaseChangeLog
@@ -64,7 +66,7 @@ class DelegateUtil {
      * @param defaultValue the default value to use if there is no value given.
      * @return whether or not the given value is "true", or the defaultValue if no value is given.
      */
-    static boolean parseTruth(value, defaultValue) {
+    static boolean parseTruth(value, defaultValue = false) {
         if ( value == null ) {
             return defaultValue
         }
@@ -89,34 +91,85 @@ class DelegateUtil {
         }
     }
 
+    /** cast vararg object to Object[] */
     static Object[] objArr(Object... o){o}
 
-    /**
-     * Compare the version of Liquibase being used to a target semver and return if we're using a
-     * version of Liquibase that is at least at the version of the target.
-     *
-     * @param targetSemver the target version to use as a comparison.
-     * @return @{code true} if the Liquibase version is greater than or equal to the target semver.
-     */
-    static boolean lbVersionAtLeast(String targetSemver) {
-        List liquibaseVersions = LiquibaseUtil.getBuildVersion().tokenize('.')
-        List targetVersions = targetSemver.tokenize('.')
+    /** Safe cast `o` tp `cls` if possible. Return null otherwise */
+    static <T> T cast(o, Class<T> cls) {
+        cls.isInstance(o) ? o as T : null
+    }
 
-        def commonIndices = Math.min(liquibaseVersions.size(), targetVersions.size())
+    /** compare 2 semver strings */
+    static int compareSemvers(String ver1, String ver2) {
+        List v1segs = ver1.tokenize('.')
+        List v2segs = ver2.tokenize('.')
 
-        for ( int i = 0; i < commonIndices; ++i ) {
-            def givenNum = liquibaseVersions[i].toInteger()
-            def targetNum = targetVersions[i].toInteger()
+        int commonIndices = Math.min(v1segs.size(), v2segs.size())
 
-            if ( givenNum != targetNum ) {
-                return givenNum > targetNum
+        for (int i = 0; i < commonIndices; ++i) {
+            def v1 = v1segs[i].toInteger()
+            def v2 = v2segs[i].toInteger()
+
+            if (v1 != v2) {
+                return v1 <=> v2
             }
         }
 
-        // If we got this far then all the common indices are identical, so whichever version is
-        // longer must be more recent.  If they are the same size, then we match the "at least"
-        // condition.
-        return liquibaseVersions.size() >= targetVersions.size()
+        // If we got this far then all the common indices are identical, so whichever version is longer must be more recent
+        v1segs.size() <=> v2segs.size()
     }
+
+    @CompileStatic
+    static class CollectionStringBuilder {
+        final StringBuilder self
+        final String separator
+        CollectionStringBuilder(String init = null, String separator = ', ', StringBuilder sb = new StringBuilder()) {
+            this.separator = separator
+            self = sb
+            if(init) sb += init
+        }
+        /** Add separator + value */
+        def leftShift(String s) {
+            if(null == s) return this
+            if(self.length() > 0) this + separator
+            this + s
+        }
+        int size() {self.length()}
+        /** Simple append */
+        def plus(String s) {
+            self.append( s)
+            this
+        }
+        @Override
+        String toString(){self.toString()}
+    }
+
+	/**
+	 * Compare the version of Liquibase being used to a target semver and return if we're using a
+	 * version of Liquibase that is at least at the version of the target.
+	 *
+	 * @param targetSemver the target version to use as a comparison.
+	 * @return @{code true} if the Liquibase version is greater than or equal to the target semver.
+	 */
+	static boolean lbVersionAtLeast(String targetSemver) {
+		List liquibaseVersions = LiquibaseUtil.getBuildVersion().tokenize('.')
+		List targetVersions = targetSemver.tokenize('.')
+
+		def commonIndices = Math.min(liquibaseVersions.size(), targetVersions.size())
+
+		for ( int i = 0; i < commonIndices; ++i ) {
+			def givenNum = liquibaseVersions[i].toInteger()
+			def targetNum = targetVersions[i].toInteger()
+
+			if ( givenNum != targetNum ) {
+				return givenNum > targetNum
+			}
+		}
+
+		// If we got this far then all the common indices are identical, so whichever version is
+		// longer must be more recent.  If they are the same size, then we match the "at least"
+		// condition.
+		return liquibaseVersions.size() >= targetVersions.size()
+	}
 
 }

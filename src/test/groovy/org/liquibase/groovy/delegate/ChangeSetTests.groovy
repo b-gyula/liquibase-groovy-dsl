@@ -13,16 +13,20 @@
  */
 package org.liquibase.groovy.delegate
 
+import groovy.transform.CompileStatic
+import liquibase.change.Change
 import liquibase.resource.DirectoryResourceAccessor
 import org.junit.After
 import org.junit.Before
 import liquibase.changelog.ChangeLogParameters
 import liquibase.changelog.ChangeSet
 import liquibase.changelog.DatabaseChangeLog
-import java.sql.Timestamp
-import java.text.SimpleDateFormat
 
+import static groovy.lang.Closure.DELEGATE_FIRST
+import static groovy.lang.Closure.DELEGATE_ONLY
+import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
+import static org.liquibase.groovy.helper.util.assertPropsSet
 
 
 /**
@@ -31,15 +35,17 @@ import static org.junit.Assert.assertTrue
  *
  * @author Steven C. Saliman
  */
+//trait ChangeSetTest {
+@CompileStatic
 class ChangeSetTests {
-    def CHANGESET_ID = 'changeset-id'
-    def CHANGESET_AUTHOR = 'tlberglund'
-    def CHANGESET_FILEPATH = '/filePath'
-    def sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
-    def changeSet
+    static final String CHANGESET_ID = 'changeset-id'
+    static final String CHANGESET_AUTHOR = 'tlberglund'
+    static final String CHANGESET_FILEPATH = '/filePath'
+
+    ChangeSet changeSet
     def resourceAccessor = new DirectoryResourceAccessor(new File(''))
-    def oldStdOut = System.out
-    def bufStr = new ByteArrayOutputStream()
+    PrintStream oldStdOut = System.out
+    ByteArrayOutputStream bufStr = new ByteArrayOutputStream()
 
     /**
      * Set up for each test.  This involves two things; creating a change set for each test to
@@ -47,10 +53,16 @@ class ChangeSetTests {
      * messages.
      */
     @Before
-    void createChangeSet() {
+    void before() {
+        // Capture stdout to confirm the presence of a deprecation warning.
+        System.out = new PrintStream(bufStr)
+    }
+
+    static ChangeSet createChangeSet() {
         def changeLog = new DatabaseChangeLog(CHANGESET_FILEPATH)
         changeLog.changeLogParameters = new ChangeLogParameters()
-        changeSet = new ChangeSet(
+        changeLog.changeLogParameters.set('database.typeName', 'mysql')
+        ChangeSet changeSet = new ChangeSet(
                 CHANGESET_ID,
                 CHANGESET_AUTHOR,
                 false,
@@ -60,10 +72,8 @@ class ChangeSetTests {
                 'mysql',
                 true,
                 changeLog)
-
-        // Capture stdout to confirm the presence of a deprecation warning.
-        System.out = new PrintStream(bufStr)
-
+        changeLog.addChangeSet(changeSet)
+        changeSet
     }
 
     /**
@@ -87,25 +97,25 @@ class ChangeSetTests {
      * @param closure the closure containing changes to parse.
      * @return the changeSet, with parsed changes from the closure added.
      */
-    def buildChangeSet(Closure closure) {
-        def changelog = new DatabaseChangeLog(CHANGESET_FILEPATH)
-        changelog.addChangeSet(changeSet)
-        changelog.changeLogParameters = new ChangeLogParameters()
-        changelog.changeLogParameters.set('database.typeName', 'mysql')
-
-        new ChangeSetDelegate(changeSet, changelog)
-            .call(closure)
-        changeSet
+    ChangeSet buildChangeSet(args = null,
+            @DelegatesTo(value=ChangeSetDelegate, strategy=DELEGATE_FIRST) Closure closure) {
+        changeSet = buildChanges args, closure
     }
 
     /**
-     * Small helper to parse a string into a Timestamp
-     * @param dateTimeString the string to parse
-     * @return the parsed string
+     * Helper method that builds a changeSet from the given closure.  Tests will use this to test
+     * parsing the various closures that make up the Groovy DSL.
+     * @param closure the closure containing changes to parse.
+     * @return the changeSet, with parsed changes from the closure added.
      */
-    Timestamp parseSqlTimestamp(dateTimeString) {
-        new Timestamp(sdf.parse(dateTimeString).time)
+    static ChangeSet buildChanges(args = null,
+            @DelegatesTo(value=ChangeSetDelegate, strategy=DELEGATE_ONLY) Closure closure) {
+        ChangeSet changeSet = createChangeSet()
+        new ChangeSetDelegate(changeSet)
+            .call(closure, args)
+        changeSet
     }
+
 
     /**
      * Make sure the given message is present in the standard output.  This can be used to verify
@@ -113,7 +123,7 @@ class ChangeSetTests {
      * message is not in standard out.
      * @param message the message that must exist.
      */
-    def assertPrinted(message) {
+    def assertPrinted(String message) {
         String testOutput = bufStr.toString()
         assertTrue "'${message}' was not found in:\n '${testOutput}'",
                 testOutput.contains(message)
@@ -127,6 +137,22 @@ class ChangeSetTests {
         String testOutput = bufStr.toString()
         assertTrue "Did not expect to have output, but got:\n '${testOutput}",
                 testOutput.length() < 1
+    }
+
+    /** Verify if the one and only change built using the {@code closure} has all the properties set
+     * as defined in the {@code expectedProps} map. See {@link util.assertPropsSet()}
+     * and is instance of {@code cls}
+     * @param expectedProps expected (name ->) property values map
+     * @param closure used to create the change
+     * @param cls Class of the expected change
+     */
+    static <T extends Change> T verify( Map<String, Object> expectedProps, Closure closure, Class<T> cls) {
+        ChangeSet changeSet = buildChanges( expectedProps, closure )
+        assertEquals 0, changeSet.rollback.changes.size()
+        assert 1 == changeSet.changes.size()
+        T change = cls.cast(changeSet.changes[0])
+        assertPropsSet expectedProps, change
+        change
     }
 }
 

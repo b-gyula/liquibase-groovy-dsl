@@ -1,38 +1,79 @@
 package org.liquibase.groovy.delegate
 
+import groovy.transform.CompileStatic
+import groovy.transform.PackageScope
 import groovy.transform.TupleConstructor
 import liquibase.changelog.ChangeSet
 import liquibase.changelog.DatabaseChangeLog
-import liquibase.exception.ChangeLogParseException
-
-import java.lang.reflect.Method
-
-import static groovy.lang.Closure.*
-import static liquibase.parser.ext.GroovyLiquibaseChangeLogParser.*
-import static org.liquibase.groovy.delegate.DelegateUtil.MapCategory.ifNotNull
-import static liquibase.Scope.getCurrentScope
 import liquibase.parser.groovy.exception.*
+import liquibase.serializer.LiquibaseSerializable
+import liquibase.util.PatchedObjectUtil
+import org.liquibase.groovy.delegate.DelegateUtil.CollectionStringBuilder
 
-@groovy.transform.CompileStatic
+import java.lang.reflect.Parameter
+
+import static groovy.lang.Closure.DELEGATE_FIRST
+import static groovy.lang.Closure.DELEGATE_ONLY
+import static liquibase.Scope.getCurrentScope
+import static liquibase.parser.ext.GroovyLiquibaseChangeLogParser.getMethods
+import static org.liquibase.groovy.delegate.DelegateUtil.MapCategory.ifNotNull
+import static org.liquibase.groovy.delegate.DelegateUtil.objArr
+
+/*@CompileStatic
+@TupleConstructor
+class Context {
+    final DatabaseChangeLog databaseChangeLog
+    final String changeId // used for error messages
+}*/
+@CompileStatic
 /** Class for generic functions in ...Delegate classes */
-abstract class Delegatee<Tag> {
+abstract class Delegatee<Tag extends Enum<Tag>> {
     protected final DatabaseChangeLog databaseChangeLog
-    String changeId // used for error messages
+    final String changeId // used for error messages
+    final String parent
+    // Could go to C-tor
+    //Class<Tag> tagClass = (Class<Tag>)((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0]
     /** method cache for error messages */
-    protected @Lazy Map<String, Method> methodDefs = getMethods(this.class)
-    Set<String> knownElements() {methodDefs.keySet()}
-    protected String prefix(String msg) {"$changeId: $msg"}
+    protected @Lazy Map<String, MethodDef> methodDefs = getMethodDefs(this.class)
+    MethodDef methodDef(String methodName) {methodDefs[methodName]}
+    protected static Map<String,Map<String, MethodDef>> allMethods = [:]
 
-    Delegatee(DatabaseChangeLog dbChangeLog, String changeId){
-        this.databaseChangeLog = dbChangeLog
-        this.changeId = changeId
+    static <T> Map<String, MethodDef> getMethodDefs(Class cls) {
+        allMethods.computeIfAbsent(cls.simpleName, s -> {
+            Map<String, MethodDef> methods = getMethods(cls)
+            if(s == UpdateDelegate.simpleName) { // Help inheritance
+                methods += getMethods(cls.superclass)
+            }
+            methods
+        })
     }
 
+    Set<String> knownElements() {methodDefs.keySet()}
+    def validArguments(Tag tag) {}
+    protected String prefix(String msg) {"$changeId: $msg"}
+
+    Delegatee(DatabaseChangeLog dbChangeLog, String changeId, String parent = null) {
+        this.databaseChangeLog = dbChangeLog
+        this.changeId = changeId
+        this.parent = parent
+    }
+/*
+    Tag of(String s) {
+        try{
+            Enum.valueOf(tagClass, s)
+        }catch (ignored) {
+            null
+        }
+    }*/
+
     /** call the given closure with this as delegate */
-    def call(@DelegatesTo(strategy = DELEGATE_FIRST) Closure closure, args = null) {
-        closure.delegate = this
-        closure.resolveStrategy = DELEGATE_FIRST
-        closure.call(args)
+    def call(@DelegatesTo(strategy = DELEGATE_ONLY) Closure closure, args = null) {
+        if(closure) {
+            closure.delegate = this
+            closure.resolveStrategy = DELEGATE_FIRST
+            return closure.call(args)
+        }
+        null
     }
 
     /** Prefix Exception */
@@ -42,14 +83,14 @@ abstract class Delegatee<Tag> {
     }
 
     /** Call this to throw an exception to make sure, the prefix properly is set */
-    protected void error(ParseErrorWithFileNLine e) {
+    void error(ParseErrorWithFileNLine e) {
         throw prefix(e)
     }
 
     /** Create generic ChangeLogParseException with the message msg prefixed with the changeId
         For specific cases specific Exception shall be used
      */
-    protected ParseErrorWithFileNLine changeLogParseException(String msg, Throwable t=null) {
+    ParseErrorWithFileNLine changeLogParseException(String msg, Throwable t=null) {
         new ParseErrorWithFileNLine(msg, changeId, t)
     }
 
@@ -76,52 +117,70 @@ abstract class Delegatee<Tag> {
         }
     }
 
+    /** {@link #argsToMap} */
     Map<String, Object> argsAsMap(Tag tag, Object... args ) {
-        argsAsMap tag as String, args
+        String name = tag as String
+        MethodDef method = methodDef(name)
+        argsAsMap name, method, args
     }
 
+    /** {@link #argsToMap}
     Map<String, Object> argsAsMap(String methodName, Object... args ) {
         Method method = methodDefs[methodName]
-        argsAsMap method, args
+        argsAsMap method, requiresClosure(method), args
+    }
+    */
+    /** {@link #argsToMap} */
+    Map<String, Object> argsAsMap(String name, MethodDef method, Object... args ) {
+        argsToMap changeId, name, method.needsClosure, method.toString(),
+                method.args*.name, args
     }
 
-    Map<String, Object> argsAsMap(Method method, Object... args ) {
-        argsToMap changeId, method.name, requiresClosure(method), asString(method.parameters),
-                method.parameters*.name, args
+    Map<String, Object> argsToMap( String methodName, boolean needsClosure,
+                                         String fnDef, List<String> argNames, Object... args ) {
+        argsToMap(changeId, methodName, needsClosure, fnDef, argNames, args )
     }
-
     /**
+     * Generates a map: argNames[i] -> args[i]
+     * Skips last args if {needsClosure} true
      * @param args expected to get all arguments including the starting Map and closing Closure
      * @param argNames expected to contain all parameter names excluding the first Map parameter
-     * @throws InvalidArgument
+     * @throws InvalidArguments
+     * @throws ArgumentSetTwice
+     * @throws MissingClosure if {needsClosure} true and the last args not Closure
+     *
      */
     static Map<String, Object> argsToMap(String prefix, String methodName, boolean needsClosure,
                                          String fnDef, List<String> argNames, Object... args )
-        throws ArgumentSetTwice, InvalidArgument {
+        throws ArgumentSetTwice, InvalidArguments, MissingClosure {
         assert argNames.size() > 0
-
-        int cl = needsClosure ? 1 : 0
         // Make sure there are at least 1 args if needed
         if( !args || !args.length ) {
             throw needsClosure ? new MissingClosure(methodName, prefix)
-                   : new InvalidArgument(methodName, fnDef, prefix, args)
+                   : new InvalidArguments(methodName, fnDef, prefix, args)
         }
-        if(needsClosure && !Closure.isAssignableFrom(args.last().class)) {
+
+        int cl = args.last() instanceof Closure ? 1 : 0
+        if(needsClosure && !cl) {
             throw new MissingClosure(methodName, prefix)
         }
         int i = args.first() instanceof Map ? 1 : 0
         Map<String, Object> map = i ? (Map)args.first(): new LinkedHashMap<>()
         // Make sure there are no more args, than expected
-        if(args.length - i > argNames.size()) {
-            throw new InvalidArgument(methodName, fnDef, prefix, args)
+        if(args.length - i > argNames.size()) { // TODO check if map contains only known args
+            throw new InvalidArguments(methodName, fnDef, prefix, args)
         }
         for(int n = 0; i < args.length-cl; i++) {
             String name = argNames[n++]
-            if(args[i] != null) {
+            def val = args[i]
+//            if(val instanceof Closure) { // Any argument can be a closure
+//                val = (val as Closure)()
+//            }
+            if(val != null) {
                 if(map[name] != null){
                     throw new ArgumentSetTwice(methodName, name, prefix)
                 }
-                map[name] = args[i]
+                map[name] = val
             }
         }
         map
@@ -132,19 +191,116 @@ abstract class Delegatee<Tag> {
         getCurrentScope().getLog(getClass()).warning(prefix(msg))
     }
 
-    static String fullChangeSetId(ChangeSet changeSet){"changeSet ${changeSet.toString(false)}"}
+    static String fullChangeSetId(ChangeSet changeSet){"changeSet $changeSet"}
 
-    @TupleConstructor
-    static enum ArgDef {
-        final Class type
-        final boolean required
-        final String alias
-        final String since
+    /** Wrapper for PatchedObjectUtil.setProperty adds detailed error message */
+    protected <T extends LiquibaseSerializable> T setProp(T entity, String name, Object value) {
+        try {
+            if(value != null) {
+                PatchedObjectUtil.setProperty(entity, name, expandExpressions(value))
+            }
+            entity
+        } catch (RuntimeException e) {
+            throw new InvalidAttribute(entity.serializedObjectName, name, changeId, entity.serializableFields.toListString(), parent, e)
+        }
     }
 
-    @TupleConstructor
-    static enum MethodDef {
-        final ArgDef[] args
+    @PackageScope <T extends LiquibaseSerializable> T setProps(T entity, Map<String, Object> props) {
+        props.each {key, value ->
+            setProp(entity, key, value)
+        }
+        entity
     }
 
+    <V> V expandExpressions(V value) {
+        value instanceof String ?
+        DelegateUtil.expandExpressions(value, databaseChangeLog) as V : value
+    }
+
+    //@TypeChecked(TypeCheckingMode.SKIP)
+    protected def propertyMissing(String name) {
+        methodMissing name, null // Simply forward to methodMissing
+    }
+
+    UnrecognizedElement UnrecognizedElement(String name){
+        new UnrecognizedElement(name, knownElements())
+    }
+
+
+    @PackageScope InvalidAttribute InvalidAttribute(Tag tag, String name) {
+        MethodDef m = methodDefs[tag.name()]
+        new InvalidAttribute(tag.name(), name, changeId, m.toString(), parent)
+    }
+
+
+    /**
+     * Groovy calls methodMissing when it can't find a matching method to call.
+     * We use it to tell the user which changeSet had the invalid element.
+     * @param name the name of the method Groovy wanted to call.
+     * @param params the original arguments to that method.
+     */
+    protected def methodMissing(String name, params) {
+        MethodDef method = methodDef(name)
+        if(!method) {
+            error UnrecognizedElement(name)
+        }
+        callSingleMapArgVersion(name, method, params as Object[])
+    }
+
+    protected def callSingleMapArgVersion(String name, MethodDef method, Object[] args) {
+        Map map = argsAsMap(name, method, args)
+        // Make sure it exists to avoid infinite loop
+        def m = metaClass.pickMethod(name, (method.lastArgClosure ? [Map, Closure] : [Map]) as Class[])
+        if(!m) {
+            throw new ParseErrorWithFileNLine("Unable to find method: '$name' for object $this with args: Map, Closure", changeId)
+        }
+
+        method.lastArgClosure ? m.invoke (this, objArr(map, args.last())) : m.invoke (this, map)
+    }
+
+    Map<String, Object> mergeNotNulls(Tag elem, Map<String, Object> m, Map<String, Object> args) {
+        args.each { key, val ->
+            if(val != null) {
+                if(null != m.putIfAbsent(key, val)){
+                    throw new ArgumentSetTwice(elem.name(), key, changeId)
+                }
+            }
+        }
+        m
+    }
+
+    static Map<String, Object> soMap(Map m) { m as Map<String, Object>}
+}
+
+@CompileStatic
+@TupleConstructor(useSetters = true, includes = ['args']) //'name',
+class MethodDef {
+    //final String name
+    Parameter[] args
+    boolean needsClosure = true
+    boolean lastArgClosure // Cache
+    int argCount() { args ? args.size() : 0}
+
+    void setArgs(Parameter[] params) {
+        this.lastArgClosure = lastParamClosure(params)
+        needsClosure &= this.lastArgClosure
+        args = params
+    }
+    static boolean lastParamClosure(Parameter[] args) {args.last().type == Closure}
+
+    /** Create human readable list of parameter names + types
+     * Expects Closure to be the last parameter */
+    @Override
+    String toString() {
+        args.inject(new CollectionStringBuilder()) { r, p ->
+            switch ( p.type.simpleName ) {
+                case 'Closure': return r << "{ $p.name }"
+                    break
+                case 'Map': break
+                default :
+                    r << "$p.type.simpleName $p.name"
+            }
+            r
+        }
+    }
 }
