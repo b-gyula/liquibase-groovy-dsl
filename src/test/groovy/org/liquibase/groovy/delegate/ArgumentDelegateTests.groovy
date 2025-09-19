@@ -27,7 +27,7 @@ import static groovy.lang.Closure.DELEGATE_ONLY
 import static org.junit.Assert.*
 
 /**
- * Tests for {@link ArgumentDelegate}  It makes sure it can be called in all its various
+ * Tests for {@link ExecuteCommandDelegate}  It makes sure it can be called in all its various
  * permutations.
  *
  * @author Steven C. Saliman
@@ -148,17 +148,17 @@ class ArgumentDelegateTests {
     }
 
     /**
-     * Helper method to execute an {@link ArgumentDelegate} and return any arguments it created.
+     * Helper method to execute an {@link ExecuteCommandDelegate} and return any arguments it created.
      * @param closure
      * @return
      */
-    List<String> buildArguments(@DelegatesTo(value=ArgumentDelegate, strategy=DELEGATE_ONLY) Closure closure) {
+    List<String> buildArguments(@DelegatesTo(value=ExecuteCommandDelegate, strategy=DELEGATE_ONLY) Closure closure) {
         def changelog = new DatabaseChangeLog()
         ChangeSetDelegate changeSet = new ChangeSetDelegate(
                 new ChangeSet(changelog)
         )
         ExecuteShellCommandChange change = changeSet.lookupChange('executeCommand')
-        def delegate = new ArgumentDelegate(changeSet, change)
+        def delegate = new ExecuteCommandDelegate(changeSet, change)
         changeSet.callOnDelegate(change, closure)
 
         return change.args

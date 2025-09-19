@@ -351,6 +351,12 @@ class LoadDataDelegate extends ColumnDelegate<LoadDataColumnConfig>{
     }
 }
 
+@CompileStatic
+class LoadUpdateDataDelegate extends LoadDataDelegate{
+    LoadUpdateDataDelegate(ChangeSetDelegate changeSet, ChangeWithColumns change) {
+        super(changeSet, change)
+    }
+}
 
 @CompileStatic
 class AddColumnDelegate extends ColumnDelegateHasConstraint<AddColumnConfig> {
@@ -609,8 +615,8 @@ class AddColumnDelegate extends ColumnDelegateHasConstraint<AddColumnConfig> {
 }
 
 @CompileStatic
-class DataColumn extends ColumnDelegate<ColumnConfig> {
-    DataColumn(ChangeSetDelegate changeSet, ChangeWithColumns change) {
+class InsertDelegate extends ColumnDelegate<ColumnConfig> { // DataColumn in XSD
+    InsertDelegate(ChangeSetDelegate changeSet, ChangeWithColumns change) {
         super(changeSet, change)
     }
 

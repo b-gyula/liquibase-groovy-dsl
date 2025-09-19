@@ -1,13 +1,16 @@
 package org.liquibase.groovy.helper
 
 import groovy.transform.TupleConstructor
+import liquibase.change.Change
 import liquibase.changelog.ChangeLogParameters
+import liquibase.changelog.ChangeSet
 import liquibase.changelog.DatabaseChangeLog
 import liquibase.parser.ChangeLogParserFactory
 import liquibase.parser.ext.GroovyLiquibaseChangeLogParser
 import liquibase.parser.groovy.exception.*
 import liquibase.precondition.Precondition
 import liquibase.precondition.core.PreconditionContainer
+import org.liquibase.groovy.delegate.ChangeSetDelegate
 import org.liquibase.groovy.delegate.DatabaseChangeLogDelegate
 import org.liquibase.groovy.delegate.Delegatee
 import liquibase.resource.ResourceAccessor
@@ -125,7 +128,7 @@ class util {
 
     /** Get the last ChangeLogParameter using reflection
      * @param global Get the last global or local changeLogParameter
-     * @return
+     * @return ChangeLogParameters.ChangeLogParameter
      */
     static def lastParam(DatabaseChangeLog changeLog, boolean global = true) {
         // change log parameters are not exposed through the API, so get them using reflection.
@@ -234,18 +237,13 @@ class util {
          * parsing the various closures that make up the Groovy DSL.
          * @param closure the closure containing changes to parse.
          * @return the changeSet, with parsed changes from the closure added.
-         *//*
-        ChangeSet buildChangeSet(Map args = null, @ClosureParams(FirstParam.class)
-            @DelegatesTo(value = ChangeSetDelegate, strategy=DELEGATE_ONLY) Closure closure) {
-            ChangeSet changeSet = newChangeSet()
-            def changelog = changeSet.changeLog
-            changelog.addChangeSet(changeSet)
-            changelog.changeLogParameters = new ChangeLogParameters()
-            changelog.changeLogParameters.set('database.typeName', DBMS)
-
-            new ChangeSetDelegate(changeSet).call(closure, args)
-            changeSet
-        }
-    }*/
+         */
+    static ChangeSetDelegate buildBaseChangeSetDelegate() {
+        def changelog = new DatabaseChangeLog()
+        changelog.changeLogParameters = new ChangeLogParameters()
+        ChangeSet changeSet = new ChangeSet(changelog)
+        changelog.addChangeSet(changeSet)
+        new ChangeSetDelegate(changeSet  )
+    }
 }
 

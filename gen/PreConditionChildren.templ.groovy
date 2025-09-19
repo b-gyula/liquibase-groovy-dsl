@@ -3,21 +3,15 @@ ${timestamp}
 import groovy.transform.CompileStatic
 import groovy.transform.SelfType
 import liquibase.database.ObjectQuotingStrategy
-import static org.liquibase.groovy.delegate.PreconditionDelegate.Tag.*
-<% def skip = ['customPrecondition'] %>
+import static org.liquibase.groovy.delegate.PreconditionDelegate.Tag
+<% def skip = ['customPrecondition','sqlCheck'] %>
 @CompileStatic
 @SelfType(PreconditionDelegate)
 trait PreConditionChildren {
 <% methods.findAll{it.args && !it.hasChild && !skip.contains(it.name) }.each { m -> %>
-	${m.javadoc()}
-	void $m.name(${m.argList( true)}) {
-		addPrecondition $m.name,${m.argList()}
-	}
+	${m.fnDef(false, 'addPrecondition', true)}
 <% if(m.args.size() > 2) { %>
-	${m.javadoc()}
-	void $m.name(Map<String, Object> namedArgs,${m.argList( true)}) {
-		addPrecondition $m.name, namedArgs,${m.argList()}
-	}
+	${m.fnDef(true, 'addPrecondition', true)}
 <% } // if
   } // each %>
 }

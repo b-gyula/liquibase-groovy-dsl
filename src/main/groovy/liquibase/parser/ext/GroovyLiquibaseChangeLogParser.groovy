@@ -14,26 +14,23 @@
 
 package liquibase.parser.ext
 
-import liquibase.parser.ChangeLogParser
-import liquibase.changelog.DatabaseChangeLog
 import liquibase.changelog.ChangeLogParameters
-import liquibase.resource.ResourceAccessor
+import liquibase.changelog.DatabaseChangeLog
 import liquibase.exception.ChangeLogParseException
+import liquibase.parser.ChangeLogParser
+import liquibase.parser.groovy.exception.MissingClosure
+import liquibase.parser.groovy.exception.ParseErrorWithFileNLine
+import liquibase.parser.groovy.exception.UnrecognizedElement
+import liquibase.resource.ResourceAccessor
 import org.codehaus.groovy.control.CompilationFailedException
 import org.codehaus.groovy.control.CompilerConfiguration
 import org.codehaus.groovy.control.customizers.ImportCustomizer
 import org.codehaus.groovy.reflection.CachedMethod
 import org.codehaus.groovy.runtime.metaclass.MethodSelectionException
 import org.codehaus.groovy.util.FastArray
-import org.liquibase.groovy.delegate.DelegateUtil.CollectionStringBuilder
-import org.liquibase.groovy.delegate.Delegatee
 import org.liquibase.groovy.delegate.MethodDef
 
-
 import java.lang.reflect.Modifier
-import java.lang.reflect.Parameter
-
-import liquibase.parser.groovy.exception.*
 
 /**
  * This is the main parser class for the Liquibase Groovy DSL.  It is the integration point to
@@ -44,6 +41,7 @@ import liquibase.parser.groovy.exception.*
  * @author Steven C. Saliman
  */
 @groovy.transform.CompileStatic
+@groovy.util.logging.Log
 class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
 
     DatabaseChangeLog parse(String physicalChangeLogLocation,
@@ -155,19 +153,20 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
     }
 
     /** Collect all public methods with the longest parameter list not starting with Map using java reflection
-     * DOES NOT WORK ON Script`! */
+      from 2 equal longest pick the one with closure at the end ! */
     static Map<String, MethodDef> getMethods(Class cls) {
         Map<String, MethodDef> map = new HashMap<>()
         //def s = cls.methods return all methods
         cls.declaredMethods.each {
             if(it.name.indexOf('$') == -1
                && Modifier.isPublic(it.modifiers)
-              // && it.name != 'methodMissing'
+               && it.name != 'methodMissing'
                && it.parameterTypes.length > 0 && !isMap(it.parameterTypes.first())) {
                 MethodDef stored = map[it.name]
                 if ( stored ) {
-                    // Found a longer param list
-                    if (stored.argCount() < it.parameterCount ) {
+                    if (stored.argCount() < it.parameterCount // Found a longer param list
+                       || ( stored.argCount() == it.parameterCount // Or same but it has last closure
+                           && !stored.lastArgClosure && it.parameterTypes.last() == Closure)) {
                         map[it.name].args = it.parameters // Update
                     }
                     else { // param list is shorter

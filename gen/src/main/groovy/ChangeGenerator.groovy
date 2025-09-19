@@ -7,12 +7,15 @@ import groovy.text.GStringTemplateEngine
 import groovy.transform.CompileStatic
 import groovy.transform.TupleConstructor
 import groovy.xml.XmlParser
-import org.liquibase.groovy.delegate.ChangeSetDelegate
+import org.apache.commons.lang3.StringUtils
 
+import static ChangeGenerator.Name.liquibaseNS
+import static Method.Arg
+import static Method.Arg.NO
+import static Method.Arg.YES
+import static com.sun.org.apache.xerces.internal.xs.XSComplexTypeDefinition.*
 import static groovy.lang.Tuple.tuple as t
 import static org.liquibase.groovy.delegate.DelegateUtil.cast
-import static ChangeGenerator.Name.*
-import static Method.Arg
 
 @CompileStatic
 @groovy.util.logging.Log
@@ -20,42 +23,58 @@ import static Method.Arg
 class ChangeGenerator {
 
 	static interface Name {
-		//String PreConditionChildren = 'PreConditionChildren'
 		String liquibaseNS = 'http://www.liquibase.org/xml/ns/dbchangelog'
 	}
 
 	static XmlParser xmlParser = new XmlParser()
 
-	static final Map<String, String> closureType = ChangeSetDelegate.closureDelegate.collectEntries {
-		k, v -> [k, v.simpleName]
+	static String closureType(String enity) {
+		StringUtils.capitalize(enity) + 'Delegate'
 	}
 
+	static String StringClosure = 'Closure<String>'
+
+	/** mutually exclusive attributes per change */
+	static Map<String, Map<String, List<String>>> exclusiveParams = [
+		 createView: [selectQuery: ['path', 'encoding', 'relativeToChangelogFile']]
+		,createProcedure: [procedureText: ['path', 'encoding', 'relativeToChangelogFile']]
+	] as Map<String, Map<String, List<String>>>
+
+
+	/** child attribute definitions */
+	static Map<String,Arg> mixedValueChild = [
+	   output: new Arg('message',"Message to send to output", YES,'String',true),
+	   sql: new Arg('sql',"SQL to execute", YES,'String',true),
+		sqlCheck: new Arg('sql',"SQL to execute", YES,'String',true),
+		createProcedure: new Arg('procedureText','The SQL creating the procedure.',
+			exclusiveParams.createProcedure.selectQuery,genClosureType(closureType('createProcedure')), true),
+		createView: new Arg('selectQuery', 'SQL generating the view',
+			exclusiveParams.createView.selectQuery,StringClosure, true),
+		//column:'',		validCheckSum:''
+	]
+
 	static void main(String[] args) {
-		File xsd = File(args.length > 0 ? args[0] : 'dbchangelog-latest.xsd')
+		String xsd = args.length > 0 ? args[0] : 'dbchangelog-latest.xsd'
 		File outPath = File(args.length > 1 ? args[1] : '.') // 'src/main/groovy/org/liquibase/groovy/delegate'
 		if (!outPath.exists()) {
 			log.severe("Output path $outPath.absolutePath does not exists!")
 			System.exit(1)
 		}
 
-		File templPath = File('gen')
+		File rootPath = File('gen')
 
-		XSModel model = new XMLSchemaLoader().loadURI(xsd.toURI().toString())
+		XSModel model = new XMLSchemaLoader().loadURI(File(rootPath, xsd).toURI().toString())
 		List<Method> allMethods = []
 		/** List of global defined model group names */
 		['ChangeSetChildren'
-		 ,'PreConditionChildren'
+		,'PreConditionChildren'
 		].each { modelGroup ->
 			List<Method> methods = getMethods([], model, modelGroup)
-			generateFile(File(templPath, "${modelGroup}.templ")
+			generateFile( File(rootPath, "${modelGroup}.templ.groovy")
 							, File(outPath, "${modelGroup}.groovy")
 							, methods)
 			allMethods += methods
 		}
-/*		// Generate separate file about all params
-		generateFile(File(templPath, "Params.templ")
-			, File("Params.groovy")
-			, allMethods)*/
 	}
 
 	static List<Method> getMethods(List<Method> methods, XSModel model, String modelGroup) {
@@ -86,14 +105,13 @@ class ChangeGenerator {
 		}
 		out << new GStringTemplateEngine()
 			.createTemplate(templ)
-			.make([methods      : methods
-					 , timestamp  : timestamp()
-					 , closureType: closureType
+			.make([methods   : methods
+					,timestamp : timestamp()
 			])
 	}
 
-	static String closureType(String tag) {
-		String clType = closureType[tag]
+	static String genClosureType(String tag) {
+		String clType = closureType(tag)
 		"\n\t\t\t\t@DelegatesTo(${clType ? "value=$clType," : ''} strategy=DELEGATE_ONLY) Closure"
 	}
 
@@ -101,15 +119,13 @@ class ChangeGenerator {
 		"/* Generated @ ${new Date()} on ${InetAddress.localHost.hostName} */"
 	}
 
-
 	static String annotations2String(XSObjectList objs) {
 		objs ? objs.sum {
 			if (it instanceof XSAnnotation) {
 				return annotations2String(it as XSAnnotation)
 			}
 			''
-		}
-			: ''
+		} : ''
 	}
 
 	static String annotations2String(XSAnnotation ann) {
@@ -146,7 +162,7 @@ class ChangeGenerator {
 					XSAttributeUse attr = it as XSAttributeUse
 					Arg arg = new Arg(attr.attrDeclaration.name
 						, annotations2String(attr.annotations)
-						, attr.required)
+						, attr.required ? YES : NO)
 					XSSimpleTypeDefinition t = attr.attrDeclaration.typeDefinition as XSSimpleTypeDefinition
 					if (!arg.setType(t)) {
 						log.severe("Unable to set type from $t for $m.name / $arg.name")
@@ -154,8 +170,8 @@ class ChangeGenerator {
 					}
 					m.args << arg
 				}
-				// Get the content element name as the last argName
-				if (typeDef.contentType & XSComplexTypeDefinition.CONTENTTYPE_ELEMENT)
+
+				if (typeDef.contentType & CONTENTTYPE_ELEMENT)
 					switch (typeDef.particle?.term) { // Find the first element declaration that makes us treat as closure
 						case XSModelGroup:
 							XSModelGroup g = typeDef.particle?.term as XSModelGroup
@@ -170,20 +186,47 @@ class ChangeGenerator {
 									m.args << new Arg(
 										elems.size() > 1 ? 'closure' : elem.name + 's'// (particle.maxOccurs != 1 ? elem.name + 's' : elem.name)
 										, annotations2String(particle.annotations)
-										, particle.minOccurs > 0
+										, particle.minOccurs > 0 ? YES : NO
 										, elems.size() == 1 && particle.maxOccurs == 1 ? 'String' : // Use a simple attribute like sql comment -> Arg
-										closureType(m.name))
+										genClosureType(m.name))
 									m.hasChild = elems.size() > 1 || particle.maxOccurs != 1
 								}
 							}
 					}
+				// Get the content element name as the last argName
+/*				if(typeDef.contentType & CONTENTTYPE_SIMPLE && !m.hasChild) {// or mixed
+					addDirectArg(m)
+
+				}*/
 		}
+		m.resortArgs()
 		m
+	}
+
+	/** Add the direct content as a Closure argument to the method from mixedValueChild
+	 Description could be taken from the Liquibase meta data, but attribute info is neither in XSD
+	 nor in Liquibase meta data
+	 (Description is not available in XSD) */
+	static void addDirectArg(Method m) {
+		Arg directChild = mixedValueChild[m.name]
+		if(directChild) {
+			m.args << directChild
+			m.hasChild = true
+		}
+		else {
+			log.severe("No direct argument definition found for $m.name")
+		}
+/*		ChangeMetaData meta = Scope.getCurrentScope().getSingleton(ChangeFactory.class).getChangeMetaData(m.name)
+		ChangeParameterMetaData argDef = meta.parameters.findResult{ if( it.value.serializationType == SerializationType.DIRECT_VALUE) it.value }
+		if(argDef) {
+			m.args << new Arg(argDef.parameterName, argDef.description, if(m.name)
+		}*/
 	}
 }
 
 @TupleConstructor
 class Child {
+
 	XSParticle particle
 	XSElementDecl elem
 }

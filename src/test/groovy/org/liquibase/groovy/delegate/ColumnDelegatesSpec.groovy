@@ -1,31 +1,18 @@
 package org.liquibase.groovy.delegate
 
-import liquibase.change.Change
+
 import liquibase.change.core.LoadDataChange
 import liquibase.change.core.LoadDataColumnConfig
-import liquibase.changelog.ChangeLogParameters
-import liquibase.changelog.ChangeSet
-import liquibase.changelog.DatabaseChangeLog
 import liquibase.statement.DatabaseFunction
 import spock.lang.Specification
-import org.liquibase.groovy.delegate.ChangeSetDelegate.Tag
-import static org.liquibase.groovy.delegate.DelegateUtil.cast
 
-import static groovy.lang.Closure.DELEGATE_FIRST
-import static org.liquibase.groovy.delegate.ChangeSetDelegate.Tag.*
-import static org.liquibase.groovy.helper.constants.*
+import static org.liquibase.groovy.delegate.ChangeSetDelegate.Tag.loadData
+import static org.liquibase.groovy.delegate.ChangeSetDelegate.Tag.loadUpdateData
+import static org.liquibase.groovy.delegate.ChangeSetTests.buildChange
+import static org.liquibase.groovy.helper.constants.columnName
 import static org.liquibase.groovy.helper.util.assertPropsSet
 
 class ColumnDelegatesSpec extends Specification {
-    static <T extends Change> T buildColumnDelegate(Tag change,
-                                      @DelegatesTo(strategy = DELEGATE_FIRST) Closure closure) {
-        def changelog = new DatabaseChangeLog()
-        changelog.changeLogParameters = new ChangeLogParameters()
-        ChangeSetDelegate changSet = new ChangeSetDelegate(
-                new ChangeSet(changelog)
-        )
-        changSet.addChangeWithChild(change, [:], closure)
-    }
 
     static <T> T verify( Map<String, Object> expectedProps, List columns, Class<T> cls) {
         1 == columns.size()
@@ -51,7 +38,7 @@ class ColumnDelegatesSpec extends Specification {
     ]
 
     def "loadData with #type arguments" () {
-        LoadDataChange ch = buildColumnDelegate loadData,  cl
+        LoadDataChange ch = buildChange loadData,  cl
         expect:
         verify expPropsLoadData, ch.columns, LoadDataColumnConfig
         where:
@@ -81,7 +68,7 @@ class ColumnDelegatesSpec extends Specification {
     ]
 
     def "loadUpdateData with #type arguments" () {
-        LoadDataChange ch = buildColumnDelegate loadUpdateData, cl
+        LoadDataChange ch = buildChange loadUpdateData, cl
         expect:
         verify expPropsLoadUpdateData, ch.columns, LoadDataColumnConfig
         where:
