@@ -8,6 +8,7 @@ import liquibase.changelog.DatabaseChangeLog
 import liquibase.parser.groovy.exception.*
 import liquibase.serializer.LiquibaseSerializable
 import liquibase.util.PatchedObjectUtil
+import org.apache.commons.lang3.StringUtils
 import org.liquibase.groovy.delegate.DelegateUtil.CollectionStringBuilder
 
 import java.lang.reflect.Parameter
@@ -26,6 +27,7 @@ class Context {
     final String changeId // used for error messages
 }*/
 @CompileStatic
+@groovy.util.logging.Log
 /** Class for generic functions in ...Delegate classes */
 abstract class Delegatee<Tag extends Enum<Tag>> {
     protected final DatabaseChangeLog databaseChangeLog
@@ -34,18 +36,34 @@ abstract class Delegatee<Tag extends Enum<Tag>> {
     // Could go to C-tor
     //Class<Tag> tagClass = (Class<Tag>)((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0]
     /** method cache for error messages */
-    protected @Lazy Map<String, MethodDef> methodDefs = getMethodDefs(this.class)
+    protected @Lazy Map<String, MethodDef> methodDefs = methodDefs(this.class)
     MethodDef methodDef(String methodName) {methodDefs[methodName]}
-    protected static Map<String,Map<String, MethodDef>> allMethods = [:]
+    MethodDef methodDef(Tag methodName) {methodDefs[methodName.name()]}
+    protected static Map<String, Map<String, MethodDef>> allMethods = [:]
 
-    static <T> Map<String, MethodDef> getMethodDefs(Class cls) {
-        allMethods.computeIfAbsent(cls.simpleName, s -> {
-            Map<String, MethodDef> methods = getMethods(cls)
-            if(s == UpdateDelegate.simpleName) { // Help inheritance
-                methods += getMethods(cls.superclass)
-            }
-            methods
-        })
+    static String delegateClassSimpleName(String tagName) {
+        StringUtils.capitalize(tagName) + "Delegate"
+    }
+
+    static Class<Delegate> delegateClass4tag(String tagName) {
+        (Class<Delegate> )Class.forName("org.liquibase.groovy.delegate." + delegateClassSimpleName(tagName))
+    }
+
+    static Map<String, MethodDef> methodDefs4Tag(String tagName) {
+         getMethodDefs( delegateClass4tag(tagName ))
+    }
+
+    static Map<String, MethodDef> getMethodDefs(Class cls) {
+        Map<String, MethodDef> methods = getMethods(cls)
+        if(cls.simpleName.contains('Update')) { // Help inheritance
+            methods += getMethods(cls.superclass)
+        }
+        log.fine("Methods for $cls.simpleName: $methods")
+        methods
+    }
+
+    static Map<String, MethodDef> methodDefs(Class cls) {
+        allMethods.computeIfAbsent(cls.simpleName,{ getMethodDefs(cls) })
     }
 
     Set<String> knownElements() {methodDefs.keySet()}
@@ -140,6 +158,7 @@ abstract class Delegatee<Tag extends Enum<Tag>> {
                                          String fnDef, List<String> argNames, Object... args ) {
         argsToMap(changeId, methodName, needsClosure, fnDef, argNames, args )
     }
+
     /**
      * Generates a map: argNames[i] -> args[i]
      * Skips last args if {needsClosure} true
@@ -222,7 +241,7 @@ abstract class Delegatee<Tag extends Enum<Tag>> {
         methodMissing name, null // Simply forward to methodMissing
     }
 
-    UnrecognizedElement UnrecognizedElement(String name){
+    UnrecognizedElement unrecognizedElement(String name){
         new UnrecognizedElement(name, knownElements())
     }
 
@@ -242,13 +261,14 @@ abstract class Delegatee<Tag extends Enum<Tag>> {
     protected def methodMissing(String name, params) {
         MethodDef method = methodDef(name)
         if(!method) {
-            error UnrecognizedElement(name)
+            error unrecognizedElement(name)
         }
         callSingleMapArgVersion(name, method, params as Object[])
     }
 
     protected def callSingleMapArgVersion(String name, MethodDef method, Object[] args) {
         Map map = argsAsMap(name, method, args)
+
         // Make sure it exists to avoid infinite loop
         def m = metaClass.pickMethod(name, (method.lastArgClosure ? [Map, Closure] : [Map]) as Class[])
         if(!m) {
@@ -286,6 +306,7 @@ class MethodDef {
         needsClosure &= this.lastArgClosure
         args = params
     }
+
     static boolean lastParamClosure(Parameter[] args) {args.last().type == Closure}
 
     /** Create human readable list of parameter names + types

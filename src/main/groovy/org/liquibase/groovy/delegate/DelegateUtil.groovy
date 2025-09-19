@@ -126,7 +126,7 @@ class DelegateUtil {
         CollectionStringBuilder(String init = null, String separator = ', ', StringBuilder sb = new StringBuilder()) {
             this.separator = separator
             self = sb
-            if(init) sb += init
+            if(init) self.append (init)
         }
         /** Add separator + value */
         def leftShift(String s) {

@@ -1,46 +1,7 @@
 package org.liquibase.groovy.delegate
 
-import liquibase.change.core.AddAutoIncrementChange
-import liquibase.change.core.AddColumnChange
-import liquibase.change.core.AddDefaultValueChange
-import liquibase.change.core.AddForeignKeyConstraintChange
-import liquibase.change.core.AddLookupTableChange
-import liquibase.change.core.AddNotNullConstraintChange
-import liquibase.change.core.AddPrimaryKeyChange
-import liquibase.change.core.AddUniqueConstraintChange
-import liquibase.change.core.AlterSequenceChange
-import liquibase.change.core.CreateIndexChange
-import liquibase.change.core.CreateSequenceChange
-import liquibase.change.core.CreateTableChange
-import liquibase.change.core.CreateViewChange
-import liquibase.change.core.DeleteDataChange
-import liquibase.change.core.DropAllForeignKeyConstraintsChange
-import liquibase.change.core.DropColumnChange
-import liquibase.change.core.DropDefaultValueChange
-import liquibase.change.core.DropForeignKeyConstraintChange
-import liquibase.change.core.DropIndexChange
-import liquibase.change.core.DropNotNullConstraintChange
-import liquibase.change.core.DropPrimaryKeyChange
-import liquibase.change.core.DropProcedureChange
-import liquibase.change.core.DropSequenceChange
-import liquibase.change.core.DropTableChange
-import liquibase.change.core.DropUniqueConstraintChange
-import liquibase.change.core.DropViewChange
-import liquibase.change.core.ExecuteShellCommandChange
-import liquibase.change.core.InsertDataChange
-import liquibase.change.core.LoadDataChange
-import liquibase.change.core.LoadUpdateDataChange
-import liquibase.change.core.MergeColumnChange
-import liquibase.change.core.ModifyDataTypeChange
-import liquibase.change.core.RawSQLChange
-import liquibase.change.core.RenameColumnChange
-import liquibase.change.core.RenameSequenceChange
-import liquibase.change.core.RenameTableChange
-import liquibase.change.core.RenameViewChange
-import liquibase.change.core.SQLFileChange
-import liquibase.change.core.SetColumnRemarksChange
-import liquibase.change.core.SetTableRemarksChange
-import liquibase.change.core.UpdateDataChange
+import liquibase.change.core.*
+import liquibase.parser.groovy.exception.*
 import spock.lang.*
 import static ChangeSetTests.*
 import static org.liquibase.groovy.helper.constants.*
@@ -308,16 +269,14 @@ class ChangeSetSpec extends Specification {
         type         | cl
         'named'      | { addForeignKeyConstraint expPropsAddForeignKeyConstraint }
         'positional' | {
-            addForeignKeyConstraint tableName, schemaName, catalogName, columnNames, constraintName, it.referencedTableName,
-                    it.referencedColumnNames, it.referencedTableSchemaName, it.referencedTableCatalogName,
-                    it.deferrable, it.initiallyDeferred, it.deleteCascade, it.onDelete, it.onUpdate,
-                    it.referencesUniqueColumn, it.validate
+            addForeignKeyConstraint tableName, columnNames, constraintName, it.referencedTableName, it.referencedColumnNames,
+                    schemaName, catalogName, it.referencedTableSchemaName, it.referencedTableCatalogName, it.deferrable,
+                    it.initiallyDeferred, it.deleteCascade, it.onDelete, it.onUpdate, it.referencesUniqueColumn, it.validate
         }
         'mixed'      | {
-            addForeignKeyConstraint tableName, schemaName, catalogName, columnNames, constraintName, it.referencedTableName,
-                    it.referencedColumnNames, it.referencedTableSchemaName, it.referencedTableCatalogName,
-                    it.deferrable, it.initiallyDeferred, it.deleteCascade, it.onDelete, it.onUpdate,
-                    validate: it.validate, it.referencesUniqueColumn
+            addForeignKeyConstraint tableName, columnNames, constraintName, it.referencedTableName, it.referencedColumnNames,
+                    schemaName, catalogName, it.referencedTableSchemaName, it.referencedTableCatalogName, it.deferrable,
+                    it.initiallyDeferred, it.deleteCascade, it.onDelete, validate: it.validate, it.onUpdate, it.referencesUniqueColumn
         }
     }
 
@@ -356,8 +315,8 @@ class ChangeSetSpec extends Specification {
         where:
         type         | cl
         'named'      | { dropPrimaryKey expPropsDropPrimaryKey }
-        'positional' | { dropPrimaryKey constraintName, tableName, schemaName, catalogName, it.dropIndex }
-        'mixed'      | { dropPrimaryKey constraintName, tableName, schemaName, dropIndex: it.dropIndex, catalogName }
+        'positional' | { dropPrimaryKey tableName, constraintName, schemaName, catalogName, it.dropIndex }
+        'mixed'      | { dropPrimaryKey tableName, constraintName, dropIndex: it.dropIndex, schemaName, catalogName }
     }
 
     static final expPropsDropAllForeignKeyConstraints = [
@@ -539,7 +498,7 @@ class ChangeSetSpec extends Specification {
         type         | cl
         'named'      | { loadUpdateData expPropsLoadUpdateData, loadDataColumns }
         'positional' | { loadUpdateData tableName, it.primaryKey, file, it.relativeToChangelogFile, it.encoding, it.separator, it.quotchar, it.commentLineStartsWith, it.usePreparedStatements, schemaName, catalogName, it.onlyUpdate, loadDataColumns }
-        'mixed'      | { loadUpdateData tableName, onlyUpdate:it.onlyUpdate, it.primaryKey, file, it.relativeToChangelogFile, it.encoding, it.separator, it.quotchar, it.commentLineStartsWith, it.usePreparedStatements, schemaName, catalogName, loadDataColumns }
+        'mixed'      | { loadUpdateData tableName, quotchar: it.quotchar, onlyUpdate:it.onlyUpdate, it.primaryKey, file, it.relativeToChangelogFile, it.encoding, it.separator, it.commentLineStartsWith, it.usePreparedStatements, schemaName, catalogName, loadDataColumns }
     }
 
     /**** DataQualityRefactoringTests ****/
@@ -802,13 +761,16 @@ class ChangeSetSpec extends Specification {
             ]
 
     void "sql with #type arguments"() {
-        verify(expPropsSql, cl, RawSQLChange)
+        verify(expPropsSql, cl, RawSQLChange).sql == sqlSelect
 
         where:
-        type         | cl
-        'named'      | { sql expPropsSql }
-        'positional' | { sql it.stripComments, it.splitStatements, it.endDelimiter, it.dbms }
-        'mixed'      | { sql it.stripComments, it.splitStatements, dbms: it.dbms, it.endDelimiter }
+        type                | cl
+//        'closure+named'     | { sql expPropsSql, {sqlSelect} } // Map,,,Closure
+//        'closure+positional'| { sql it.dbms, it.stripComments, it.splitStatements, it.endDelimiter, {sqlSelect} } // ,,,Closure
+//        'closure+mixed'     | { sql it.dbms, it.stripComments, endDelimiter:it.endDelimiter, it.splitStatements, {sqlSelect}} // Map,,,Closure
+//        'named'       | { sql sqlSelect, expPropsSql } // Map, String,,,,,
+        'positional'  | { sql sqlSelect, it.dbms, it.stripComments, it.splitStatements, it.endDelimiter } // String,,,,,
+        'mixed'       | { sql sqlSelect, it.dbms, it.stripComments, endDelimiter:it.endDelimiter, splitStatements:it.splitStatements } // Map, String,,,,,
     }
 
     static final expPropsSqlFile = expPropsSql + [
@@ -827,7 +789,6 @@ class ChangeSetSpec extends Specification {
         'mixed'      | { sqlFile file, it.relativeToChangelogFile, it.stripComments, it.splitStatements, it.endDelimiter, encoding: it.encoding, it.dbms }
     }
 
-
     // TODO createProcedure
 
     static final mac = 'mac'
@@ -837,7 +798,7 @@ class ChangeSetSpec extends Specification {
         timeout: '10s'
         ]
 
-    void "executeCommand with #type arguments"() {
+    def "executeCommand with #type arguments"() {
         verify(expPropsExecuteCommand + [os: [mac]], cl, ExecuteShellCommandChange)
 
         where:
@@ -847,4 +808,14 @@ class ChangeSetSpec extends Specification {
         'mixed'      | { executeCommand it.executable, timeout: it.timeout, mac }
     }
 
+  //  @Unroll
+    void "error #expectedErr" () {
+        when:
+        buildChanges (input)
+        then:
+        thrown(expectedErr)
+        where:
+        expectedErr     | input
+        MissingClosure  | {sql dbms: 'd'}
+    }
 }

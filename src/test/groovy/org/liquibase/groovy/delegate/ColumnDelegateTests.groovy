@@ -23,9 +23,6 @@ import liquibase.change.core.DeleteDataChange
 import liquibase.change.core.LoadDataChange
 import liquibase.change.core.UpdateDataChange
 import liquibase.change.core.LoadDataColumnConfig
-import liquibase.changelog.ChangeSet
-import liquibase.changelog.ChangeLogParameters
-import liquibase.changelog.DatabaseChangeLog
 import liquibase.parser.groovy.exception.InvalidAttribute
 import liquibase.parser.groovy.exception.UnrecognizedElement
 import liquibase.statement.DatabaseFunction
@@ -37,6 +34,7 @@ import static groovy.lang.Closure.DELEGATE_FIRST
 import static org.junit.Assert.*
 
 import static org.liquibase.groovy.helper.util.parseSqlTimestamp
+import static org.liquibase.groovy.helper.util.buildBaseChangeSetDelegate
 
 /**
  * Test class for the {@link ColumnDelegate}.  As usual, we're only verifying that we can pass
@@ -58,11 +56,10 @@ class ColumnDelegateTests { // TODO add positional cases
      */
     @Test
     void oneColumnEmptyNoClosure() {
-        def delegate = buildColumnDelegate(new CreateTableChange(), ColumnConfig.class, ) {
+        def change= buildColumnDelegate(new CreateTableChange(), ColumnConfig.class, ) {
             column([:])
         }
 
-        def change = delegate.change
         def columns = change.columns
         assertEquals 1, columns.size()
         def column = columns[0]
@@ -105,11 +102,10 @@ class ColumnDelegateTests { // TODO add positional cases
      */
     @Test
     void oneColumnEmptyWithClosure() {
-        def delegate = buildColumnDelegate(new CreateTableChange(), ColumnConfig.class) {
+        def change = buildColumnDelegate(new CreateTableChange(), ColumnConfig.class) {
             column([:]) {}
         }
 
-        def change = delegate.change
         def columns = change.columns
         assertEquals 1, columns.size()
         def column = columns[0]
@@ -160,7 +156,7 @@ class ColumnDelegateTests { // TODO add positional cases
         def defaultDate = "2013-12-31 09:30:04"
         def columnDefaultDate = parseSqlTimestamp(defaultDate)
 
-        def delegate = buildColumnDelegate(new CreateTableChange(), ColumnConfig.class) {
+        def change = buildColumnDelegate(new CreateTableChange(), ColumnConfig.class) {
             column(
                     name: 'columnName',
                     computed: true,
@@ -192,7 +188,6 @@ class ColumnDelegateTests { // TODO add positional cases
             )
         }
 
-        def change = delegate.change
         def columns = change.columns
         assertEquals 1, columns.size()
         def column = columns[0]
@@ -234,24 +229,21 @@ class ColumnDelegateTests { // TODO add positional cases
      */
     @Test
     void twoColumns() {
-        def delegate = buildColumnDelegate(new CreateTableChange(), ColumnConfig.class) {
+        def change = buildColumnDelegate(new CreateTableChange(), ColumnConfig.class) {
             // first one has only the boolean value set to true
-            column(
-                    name: 'first',
+            column( name: 'first',
                     valueBoolean: true,
                     defaultValueBoolean: false,
                     autoIncrement: false
             )
             // the second one has just the default value set to true.
-            column(
-                    name: 'second',
+            column( name: 'second',
                     valueBoolean: false,
                     defaultValueBoolean: true,
                     autoIncrement: false
             )
         }
 
-        def change = delegate.change
         def columns = change.columns
         assertEquals 2, columns.size()
 
@@ -279,14 +271,13 @@ class ColumnDelegateTests { // TODO add positional cases
      */
     @Test
     void columnWithConstraint() {
-        def delegate = buildColumnDelegate(new CreateTableChange(), ColumnConfig.class) {
+        def change = buildColumnDelegate(new CreateTableChange(), ColumnConfig.class) {
             // first one has only the boolean value set to true
             column(name: 'first', type: 'int') {
                 constraints(nullable: false, unique: true)
             }
         }
 
-        def change = delegate.change
         def columns = change.columns
         assertEquals 1, columns.size()
         def column = columns[0]
@@ -315,7 +306,7 @@ class ColumnDelegateTests { // TODO add positional cases
         def defaultDate = "2013-12-31 09:30:04"
         def columnDefaultDate = parseSqlTimestamp(defaultDate)
 
-        def delegate = buildColumnDelegate(new AddColumnChange(), AddColumnConfig.class) {
+        def change = buildColumnDelegate(new AddColumnChange(), AddColumnConfig.class) {
             column(
                     name: 'columnName',
                     computed: false,
@@ -350,7 +341,6 @@ class ColumnDelegateTests { // TODO add positional cases
             )
         }
 
-        def change = delegate.change
         def columns = change.columns
         assertEquals 1, columns.size()
         def column = columns[0]
@@ -404,7 +394,7 @@ class ColumnDelegateTests { // TODO add positional cases
         def defaultDate = "2013-12-31 09:30:04"
         def columnDefaultDate = parseSqlTimestamp(defaultDate)
 
-        def delegate = buildColumnDelegate(new LoadDataChange(), LoadDataColumnConfig.class) {
+        def change = buildColumnDelegate(new LoadDataChange(), LoadDataColumnConfig.class) {
             column(
                     name: 'columnName',
                     computed: true,
@@ -440,7 +430,6 @@ class ColumnDelegateTests { // TODO add positional cases
             )
         }
 
-        def change = delegate.change
         def columns = change.columns
         assertEquals 1, columns.size()
         def column = columns[0]
@@ -486,12 +475,11 @@ class ColumnDelegateTests { // TODO add positional cases
      */
     @Test
     void columnClosureCanContainWhereClause() {
-        def delegate = buildColumnDelegate(new UpdateDataChange(), ColumnConfig.class) {
+        def change = buildColumnDelegate(new UpdateDataChange(), ColumnConfig.class) {
             column(name: 'monkey', type: 'VARCHAR(50)')
             where "emotion='angry'"
         }
 
-        def change = delegate.change
         def columns = change.columns
         assertEquals 1, columns.size()
         def column = columns[0]
@@ -509,7 +497,7 @@ class ColumnDelegateTests { // TODO add positional cases
      */
     @Test
     void columnClosureCanContainWhereClauseWithParams() {
-        def delegate = buildColumnDelegate(new UpdateDataChange(), ColumnConfig.class) {
+        def change = buildColumnDelegate(new UpdateDataChange(), ColumnConfig.class) {
             column(name: 'monkey', type: 'VARCHAR(50)')
             where "emotion=':emotion' and day=':monday'"
             whereParams {
@@ -518,7 +506,6 @@ class ColumnDelegateTests { // TODO add positional cases
             }
         }
 
-        def change = delegate.change
         def columns = change.columns
         assertEquals 1, columns.size()
         def column = columns[0]
@@ -560,7 +547,7 @@ class ColumnDelegateTests { // TODO add positional cases
         def dateValue = "2010-11-02 07:52:04"
         def columnDateValue = parseSqlTimestamp(dateValue)
 
-        def delegate = buildColumnDelegate(new DeleteDataChange(), ColumnConfig.class) {
+        def change = buildColumnDelegate(new DeleteDataChange(), ColumnConfig.class) {
             where "emotion=':emotion'"
             whereParams{
                 param(name: 'emotion',
@@ -575,7 +562,6 @@ class ColumnDelegateTests { // TODO add positional cases
             }
         }
 
-        def change = delegate.change
         assertEquals "emotion=':emotion'", change.where
         assertEquals 1, change.whereParams.size()
 
@@ -647,14 +633,11 @@ class ColumnDelegateTests { // TODO add positional cases
      * @param closure the closure to execute with our column attributes.
      * @return the new delegate.
      */
-    private static def buildColumnDelegate(Change change, ignored,
+    private static Change buildColumnDelegate(Change change, ignored,
                                            @DelegatesTo(strategy = DELEGATE_FIRST)  Closure closure) {
-        def changelog = new DatabaseChangeLog()
-        changelog.changeLogParameters = new ChangeLogParameters()
-        ChangeSetDelegate changSet = new ChangeSetDelegate(
-                new ChangeSet(changelog)
-        )
-        changSet.callOnDelegate(change, closure)
+        buildBaseChangeSetDelegate()
+            .callOnDelegate(change, closure)
+        change
 /*        def columnDelegate = new ColumnDelegate(
                 columnConfigClass: columnConfigClass,
                 databaseChangeLog: changelog,

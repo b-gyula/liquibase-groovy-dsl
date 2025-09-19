@@ -27,7 +27,7 @@ import static groovy.lang.Closure.DELEGATE_ONLY
 import static org.junit.Assert.assertEquals
 import static org.junit.Assert.assertTrue
 import static org.liquibase.groovy.helper.util.assertPropsSet
-
+import static org.liquibase.groovy.helper.util.buildBaseChangeSetDelegate
 
 /**
  * This is the base class for all of the change set related tests.  It mostly contains utility
@@ -35,7 +35,6 @@ import static org.liquibase.groovy.helper.util.assertPropsSet
  *
  * @author Steven C. Saliman
  */
-//trait ChangeSetTest {
 @CompileStatic
 class ChangeSetTests {
     static final String CHANGESET_ID = 'changeset-id'
@@ -153,6 +152,12 @@ class ChangeSetTests {
         T change = cls.cast(changeSet.changes[0])
         assertPropsSet expectedProps, change
         change
+    }
+
+    static Change buildChange(ChangeSetDelegate.Tag t, Map args=[:],
+                              @DelegatesTo(strategy = DELEGATE_ONLY) Closure closure) {
+        buildBaseChangeSetDelegate()
+           .addChangeWithChild(t,args,closure)
     }
 }
 

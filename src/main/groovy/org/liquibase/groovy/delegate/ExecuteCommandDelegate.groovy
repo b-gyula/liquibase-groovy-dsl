@@ -17,7 +17,6 @@ package org.liquibase.groovy.delegate
 import groovy.transform.CompileStatic
 import liquibase.change.Change
 import liquibase.change.core.ExecuteShellCommandChange
-import liquibase.exception.ChangeLogParseException
 
 /**
  * This class processes the {@code arg} closure that can be present in an {@code executeCommand}
@@ -27,11 +26,11 @@ import liquibase.exception.ChangeLogParseException
  * @author Steven C. Saliman
  */
 @CompileStatic
-class ArgumentDelegate extends ChangeDelegate<Tag> {
+class ExecuteCommandDelegate extends ChangeDelegate<Tag> {
     static enum Tag {arg}
     protected ExecuteShellCommandChange getChange() {super.change as ExecuteShellCommandChange}
 
-    ArgumentDelegate(ChangeSetDelegate changeSet, Change change) {
+    ExecuteCommandDelegate(ChangeSetDelegate changeSet, Change change) {
         super(changeSet, change)
     } // used for error messages
 

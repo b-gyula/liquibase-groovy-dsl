@@ -11,35 +11,25 @@ import static groovy.lang.Closure.DELEGATE_ONLY
 @CompileStatic
 @SelfType(ChangeSetDelegate)
 trait ChangeSetChildren {
-<% methods.findAll{it.args && !skip.contains(it.name) }.each { m ->
-def ArgsAsHtml = m.args.size() > 3
-%>${m.javadoc(ArgsAsHtml)}
-	void $m.name(${m.argList(true, true)}) {
-		addChange Tag.$m.name,${m.argList(false, true)}
-	}
+<% methods.findAll{it.args && !skip.contains(it.name) }.each { m -> %>
+	${m.fnDef(false, 'addChange', true)}
 <% if(m.args.size() > 2) {
-%>${m.javadoc(ArgsAsHtml)}
-	void $m.name(Map<String, Object> namedArgs,${m.argList( true, true)}) {
-		addChange Tag.$m.name, namedArgs,${m.argList(false, true)}
-	}
+%>
+	${m.fnDef(true, 'addChange', true)}
 <% if(m.childOptional()) {
-%>${m.javadoc(ArgsAsHtml)}
-	void $m.name(${m.argList( true)}) {
-		addChange Tag.$m.name,${m.argList()}
-	}
+%>
+	${m.fnDef(false, 'addChange')}
 
-	${m.javadoc(ArgsAsHtml)}
-	void $m.name(Map<String, Object> namedArgs,${m.argList( true)}) {
-		addChange Tag.$m.name, namedArgs,${m.argList()}
-	}
+	${m.fnDef(true, 'addChange')}
 <%  } // Add Map or Map + Closure versions if hasChild
 	if(!skipMapArgVersion.contains(m.name) && (m.hasRequired() || m.hasChild )) {
-%>${m.javadoc(ArgsAsHtml)}
-	<% if (m.hasChild){ %>
+%>
+	${m.javadoc(m.args.size() > 3 )}<%
+	if (m.hasChild){ %>
 	void $m.name(Map<String, Object> params,${m.args.last().toString( true, true)}) {
 		addChangeWithChild Tag.$m.name, params, ${m.args.last().name}
 	}
-	<%} else { %>
+<%	} else { %>
 	void $m.name(Map<String, Object> params) {
 		addMapBasedChange Tag.$m.name, params
 	}
