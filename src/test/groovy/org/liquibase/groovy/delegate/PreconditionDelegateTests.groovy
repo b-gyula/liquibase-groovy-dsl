@@ -17,6 +17,7 @@ package org.liquibase.groovy.delegate
 import liquibase.exception.ChangeLogParseException
 import liquibase.changelog.ChangeLogParameters
 import liquibase.changelog.DatabaseChangeLog
+import liquibase.parser.groovy.exception.InvalidAttribute
 import liquibase.precondition.Precondition
 import liquibase.precondition.core.*
 import liquibase.precondition.CustomPreconditionWrapper
@@ -337,24 +338,27 @@ class PreconditionDelegateTests extends Specification {
                 "SELECT emotion FROM monkey WHERE id=2884"
             }
         }
-        then:  thrown(ChangeLogParseException)
+        then:  thrown(InvalidAttribute)
     }
 
     /** Try creating a sqlCheck precondition with all currently known attributes and some SQL in the
      * closure.
      */
-    void sqlCheckFull() {
-        def preconditions = buildPreconditions {
-            sqlCheck(expectedResult: 'angry') {
-                "SELECT emotion FROM monkey WHERE id=2884"
-            }
-        }
-        expect:
-        1 == preconditions.size()
-        (preconditions[0] as SqlPrecondition).with {
-            'angry' == expectedResult
-            'SELECT emotion FROM monkey WHERE id=2884' == sql
-        }
+    static final expSqlCheck = [
+        sql: sqlSelect
+       ,expectedResult: 'res'
+    ]
+
+    void "sqlCheck #type arguments"() {
+        verify( expSqlCheck, cl , SqlPrecondition)
+
+        where:
+        type         | cl
+        'named'      | { sqlCheck(expSqlCheck)}
+        'positional' | { sqlCheck( 'res', sqlSelect) }
+        'child'      | { sqlCheck( expectedResult: 'res', {sqlSelect})}
+        'mixed'      | { sqlCheck( expectedResult: 'res', sqlSelect)}
+        'positional+child'| { sqlCheck( 'res', {sqlSelect})}
     }
 
     /**

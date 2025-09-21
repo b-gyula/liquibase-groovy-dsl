@@ -12,19 +12,19 @@
  * the License.
  */
 
-package liquibase.parser.ext
+package liquibase
 
 import liquibase.changelog.DatabaseChangeLog
 import liquibase.database.ObjectQuotingStrategy
 import liquibase.resource.ResourceAccessor
 import org.liquibase.groovy.delegate.*
 
-import static GroovyLiquibaseChangeLogParser.*
+import static liquibase.parser.ext.GroovyLiquibaseChangeLogParser.*
 import static groovy.lang.Closure.DELEGATE_ONLY
 import static org.liquibase.groovy.delegate.DelegateUtil.objArr
 
 @groovy.transform.TypeChecked
-abstract class ParserScript extends Script {
+abstract class GroovyScript extends Script {
 
     /** Root element of the <a href='https://docs.liquibase.com/concepts/changelogs/home.html'>changelog</a>
     <br>Params:

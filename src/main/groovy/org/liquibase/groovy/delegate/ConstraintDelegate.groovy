@@ -53,24 +53,48 @@ class ConstraintDelegate extends Delegatee<Tag> {
  * @param validatePrimaryKey
  * @param validateForeignKey
  */
-    void constraints(Boolean nullable, String notNullConstraintName = null,
-                    Boolean primaryKey = null, String primaryKeyName = null, String primaryKeyTablespace = null,
-                    String references = null, String referencedTableCatalogName = null, String referencedTableSchemaName = null,
-                    String referencedTableName= null, String referencedColumnNames = null,
-                    Boolean unique = null, String uniqueConstraintName = null,
-                    String checkConstraint = null, Boolean deleteCascade = null,
-                    String foreignKeyName = null, Boolean initiallyDeferred = null,
-                    Boolean deferrable = null, Boolean validateNullable = null, Boolean validateUnique = null,
-                    Boolean validatePrimaryKey = null, Boolean validateForeignKey = null) {
-        constraints argsAsMap(Tag.constraints, nullable, notNullConstraintName,
-                 primaryKey, primaryKeyName, primaryKeyTablespace, references, referencedTableCatalogName,
-                referencedTableSchemaName, referencedTableName, referencedColumnNames,
-                unique, uniqueConstraintName, checkConstraint, deleteCascade,
-                foreignKeyName, initiallyDeferred,
-                deferrable, validateNullable, validateUnique,
-                validatePrimaryKey, validateForeignKey)
+    void constraints(Boolean nullable, Boolean primaryKey = null, Boolean unique = null,
+                     String references = null, String foreignKeyName = null,
+                     String primaryKeyName = null, String uniqueConstraintName = null,
+                     String referencedTableName= null, String referencedColumnNames = null,
+                     String referencedTableCatalogName = null, String referencedTableSchemaName = null,
+                     String notNullConstraintName = null, String primaryKeyTablespace = null,
+                     String checkConstraint = null, Boolean deleteCascade = null,
+                     Boolean initiallyDeferred = null,
+                     Boolean deferrable = null, Boolean validateNullable = null, Boolean validateUnique = null,
+                     Boolean validatePrimaryKey = null, Boolean validateForeignKey = null) {
+        constraints argsAsMap(Tag.constraints, nullable, primaryKey, unique,
+                    references, foreignKeyName,
+                    primaryKeyName, uniqueConstraintName,
+                    referencedTableName= null, referencedColumnNames,
+                    referencedTableCatalogName, referencedTableSchemaName,
+                    notNullConstraintName, primaryKeyTablespace,
+                    checkConstraint, deleteCascade,
+                    initiallyDeferred, deferrable, validateNullable, validateUnique,
+                    validatePrimaryKey, validateForeignKey )
     }
 
+    void constraints(Map<String,Object> named,
+                     Boolean nullable, Boolean primaryKey = null, Boolean unique = null,
+                     String references = null, String foreignKeyName = null,
+                     String primaryKeyName = null, String uniqueConstraintName = null,
+                     String referencedTableName= null, String referencedColumnNames = null,
+                     String referencedTableCatalogName = null, String referencedTableSchemaName = null,
+                     String notNullConstraintName = null, String primaryKeyTablespace = null,
+                     String checkConstraint = null, Boolean deleteCascade = null,
+                     Boolean initiallyDeferred = null,
+                     Boolean deferrable = null, Boolean validateNullable = null, Boolean validateUnique = null,
+                     Boolean validatePrimaryKey = null, Boolean validateForeignKey = null) {
+        constraints argsAsMap(Tag.constraints, named, nullable, primaryKey, unique,
+           references, foreignKeyName,
+           primaryKeyName, uniqueConstraintName,
+           referencedTableName= null, referencedColumnNames,
+           referencedTableCatalogName, referencedTableSchemaName,
+           notNullConstraintName, primaryKeyTablespace,
+           checkConstraint, deleteCascade,
+           initiallyDeferred, deferrable, validateNullable, validateUnique,
+           validatePrimaryKey, validateForeignKey )
+    }
     def constraints(Map params) {
         if(!params) {
             error new ParseErrorWithFileNLine("`constraint` element requires at least one argument to be set. " +
