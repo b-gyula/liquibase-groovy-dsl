@@ -18,6 +18,7 @@ import groovy.transform.TypeChecked
 import groovy.transform.TypeCheckingMode
 import liquibase.changelog.DatabaseChangeLog
 import liquibase.exception.ChangeLogParseException
+import liquibase.parser.groovy.exception.UnrecognizedElement
 import liquibase.precondition.Precondition
 import liquibase.precondition.PreconditionLogic
 import liquibase.precondition.core.AndPrecondition
@@ -51,7 +52,7 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
         super(dbChangeLog, changeId + '/preConditions', 'preConditions')
     }
 
-
+    @Override
     protected def methodMissing(String name, args) {
         addPrecondition name, args as Object[]
     }
@@ -71,12 +72,12 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
         try {
             precondition = preconditionFactory.create(name)
         } catch (RuntimeException e) {
-            throw changeLogParseException("'${name}' is an invalid precondition.", e)
+            error unrecognizedElement(name)
         }
 
         // We don't always get an exception for an invalid precondition...
         if ( precondition == null ) {
-            throw changeLogParseException("'${name}' is an invalid precondition.")
+            error unrecognizedElement(name)
         }
 
         MethodDef m = methodDefs[name]
@@ -92,20 +93,41 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
         preconditions << precondition
     }
 
+    UnrecognizedElement unrecognizedElement(String name ) {
+        Collection<String> knownElements = PreconditionFactory.instance.preconditions.keySet()
+        new UnrecognizedElement(name, [], changeId,
+           "'${name}' is an unknown precondition. Known elements are:" + knownElements.toListString())
+    }
+
     /** Executes an SQL string and checks the returned value. The SQL must return a single row with a single value.
      * @param params the attributes of the precondition
      * @param closure the SQL for the precondition
      */
-    def sqlCheck(Map<String, Object> params = [:],
-                 @DelegatesTo(value= SqlPrecondition, strategy=DELEGATE_FIRST) Closure closure) {
-        def precondition = new SqlPrecondition()
+    def sqlCheck(Map<String, Object> namedArgs, // Legacy
+                 @DelegatesTo(value= SqlPrecondition, strategy=DELEGATE_FIRST) Closure sql) {
+        sqlCheck namedArgs, sql.call() as String
+/*        def precondition = new SqlPrecondition()
         setProps precondition, params
         def sql = DelegateUtil.expandExpressions(closure.call(), databaseChangeLog)
         if ( sql != null && sql != "null" ) {
             precondition.sql = sql
         }
-        preconditions << precondition
+        preconditions << precondition*/
     }
+
+    def sqlCheck(String expectedResult, String sql) {
+        addPrecondition Tag.sqlCheck, expectedResult, sql
+    }
+
+    def sqlCheck(String expectedResult, @DelegatesTo(value= SqlPrecondition, strategy=DELEGATE_FIRST) Closure sql) {
+        sqlCheck  expectedResult, sql.call() as String
+    }
+
+    def sqlCheck(Map<String, Object> namedArgs, String sql) {
+        MethodDef m = methodDef(Tag.sqlCheck)
+        addPrecondition Tag.sqlCheck, argsToMap(Tag.sqlCheck.name(), false, m.toString(), ["sql"], namedArgs, sql)
+    }
+
 
     /**
      * Create a customPrecondition.  A custom precondition is a class that implements the Liquibase

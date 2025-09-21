@@ -65,7 +65,7 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
 
             def binding = new Binding()
             def config = new CompilerConfiguration()
-            config.scriptBaseClass = 'liquibase.parser.ext.ParserScript'
+            config.scriptBaseClass = 'liquibase.GroovyScript'
             config.addCompilationCustomizers(new ImportCustomizer()
                 .addStaticStars('liquibase.database.ObjectQuotingStrategy'
                                         ,'liquibase.changelog.ChangeSet.ValidationFailOption'
@@ -170,7 +170,7 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
                         map[it.name].args = it.parameters // Update
                     }
                     else { // param list is shorter
-                        stored.needsClosure &= MethodDef.lastParamClosure(it.parameters)
+                        stored.needsClosure &= MethodDef.isClosure(it.parameters.last())
                     }
                 } else if(it.parameterTypes.length > 0 ){ // Store the first
                     map[it.name] = new MethodDef(it.parameters)

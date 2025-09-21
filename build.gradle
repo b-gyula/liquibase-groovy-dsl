@@ -1,21 +1,33 @@
 #!groovy
 // The above triggers groovy syntax highlighting in vim
 
-buildscript {
-	repositories {
-		mavenCentral()
-		maven {
-			url "https://plugins.gradle.org/m2/"
-		}
-	}
+plugins {
+	id "groovy"
+	id "maven-publish"
+	id "signing"
+	id "application"
+	id "me.champeau.jmh" version "0.7.3"
+	id "com.vanniktech.maven.publish" version "0.32.0"
+}
+//https://github.com/melix/jmh-gradle-plugin
+jmh {
+	includes = ['BenchmarkTest']
+	iterations = 3
+	warmupIterations = 1
+	warmup = '1s'
+	jvmArgsAppend = ['-Djava.util.logging.config.file=logging.properties']
 }
 
-plugins {
-    id "groovy"
-    id "maven-publish"
-    id "signing"
-    id "application"
-	 id "com.vanniktech.maven.publish" version "0.32.0"
+java {
+	toolchain {
+		languageVersion = JavaLanguageVersion.of(11)
+	}
+}
+//application {
+//	mainClass = 'liquibase.Convert2Groovy'
+//}
+run {
+	jvmArgs = ['-Djava.util.logging.config.file=logging.properties']
 }
 
 sourceCompatibility = 1.8
@@ -46,15 +58,20 @@ dependencies {
     testRuntimeOnly "com.h2database:h2:${h2Version}"
     testRuntimeOnly "ch.qos.logback:logback-classic:${logbackVersion}"
     testRuntimeOnly "info.picocli:picocli:4.7.5"
+	compileOnly 'org.openjdk.jmh:jmh-core:1.37'
+	jmh 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
+	jmh 'org.openjdk.jmh:jmh-generator-bytecode:1.37'
+	jmhAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
 }
 
 test {
+	jvmArgs = ['-Djava.util.logging.config.file=logging.properties']
     useJUnitPlatform()
 }
 
 // Configure the Groovy compiler
 tasks.withType(GroovyCompile).configureEach {
-    // Example: Additional compiler arguments
+    // Additional compiler arguments
     groovyOptions.parameters = true // Include parameter names in bytecode (JDK 8+)
 }
 

@@ -302,12 +302,12 @@ class MethodDef {
     int argCount() { args ? args.size() : 0}
 
     void setArgs(Parameter[] params) {
-        this.lastArgClosure = lastParamClosure(params)
+        this.lastArgClosure = isClosure(params.last())
         needsClosure &= this.lastArgClosure
         args = params
     }
 
-    static boolean lastParamClosure(Parameter[] args) {args.last().type == Closure}
+    static boolean isClosure(Parameter p) { p.type == Closure }
 
     /** Create human readable list of parameter names + types
      * Expects Closure to be the last parameter */
