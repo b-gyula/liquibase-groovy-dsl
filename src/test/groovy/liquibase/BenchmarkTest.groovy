@@ -5,11 +5,15 @@ import liquibase.changelog.ChangeLogParameters
 import liquibase.changelog.DatabaseChangeLog
 import liquibase.parser.ChangeLogParser
 import liquibase.parser.ChangeLogParserFactory
+import liquibase.parser.ext.GroovyLiquibaseChangeLogParser
+import liquibase.resource.DirectoryResourceAccessor
 import liquibase.resource.ResourceAccessor
 import liquibase.serializer.core.string.StringChangeLogSerializer
 import org.liquibase.groovy.delegate.DelegateUtil
 import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.annotations.Scope
+
+import java.nio.file.Path
 import java.util.concurrent.TimeUnit
 
 @State(Scope.Benchmark)
@@ -17,29 +21,43 @@ import java.util.concurrent.TimeUnit
 @BenchmarkMode(Mode.AverageTime)
 @CompileStatic
 class BenchmarkTest {
-	ResourceAccessor ra = new FolderResourceAccessor(commonTestsChangelogRoot)
+	static final String commonTestChangelog = 'changelogs/common.test'
+	static final String commonTestChangelogNoInc = 'changelogs/common.test.noinc'
+	static final File commonTestChangelogRoot = new File('src/test/resources')
+	static ResourceAccessor ra = new FolderResourceAccessor(commonTestChangelogRoot)
+	static ResourceAccessor raProj = new DirectoryResourceAccessor(Path.of('.'))
 
-	@Benchmark
-	 void parseGroovy() {
-		DatabaseChangeLog groovy = parseToChangeLog("${commonTestsChangelog}.groovy", ra)
+	//@Benchmark
+	 static DatabaseChangeLog parseGroovy() {
+		parseToChangeLog(commonTestChangelogNoInc+'.groovy', raProj)
 	}
 
 	@Benchmark
-	void parseXML() {
-		DatabaseChangeLog groovy = parseToChangeLog("${commonTestsChangelog}.xml", ra)
+	static DatabaseChangeLog parseXML() {
+		parseToChangeLog(commonTestChangelogNoInc+'.xml', ra)
 	}
 
-	static final String commonTestsChangelog = 'changelogs/common/test.changelog'
-	static final File commonTestsChangelogRoot = new File('D:/dev/liquibase/build4/liquibase-integration-tests/src/test/resources')
+	//@Benchmark
+	static DatabaseChangeLog compiledGroovy() {
+		Class<GroovyScript> cls = Class.forName('changelogs.common_test_noinc')
+		GroovyScript script = cls.getDeclaredConstructor().newInstance()
+		DatabaseChangeLog groovy = GroovyLiquibaseChangeLogParser.runScript(script, ra)
+		groovy
+	}
+
+	//static final File commonTestsChangelogRoot = new File('test')
 	static String serialize(DatabaseChangeLog log) {
 		StringChangeLogSerializer serializer = new StringChangeLogSerializer()
 		try(PrintWriter p = new PrintWriter(log.filePath+'.txt' )) {
-			String r = log.changeSets.inject (new DelegateUtil.CollectionStringBuilder()) { r, c -> r << serializer.serialize(c, false) }.toString()
+			String r = log.changeSets.inject (new DelegateUtil.CollectionStringBuilder()) { r, c ->
+				r << serializer.serialize(c, false)
+			}
 			p.write(r)
 			p.flush()
 			return r
 		}
 	}
+
 	static DatabaseChangeLog parseToChangeLog (String fileName, ResourceAccessor ra,
 															 ChangeLogParameters changeLogParameters = new ChangeLogParameters()) {
 		ChangeLogParser parser = ChangeLogParserFactory.getInstance().getParser(fileName, ra)
@@ -47,10 +65,11 @@ class BenchmarkTest {
 	}
 
 	static void main(String[] args) {
-		//ResourceAccessor ra = new DirectoryResourceAccessor(Path.of('test'))
-		ResourceAccessor ra = new FolderResourceAccessor(commonTestsChangelogRoot)
-		//DatabaseChangeLog groovy = parseToChangeLog("changelogs/common/test.groovy", ra)
-		DatabaseChangeLog groovy = parseToChangeLog("${commonTestsChangelog}.groovy", ra)
+
+		//DatabaseChangeLog groovy = parseToChangeLog(commonTestsChangelog+'.groovy', ra)
+		DatabaseChangeLog groovy = compiledGroovy()
+
+		//DatabaseChangeLog xml = parseXML()
 		serialize(groovy)
 	}
 }
