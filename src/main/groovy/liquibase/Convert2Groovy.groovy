@@ -29,22 +29,23 @@ import static org.liquibase.groovy.delegate.Delegatee.methodDefs4Tag
 @groovy.util.logging.Log
 @TupleConstructor(defaults = false)
 class Convert2Groovy {
+
+	/** Convert the changelog XML given as the first parameter to groovy format
+	 into the file given as the optional 2nd parameter
+
+	 All included XMLs are also converted generating the same folder structure
+
+	 */
 	static void main(String[] args) {
 		if (args.size() > 0 && !args[0].isBlank()) {
 			String fileName = args[0].trim()
 			File outFile = null
 			if (args.size() > 1) {
-				if (args[1] != "-") {
-					outFile = outputFile(args[1])
-				}
-			} else { // Same as input file
-				outFile = outputFile(changeExtension(fileName))
+				outFile = outputFile(args[1])
 			}
 
-			def output = outFile ? new PrintStream(outFile) : System.out
-
-			if(run(fileName, output)) {
-				exit(0, (outFile ? "${outFile.getAbsoluteFile()} created successfully" : "") as String)
+			if(run(fileName, new FileSystemResourceAccessor('.'), outFile)) {
+				exit(0,)
 			}
 			else {
 				exit(2, '$ext format not supported')
@@ -59,19 +60,23 @@ class Convert2Groovy {
 		fileName[0..dot] + 'groovy'
 	}
 
-	static ParsedNode run(String fileName, PrintStream output, ResourceAccessor ra = new FileSystemResourceAccessor('.')) {
+	static File run(String fileName, ResourceAccessor ra, File outFile = null) {
 		ParsedNode node = parse(fileName, ra)
 		if (node) {
-			IndentPrinter out = new IndentPrinter(new PrintWriter(output, true, StandardCharsets.UTF_8), '   ', true, true)
+			processIncludes node, ra, Path.of(fileName)
+			if(!outFile) outFile = outputFile(changeExtension(fileName), ra)
+			IndentPrinter out = new IndentPrinter(new PrintWriter(new PrintStream(outFile)
+				, true, StandardCharsets.UTF_8), '   ', true, true)
 			out.println(headdr)
 			try {
-				serialize(node, new TagInfo(getMethods(GroovyScript), ['schemaLocation']), out)
-				//test(o)
+				serialize(node, out)
+				System.out.println("${outFile.getAbsoluteFile()} created successfully")
 			} finally {
 				out.flush()
 			}
+			return outFile
 		}
-		node
+		null
 	}
 
 	static ParsedNode parse(String fileName, ResourceAccessor ra) {
@@ -86,8 +91,8 @@ class Convert2Groovy {
 		parseToNode.invoke( p, fileName, new ChangeLogParameters(), ra) as ParsedNode
 	}
 
-	static exit(int exitCode, String msg) {
-		println(msg)
+	static exit(int exitCode, String msg = null) {
+		if(msg) println(msg)
 		System.exit(exitCode)
 	}
 
@@ -95,7 +100,9 @@ class Convert2Groovy {
 import liquibase.GroovyScript
 """
 
-	static File outputFile(String fName){
+	// TODO ra relative output does not work
+	static File outputFile(String fName, ResourceAccessor ra = null){
+		//Path f = Path.of(ra ? ra.get(fName).uri.toString().replaceFirst("^\\w+:/","") :fName)
 		Path f = Path.of(fName)
 		Files.createDirectories(f.toAbsolutePath().parent)
 		Files.deleteIfExists(f)
@@ -124,9 +131,10 @@ import liquibase.GroovyScript
 	}
 
 	protected static Map<String, TagInfo> _tagInfoMap = [
-//		databaseChangeLog: new TagInfo(getMethodDefs(DatabaseChangeLogDelegate))
-//		,changeSet: new TagInfo(getMethodDefs(ChangeSetDelegate))
-		column: new TagInfo(methodDefs(ConstraintDelegate))
+		 script: new TagInfo(getMethods(GroovyScript), ['schemaLocation'])
+		,databaseChangeLog: new TagInfo(getMethodDefs(DatabaseChangeLogDelegate))
+		,changeSet: new TagInfo(getMethodDefs(ChangeSetDelegate))
+		,column: new TagInfo(methodDefs(ConstraintDelegate))
 		,preConditions: new TagInfo(methodDefs(PreconditionDelegate))
 		,not: new TagInfo(methodDefs(PreconditionDelegate))
 		,and: new TagInfo(methodDefs(PreconditionDelegate))
@@ -145,8 +153,6 @@ import liquibase.GroovyScript
 		}
 	}
 
-	static def quot = ~/'|\n/
-
 	static String asString(Object value) {
 		if(value == null) return null
 		String s = value.toString()
@@ -160,7 +166,7 @@ import liquibase.GroovyScript
 				s= s.replace('\\', '\\\\')
 				if (s.contains("'")) return '"' + s.replace('"', '\\"') + '"'
 		}
-		return "'${s.replace('"', '\\"')}'"
+		return "'${s.replace("'", "\\'")}'"
 	}
 
 	static def unrecognizedElement(String name, Collection<String> knownElements) {
@@ -192,7 +198,7 @@ import liquibase.GroovyScript
 	 * @param o
 	 * @param posArgs the max positional parameters
 	 */
-	static List<String> serialize(ParsedNode node, TagInfo info, IndentPrinter o, int posArgs = 3, List<String> includes = []) {
+	static void serialize(ParsedNode node, IndentPrinter o, TagInfo info = tagInfo('script'), int posArgs = 3) {
 		List<ParsedNode> children = node.children.inject(new LinkedList<>()) { l, n ->
 			if(info?.skip?.contains(n.name)) {
 				log.info("Skipped '$n' as per config")
@@ -238,7 +244,7 @@ import liquibase.GroovyScript
 					o.print "{\n"
 					o.incrementIndent()
 					children.each {
-						serialize(it, childTags, o)
+						serialize(it, o, childTags)
 					}
 					if(node.value) {
 						println(o, asString(node.value))
@@ -265,6 +271,44 @@ import liquibase.GroovyScript
 
 	static void println(IndentPrinter o, String s) {
 		o.println(s)
+	}
+
+	static retaltiveToLogFile(ParsedNode n) {
+		n.getChildValue(null,'relativeToChangelogFile', Boolean)
+	}
+
+	static String mkRelative(Path logFile, String fileName, ParsedNode parentNode) {
+		if(retaltiveToLogFile(parentNode)) {
+			Path parent = logFile.parent
+			if(parent) {
+				fileName = parent.resolve(fileName)
+			}
+		}
+		fileName
+	}
+
+	static void processIncludes(ParsedNode node, ResourceAccessor ra, Path thisFile) {
+		node.children.each {
+			if('include' == it.name) {
+				ParsedNode fileNode = it.getChild(null, 'file')
+				String oFileName = fileNode.getValue(String)
+				String fileName = mkRelative thisFile, oFileName, it
+				if(fileName.endsWith('.xml')) {
+					File outFile = run( fileName, ra)
+					fileNode.setValue(changeExtension(oFileName))
+				}
+			} else if ('includeAll' == it.name) {
+				String path = it.getChildValue(null, 'path', String)
+				String pathName = mkRelative thisFile, path, it
+				def opts = new ResourceAccessor.SearchOptions()
+				opts.minDepth = it.getChildValue(null, 'minDepth', 0)
+				opts.maxDepth = it.getChildValue(null, 'maxDepth', Integer.MAX_VALUE)
+				opts.setTrimmedEndsWithFilter('.xml')
+				ra.search(pathName,opts).each {
+					run( it.path, ra)
+				}
+			}
+		}
 	}
 
 }

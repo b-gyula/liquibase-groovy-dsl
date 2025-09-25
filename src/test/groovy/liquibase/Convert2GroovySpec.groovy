@@ -1,20 +1,12 @@
 package liquibase
 
 import groovy.transform.CompileStatic
-import liquibase.changelog.ChangeLogParameters
 import liquibase.changelog.DatabaseChangeLog
 import liquibase.logging.Logger
-import liquibase.parser.ChangeLogParser
-import liquibase.parser.ChangeLogParserFactory
 import liquibase.parser.core.ParsedNode
-import liquibase.parser.ext.GroovyLiquibaseChangeLogParser
 import liquibase.resource.DirectoryResourceAccessor
-import liquibase.resource.FileSystemResourceAccessor
 import liquibase.resource.Resource
 import liquibase.resource.ResourceAccessor
-import liquibase.resource.SearchPathResourceAccessor
-import liquibase.serializer.core.string.StringChangeLogSerializer
-import org.liquibase.groovy.delegate.DelegateUtil
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -34,10 +26,11 @@ class Convert2GroovySpec extends Specification{
 		input	 | expected
 		's"f'  | /'s"f'/
 		"s/f"  | "'s/f'"
-		"s'f"  | "/s'f/"
-		"s'/"	 | "/s'\\//"
-		"s\nf" | "/s\nf/"
-		"s'\\f"| "/s'\\\\f/"
+		"s'f"  | /"s'f"/
+		//"s'/"	 | "/s'\\//"
+		"s\nf" | /'''s
+f'''/
+//		/s\'\w/ /"s'\\\\w"/
 		"s\\f" | "'s\\\\f'"
 	}
 
@@ -46,7 +39,7 @@ class Convert2GroovySpec extends Specification{
 		String parent = 'changeSet'
 		StringWriter out = new StringWriter()
 		ParsedNode node = new ParsedNode(null, parent)
-		serialize(node.setValue((Object)input), tagInfo(dbChangeLogTagName), new IndentPrinter(out))
+		serialize(node.setValue((Object)input), new IndentPrinter(out), tagInfo(dbChangeLogTagName))
 		System.println(out)
 		String expected = "changeSet {\n$exp\n}\n"
 		expect:
@@ -56,41 +49,43 @@ class Convert2GroovySpec extends Specification{
 		[sql:'select'] | /sql 'select'/
 	}
 
-
-
-	void validate() {
-
+	/** Convert test xml (with its inludes) in new groovy format */
+	void convert() {
+		when:
 		//File root =  new File('../build4/liquibase-integration-tests/src/test/resources')
 
 		//File xml = new File (root, fileName)
 		//String fileName = 'test.changelog.xml'
-		String fileName = commonTestsChangelog + '.xml'
-		File groovyFile =  new File(changeExtension(fileName))
+		String fileName = commonTestChangelogNoInc + '.xml'
+		//File groovyFile = new File(changeExtension(fileName))
 		//File groovyFile =  outputFile(changeExtension(fileName))
 
-		ResourceAccessor ra = new FolderResourceAccessor(commonTestsChangelogRoot)
+		ResourceAccessor ra = new FolderResourceAccessor(commonTestChangelogRoot)
 		//ResourceAccessor ra = new DirectoryResourceAccessor(Path.of('src/test/resource'))
 
-//		try(PrintStream ps = new PrintStream(new File(commonTestsChangelogRoot, groovyFile.path))) {
-//			run(fileName, ps, ra)
-//		}
-		ChangeLogParameters changeLogParameters = new ChangeLogParameters()
+		run(fileName, ra)
+		then:
+		noExceptionThrown()
+	}
 
+	/** parse and load both the original test xmls and their converted version and compare the result */
+	void validate() {
+		String fileName = commonTestChangelogNoInc + '.xml'
+		//String fileName = commonTestsChangelog + '.xml'
+		ResourceAccessor ra = new FolderResourceAccessor(commonTestChangelogRoot)
 		// Parse XML
 		DatabaseChangeLog xmlLog = parseToChangeLog(fileName, ra)
 
-		//DatabaseChangeLog groovy = new GroovyLiquibaseChangeLogParser().parse('changelog.groovy', changeLogParameters, ra)
+		File groovyFile = new File(changeExtension(fileName))
 		// Parse
-		DatabaseChangeLog groovy = parseToChangeLog(groovyFile.path, ra)
+		DatabaseChangeLog groovy = parseToChangeLog(groovyFile.path, new DirectoryResourceAccessor(Path.of('.')))
 
 		expect:
-		serialize(groovy).toString() == serialize(xmlLog).toString()
+		serialize(groovy) == serialize(xmlLog)
 	}
 }
 
 @CompileStatic
-
-
 class FolderResourceAccessor extends DirectoryResourceAccessor {
 
 	FolderResourceAccessor(File directory) throws FileNotFoundException {
