@@ -17,11 +17,11 @@ class ChangeSetSpec extends Specification {
      * any constraints.  We don't worry about the contents of the column itself, as we do that when
      * we test the ColumnDelegate.
      */
-    void "addColumn with #type arguments"() {
-        AddColumnChange ch = verify(expPropsTableSchemaCatalogName, cl, AddColumnChange)
+    void "addColumn with '#type' arguments"() {
+        AddColumnChange ch = verify(expPropsTableSchemaCatalogName, AddColumnChange, cl)
 
         expect:
-        2 == ch.columns.size()
+        ch.columns.size() == 2
         ch.columns.eachWithIndex { c, i -> assertPropsSet(expAddColumns[i], c) }
 
         where:
@@ -48,14 +48,12 @@ class ChangeSetSpec extends Specification {
         column column2Name, dataType
     }
 
-    /**
-     * Test parsing a createView change with all supported attributes and a closure.
-     */
-    void "createTable with #type arguments"() {
-        CreateTableChange ch = verify(expPropsCreateTable, cl, CreateTableChange)
+    /** Test parsing a createTable change with all supported attributes and columns. */
+    void "createTable with '#type' arguments"() {
+        CreateTableChange ch = verify(expPropsCreateTable, CreateTableChange, cl)
 
         expect:
-        2 == ch.columns.size()
+        ch.columns.size() == 2
         ch.columns.eachWithIndex { c, i -> assertPropsSet(expAddColumns[i], c) }
 
         where:
@@ -66,7 +64,7 @@ class ChangeSetSpec extends Specification {
     }
 
 
-    static final expPropsCreateView = expPropsViewSchemaCatalogName + [
+    static final expPropsCreateViewPath = expPropsViewSchemaCatalogName + [
             remarks                : 'monkey see, monkey do',
             replaceIfExists        : false,
             fullDefinition         : false,
@@ -74,27 +72,44 @@ class ChangeSetSpec extends Specification {
             encoding               : utf8,
             relativeToChangelogFile: true]
 
-    /**
-     * Test parsing a createView change with all supported attributes, but no closure
-     */
-    void "createView from path with #type arguments"() {
-        CreateViewChange ch = verify(expPropsCreateView, cl, CreateViewChange)
+    /** Test parsing a createView change with all supported attributes, but no closure  */
+    void "createView from path with '#type' arguments"() {
+        CreateViewChange ch = verify(expPropsCreateViewPath, CreateViewChange, cl)
         expect:
-        null == ch.selectQuery
+        ch.selectQuery == null
+
         where:
         type         | cl
-        'named'      | { createView(expPropsCreateView) }
-        'positional' | { createView(viewName, it.replaceIfExists, it.fullDefinition, it.path, true, it.remarks, utf8, schemaName, catalogName) }
-        'mixed'      | { createView(viewName, it.replaceIfExists, it.fullDefinition, catalogName: catalogName, it.path, it.relativeToChangelogFile, it.remarks, utf8, schemaName) }
+        'named'      | { createView(expPropsCreateViewPath) }
+        'positional' | { createView(viewName, it.path, it.replaceIfExists, it.fullDefinition, true, it.remarks, utf8, schemaName, catalogName) }
+        'mixed'      | { createView(viewName, it.path, it.replaceIfExists, it.fullDefinition, catalogName: catalogName, it.relativeToChangelogFile, it.remarks, utf8, schemaName) }
+    }
+
+    static final expPropsCreateView = expPropsViewSchemaCatalogName + [
+       remarks                : 'monkey see, monkey do',
+       replaceIfExists        : false,
+       fullDefinition         : false ]
+
+    /** Test parsing a createView change with all supported attributes, with closure  */
+    void "createView with closure with '#type' arguments"() {
+        CreateViewChange ch = verify(expPropsCreateView, CreateViewChange, cl)
+        expect:
+        ch.selectQuery == sqlSelect
+        ch.path == null
+        where:
+        type         | cl
+        'named'      | { createView(expPropsCreateView) {sqlSelect} }
+        'positional' | { createView(viewName, it.replaceIfExists, it.fullDefinition, it.remarks,  schemaName, catalogName) {sqlSelect} }
+        'mixed'      | { createView(viewName, it.replaceIfExists, it.fullDefinition, catalogName: catalogName, it.remarks, schemaName) {sqlSelect} }
     }
 
     /** Test parsing a dropColumn change without a closure. This is the use case when we put the
      * column name in the columnName attribute instead of the closure
      */
-    void "dropColumn single column with #type arguments"() {
-        DropColumnChange ch = verify(expPropsColumnTableSchemaCatalogName, cl, DropColumnChange)
+    void "dropColumn single column with '#type' arguments"() {
+        DropColumnChange ch = verify(expPropsColumnTableSchemaCatalogName, DropColumnChange, cl)
         expect:
-        0 == ch.columns.size()
+        ch.columns.size() == 0
         where:
         type         | cl
         'named'      | { dropColumn expPropsColumnTableSchemaCatalogName }
@@ -104,10 +119,10 @@ class ChangeSetSpec extends Specification {
 
     /** Test parsing a dropColumn change with a closure containing the column names to drop.
      */
-    void "dropColumn multiple columns with  #type arguments"() {
-        DropColumnChange ch = verify(expPropsTableSchemaCatalogName, cl, DropColumnChange)
+    void "dropColumn multiple columns with  '#type' arguments"() {
+        DropColumnChange ch = verify(expPropsTableSchemaCatalogName, DropColumnChange, cl)
         expect:
-        2 == ch.columns.size()
+        ch.columns.size() == 2
         columnName == ch.columns[0].name
         column2Name == ch.columns[1].name
         null == ch.columnName
@@ -137,8 +152,8 @@ class ChangeSetSpec extends Specification {
             procedureName: procedureName
     ]
 
-    void "dropProcedure with #type arguments"() {
-        verify(expPropsDropProcedure, cl, DropProcedureChange)
+    void "dropProcedure with '#type' arguments"() {
+        verify(expPropsDropProcedure, DropProcedureChange, cl)
         where:
         type         | cl
         'named'      | { dropProcedure expPropsDropProcedure }
@@ -150,8 +165,8 @@ class ChangeSetSpec extends Specification {
             cascadeConstraints: true
     ]
 
-    void "dropTable with #type arguments"() {
-        verify(expDropTableProps, cl, DropTableChange)
+    void "dropTable with '#type' arguments"() {
+        verify(expDropTableProps, DropTableChange, cl)
         where:
         type         | cl
         'named'      | { dropTable expDropTableProps }
@@ -163,8 +178,8 @@ class ChangeSetSpec extends Specification {
             ifExists: true
     ]
 
-    void "dropView with #type arguments"() {
-        verify(expPropsDropView, cl, DropViewChange)
+    void "dropView with '#type' arguments"() {
+        verify(expPropsDropView, DropViewChange, cl)
         where:
         type         | cl
         'named'      | { dropView expPropsDropView }
@@ -177,11 +192,10 @@ class ChangeSetSpec extends Specification {
             column2Name    : column2Name,
             finalColumnName: 'full_name',
             finalColumnType: 'varchar(99)',
-            joinString     : ' '
-    ]
+            joinString     : ' '  ]
 
-    void "mergeColumns with #type arguments"() {
-        verify(expPropsMergeColumns, cl, MergeColumnChange)
+    void "mergeColumns with '#type' arguments"() {
+        verify(expPropsMergeColumns, MergeColumnChange, cl)
         where:
         type         | cl
         'named'      | { mergeColumns expPropsMergeColumns }
@@ -192,8 +206,8 @@ class ChangeSetSpec extends Specification {
             newDataType: dataType
     ]
 
-    void "modifyDataType with #type arguments"() {
-        verify(expPropsModifyDataType, cl, ModifyDataTypeChange)
+    void "modifyDataType with '#type' arguments"() {
+        verify(expPropsModifyDataType, ModifyDataTypeChange, cl)
         where:
         type         | cl
         'named'      | { modifyDataType expPropsModifyDataType }
@@ -205,11 +219,10 @@ class ChangeSetSpec extends Specification {
             oldColumnName : columnName,
             newColumnName : column2Name,
             columnDataType: dataType,
-            remarks       : remarks
-    ]
+            remarks       : remarks ]
 
-    void "renameColumn with #type arguments"() {
-        verify(expPropsRenameColumn, cl, RenameColumnChange)
+    void "renameColumn with '#type' arguments"() {
+        verify(expPropsRenameColumn, RenameColumnChange, cl)
         where:
         type         | cl
         'named'      | { renameColumn expPropsRenameColumn }
@@ -222,8 +235,8 @@ class ChangeSetSpec extends Specification {
             newTableName: 'win_table'
     ]
 
-    void "renameTable with #type arguments"() {
-        verify(expPropsRenameTable, cl, RenameTableChange)
+    void "renameTable with '#type' arguments"() {
+        verify(expPropsRenameTable, RenameTableChange, cl)
         where:
         type         | cl
         'named'      | { renameTable expPropsRenameTable }
@@ -236,8 +249,8 @@ class ChangeSetSpec extends Specification {
             newViewName: 'win_view'
     ]
 
-    void "renameView with #type arguments"() {
-        verify(expPropsRenameView, cl, RenameViewChange)
+    void "renameView with '#type' arguments"() {
+        verify(expPropsRenameView, RenameViewChange, cl)
         where:
         type         | cl
         'named'      | { renameView expPropsRenameView }
@@ -263,8 +276,8 @@ class ChangeSetSpec extends Specification {
             validate                  : false
     ]
 
-    void "addForeignKeyConstraint with #type arguments"() {
-        verify(expPropsAddForeignKeyConstraint, cl, AddForeignKeyConstraintChange)
+    void "addForeignKeyConstraint with '#type' arguments"() {
+        verify(expPropsAddForeignKeyConstraint, AddForeignKeyConstraintChange, cl)
         where:
         type         | cl
         'named'      | { addForeignKeyConstraint expPropsAddForeignKeyConstraint }
@@ -291,8 +304,8 @@ class ChangeSetSpec extends Specification {
             validate           : false
     ]
 
-    void "addPrimaryKey with #type arguments"() {
-        verify(expPropsAddPrimaryKey, cl, AddPrimaryKeyChange)
+    void "addPrimaryKey with '#type' arguments"() {
+        verify(expPropsAddPrimaryKey, AddPrimaryKeyChange, cl)
         where:
         type         | cl
         'named'      | { addPrimaryKey expPropsAddPrimaryKey }
@@ -310,8 +323,8 @@ class ChangeSetSpec extends Specification {
             dropIndex     : false
     ]
 
-    void "dropPrimaryKey with #type arguments"() {
-        verify(expPropsDropPrimaryKey, cl, DropPrimaryKeyChange)
+    void "dropPrimaryKey with '#type' arguments"() {
+        verify(expPropsDropPrimaryKey, DropPrimaryKeyChange, cl)
         where:
         type         | cl
         'named'      | { dropPrimaryKey expPropsDropPrimaryKey }
@@ -325,8 +338,8 @@ class ChangeSetSpec extends Specification {
             baseTableName       : tableName,
     ]
 
-    void "dropAllForeignKeyConstraints with #type arguments"() {
-        verify(expPropsDropAllForeignKeyConstraints, cl, DropAllForeignKeyConstraintsChange)
+    void "dropAllForeignKeyConstraints with '#type' arguments"() {
+        verify(expPropsDropAllForeignKeyConstraints, DropAllForeignKeyConstraintsChange, cl)
         where:
         type         | cl
         'named'      | { dropAllForeignKeyConstraints expPropsDropAllForeignKeyConstraints }
@@ -338,8 +351,8 @@ class ChangeSetSpec extends Specification {
             constraintName: constraintName
     ]
 
-    void "dropForeignKeyConstraint with #type arguments"() {
-        verify(expPropsDropForeignKeyConstraint, cl, DropForeignKeyConstraintChange)
+    void "dropForeignKeyConstraint with '#type' arguments"() {
+        verify(expPropsDropForeignKeyConstraint, DropForeignKeyConstraintChange, cl)
         where:
         type         | cl
         'named'      | { dropForeignKeyConstraint expPropsDropForeignKeyConstraint }
@@ -351,8 +364,8 @@ class ChangeSetSpec extends Specification {
     static final whereClause = "emotion='angry' AND active=true"
     static final expPropsDelete = expPropsTableSchemaCatalogName + [where: whereClause]
 
-    void "delete with where with #type arguments"() {
-        verify(expPropsDelete, cl, DeleteDataChange)
+    void "delete with where with '#type' arguments"() {
+        verify(expPropsDelete, DeleteDataChange, cl)
 
         where:
         type         | cl
@@ -361,8 +374,8 @@ class ChangeSetSpec extends Specification {
         'positional' | { delete tableName, schemaName, catalogName, { where whereClause } }
     }
 
-    void "delete with #type arguments"() {
-        verify(expPropsTableSchemaCatalogName, cl, DeleteDataChange)
+    void "delete with '#type' arguments"() {
+        verify(expPropsTableSchemaCatalogName, DeleteDataChange, cl)
         where:
         type         | cl
         'named'      | { delete expPropsTableSchemaCatalogName }
@@ -376,8 +389,8 @@ class ChangeSetSpec extends Specification {
             columnParentType: 'VIEW'
     ]
 
-    void "setColumnRemarks with #type arguments"() {
-        verify(expPropsSetColumnRemarks, cl, SetColumnRemarksChange)
+    void "setColumnRemarks with '#type' arguments"() {
+        verify(expPropsSetColumnRemarks, SetColumnRemarksChange, cl)
         where:
         type         | cl
         'named'      | { setColumnRemarks expPropsSetColumnRemarks }
@@ -389,8 +402,8 @@ class ChangeSetSpec extends Specification {
             remarks: remarks,
     ]
 
-    void "setTableRemarks with #type arguments"() {
-        verify(expPropsSetTableRemarks, cl, SetTableRemarksChange)
+    void "setTableRemarks with '#type' arguments"() {
+        verify(expPropsSetTableRemarks, SetTableRemarksChange, cl)
         where:
         type         | cl
         'named'      | { setTableRemarks expPropsSetTableRemarks }
@@ -410,11 +423,11 @@ class ChangeSetSpec extends Specification {
         where whereClause // TODO add whereParams
     }
 
-    void "update with where #type arguments"() {
-        UpdateDataChange ch = verify(expPropsTableSchemaCatalogName, cl, UpdateDataChange)
+    void "update with where '#type' arguments"() {
+        UpdateDataChange ch = verify(expPropsTableSchemaCatalogName, UpdateDataChange, cl)
 
         expect:
-        2 == ch.columns.size()
+        ch.columns.size() == 2
         ch.columns.eachWithIndex { c, i -> assertPropsSet(expPropsDataColumns[i], c) }
         ch.where == whereClause
 
@@ -434,11 +447,11 @@ class ChangeSetSpec extends Specification {
         column column2Name, dataType
     }
 
-    void "insert with #type arguments"() {
-        InsertDataChange ch = verify(expPropsInsert, cl, InsertDataChange)
+    void "insert with '#type' arguments"() {
+        InsertDataChange ch = verify(expPropsInsert, InsertDataChange, cl)
 
         expect:
-        2 == ch.columns.size()
+        ch.columns.size() == 2
         ch.columns.eachWithIndex { c, i -> assertPropsSet(expPropsDataColumns[i], c) }
 
         where:
@@ -468,11 +481,18 @@ class ChangeSetSpec extends Specification {
         column column2Name, STRING
     }
 
-    void "loadData with #type arguments"() {
-        LoadDataChange ch = verify(expPropsLoadData, cl, LoadDataChange)
+    void "keep defaults"() {
+        expect:
+        verify file: file, tableName: tableName, separator:',', quotchar: '"', LoadDataChange, {
+            loadData tableName, file
+        }
+    }
+
+    void "loadData with '#type' arguments"() {
+        LoadDataChange ch = verify(expPropsLoadData, LoadDataChange, cl)
 
         expect:
-        2 == ch.columns.size()
+        ch.columns.size() == 2
         ch.columns.eachWithIndex { c, i -> assertPropsSet(expLoadDataColumns[i], c) }
 
         where:
@@ -487,18 +507,18 @@ class ChangeSetSpec extends Specification {
             ,onlyUpdate: true
     ]
 
-    void "loadUpdateData with #type arguments"() {
-        LoadUpdateDataChange ch = verify(expPropsLoadUpdateData, cl, LoadUpdateDataChange)
+    void "loadUpdateData with '#type' arguments"() {
+        LoadUpdateDataChange ch = verify(expPropsLoadUpdateData, LoadUpdateDataChange, cl)
 
         expect:
-        2 == ch.columns.size()
+        ch.columns.size() == 2
         ch.columns.eachWithIndex { c, i -> assertPropsSet(expLoadDataColumns[i], c) }
 
         where:
         type         | cl
         'named'      | { loadUpdateData expPropsLoadUpdateData, loadDataColumns }
         'positional' | { loadUpdateData tableName, it.primaryKey, file, it.relativeToChangelogFile, it.encoding, it.separator, it.quotchar, it.commentLineStartsWith, it.usePreparedStatements, schemaName, catalogName, it.onlyUpdate, loadDataColumns }
-        'mixed'      | { loadUpdateData tableName, quotchar: it.quotchar, onlyUpdate:it.onlyUpdate, it.primaryKey, file, it.relativeToChangelogFile, it.encoding, it.separator, it.commentLineStartsWith, it.usePreparedStatements, schemaName, catalogName, loadDataColumns }
+        'mixed'      | { loadUpdateData tableName, onlyUpdate:it.onlyUpdate, it.primaryKey, file, it.relativeToChangelogFile, it.encoding, it.separator, it.quotchar, it.commentLineStartsWith, it.usePreparedStatements, schemaName, catalogName, loadDataColumns }
     }
 
     /**** DataQualityRefactoringTests ****/
@@ -510,8 +530,8 @@ class ChangeSetSpec extends Specification {
             generationType: 'magic'
     ]
 
-    void "addAutoIncrement with #type arguments"() {
-        verify(expPropsAddAutoIncrement, cl, AddAutoIncrementChange)
+    void "addAutoIncrement with '#type' arguments"() {
+        verify(expPropsAddAutoIncrement, AddAutoIncrementChange, cl)
 
         where:
         type         | cl
@@ -524,8 +544,8 @@ class ChangeSetSpec extends Specification {
             columnDataType: dataType
     ]
 
-    void "dropDefaultValue with #type arguments"() {
-        verify(expPropsDropDefaultValue, cl, DropDefaultValueChange)
+    void "dropDefaultValue with '#type' arguments"() {
+        verify(expPropsDropDefaultValue, DropDefaultValueChange, cl)
 
         where:
         type         | cl
@@ -544,8 +564,8 @@ class ChangeSetSpec extends Specification {
             defaultValueConstraintName: 'monkey_strength_default'
     ]
 
-    void "addDefaultValue with #type arguments"() {
-        verify(expPropsAddDefaultValue, cl, AddDefaultValueChange)
+    void "addDefaultValue with '#type' arguments"() {
+        verify(expPropsAddDefaultValue, AddDefaultValueChange, cl)
 
         where:
         type         | cl
@@ -567,8 +587,8 @@ class ChangeSetSpec extends Specification {
             constraintName: constraintName
     ]
 
-    void "addLookupTable with #type arguments"() {
-        verify(expPropsAddLookupTable, cl, AddLookupTableChange)
+    void "addLookupTable with '#type' arguments"() {
+        verify(expPropsAddLookupTable, AddLookupTableChange, cl)
 
         where:
         type         | cl
@@ -583,8 +603,8 @@ class ChangeSetSpec extends Specification {
     ]
 
 
-    void "dropNotNullConstraint with #type arguments"() {
-        verify(expPropsDropNotNullConstraint, cl, DropNotNullConstraintChange)
+    void "dropNotNullConstraint with '#type' arguments"() {
+        verify(expPropsDropNotNullConstraint, DropNotNullConstraintChange, cl)
 
         where:
         type         | cl
@@ -598,8 +618,8 @@ class ChangeSetSpec extends Specification {
             validate: true
     ]
 
-    void "addNotNullConstraint with #type arguments"() {
-        verify(expPropsAddNotNullConstraint, cl, AddNotNullConstraintChange)
+    void "addNotNullConstraint with '#type' arguments"() {
+        verify(expPropsAddNotNullConstraint, AddNotNullConstraintChange, cl)
 
         where:
         type         | cl
@@ -622,8 +642,8 @@ class ChangeSetSpec extends Specification {
             clustered: false
     ]
 
-    void "addUniqueConstraint with #type arguments"() {
-        verify(expPropsAddUniqueConstraint, cl, AddUniqueConstraintChange)
+    void "addUniqueConstraint with '#type' arguments"() {
+        verify(expPropsAddUniqueConstraint, AddUniqueConstraintChange, cl)
 
         where:
         type         | cl
@@ -636,8 +656,8 @@ class ChangeSetSpec extends Specification {
         constraintName: constraintName,
         uniqueColumns: columnNames
     ]
-    void "dropUniqueConstraint with #type arguments"() {
-        verify(expPropsDropUniqueConstraint, cl, DropUniqueConstraintChange)
+    void "dropUniqueConstraint with '#type' arguments"() {
+        verify(expPropsDropUniqueConstraint, DropUniqueConstraintChange, cl)
 
         where:
         type         | cl
@@ -656,8 +676,8 @@ class ChangeSetSpec extends Specification {
             cycle: true,
     ]
 
-    void "alterSequence with #type arguments"() {
-        verify(expPropsAlterSequence, cl, AlterSequenceChange)
+    void "alterSequence with '#type' arguments"() {
+        verify(expPropsAlterSequence, AlterSequenceChange, cl)
 
         where:
         type         | cl
@@ -670,8 +690,8 @@ class ChangeSetSpec extends Specification {
             startValue: 301
     ]
 
-    void "createSequence with #type arguments"() {
-        verify(expPropsCreateSequence, cl, CreateSequenceChange)
+    void "createSequence with '#type' arguments"() {
+        verify(expPropsCreateSequence, CreateSequenceChange, cl)
 
         where:
         type         | cl
@@ -680,8 +700,8 @@ class ChangeSetSpec extends Specification {
         'mixed'      | { createSequence sequenceName, it.startValue, it.incrementBy, it.minValue, it.maxValue, catalogName: catalogName, it.ordered, it.cacheSize, dataType, it.cycle, schemaName }
     }
 
-    void "dropSequence with #type arguments"() {
-        verify(expPropsSequenceSchemaCatalogName, cl, DropSequenceChange)
+    void "dropSequence with '#type' arguments"() {
+        verify(expPropsSequenceSchemaCatalogName, DropSequenceChange, cl)
 
         where:
         type         | cl
@@ -696,8 +716,8 @@ class ChangeSetSpec extends Specification {
             newSequenceName: 'new_sequence'
     ]
 
-    void "renameSequence with #type arguments"() {
-        verify(expPropsRenameSequence, cl, RenameSequenceChange)
+    void "renameSequence with '#type' arguments"() {
+        verify(expPropsRenameSequence, RenameSequenceChange, cl)
 
         where:
         type         | cl
@@ -725,8 +745,8 @@ class ChangeSetSpec extends Specification {
         column column2Name //TODO     , true
     }
 
-    void "createIndex with #type arguments"() {
-        CreateIndexChange ch = verify(expPropsCreateIndex, cl, CreateIndexChange)
+    void "createIndex with '#type' arguments"() {
+        CreateIndexChange ch = verify(expPropsCreateIndex, CreateIndexChange, cl)
 
         expect:
         expCreateIndexColumns.size() == ch.columns.size()
@@ -743,8 +763,8 @@ class ChangeSetSpec extends Specification {
             associatedWith: 'foreignKey'
     ]
 
-    void "dropIndex with #type arguments"() {
-        verify(expPropsDropIndex, cl, DropIndexChange)
+    void "dropIndex with '#type' arguments"() {
+        verify(expPropsDropIndex, DropIndexChange, cl)
 
         where:
         type         | cl
@@ -760,8 +780,8 @@ class ChangeSetSpec extends Specification {
             dbms: mysql
             ]
 
-    void "sql with #type arguments"() {
-        verify(expPropsSql, cl, RawSQLChange).sql == sqlSelect
+    void "sql with '#type' arguments"() {
+        verify(expPropsSql, RawSQLChange, cl).sql == sqlSelect
 
         where:
         type                | cl
@@ -769,8 +789,8 @@ class ChangeSetSpec extends Specification {
 //        'closure+positional'| { sql it.dbms, it.stripComments, it.splitStatements, it.endDelimiter, {sqlSelect} } // ,,,Closure
 //        'closure+mixed'     | { sql it.dbms, it.stripComments, endDelimiter:it.endDelimiter, it.splitStatements, {sqlSelect}} // Map,,,Closure
 //        'named'       | { sql sqlSelect, expPropsSql } // Map, String,,,,,
-        'positional'  | { sql sqlSelect, it.dbms, it.stripComments, it.splitStatements, it.endDelimiter } // String,,,,,
-        'mixed'       | { sql sqlSelect, it.dbms, it.stripComments, endDelimiter:it.endDelimiter, splitStatements:it.splitStatements } // Map, String,,,,,
+        'positional'  | { sql sqlSelect, it.stripComments, it.dbms, it.splitStatements, it.endDelimiter } // String,,,,,
+        'mixed'       | { sql sqlSelect, it.stripComments, it.dbms, endDelimiter:it.endDelimiter, it.splitStatements } // Map, String,,,,,
     }
 
     static final expPropsSqlFile = expPropsSql + [
@@ -779,8 +799,8 @@ class ChangeSetSpec extends Specification {
             encoding: 'ASCII'
     ]
 
-    void "sqlFile with #type arguments"() {
-        verify(expPropsSqlFile, cl, SQLFileChange)
+    void "sqlFile with '#type' arguments"() {
+        verify(expPropsSqlFile, SQLFileChange, cl)
 
         where:
         type         | cl
@@ -789,8 +809,6 @@ class ChangeSetSpec extends Specification {
         'mixed'      | { sqlFile file, it.relativeToChangelogFile, it.stripComments, it.splitStatements, it.endDelimiter, encoding: it.encoding, it.dbms }
     }
 
-    // TODO createProcedure
-
     static final mac = 'mac'
 
     static final expPropsExecuteCommand = [
@@ -798,8 +816,8 @@ class ChangeSetSpec extends Specification {
         timeout: '10s'
         ]
 
-    def "executeCommand with #type arguments"() {
-        verify(expPropsExecuteCommand + [os: [mac]], cl, ExecuteShellCommandChange)
+    def "executeCommand with '#type' arguments"() {
+        verify(expPropsExecuteCommand + [os: [mac]], ExecuteShellCommandChange, cl)
 
         where:
         type         | cl
@@ -808,7 +826,43 @@ class ChangeSetSpec extends Specification {
         'mixed'      | { executeCommand it.executable, timeout: it.timeout, mac }
     }
 
-  //  @Unroll
+    static final expPropsCreateProcedure = expPropsSchemaAndCatalogName + [
+       procedureName          : procedureName,
+       replaceIfExists        : false,
+       dbms: 'db2'
+    ]
+
+    static final expPropsCreateProcedurePath = expPropsCreateProcedure + [
+       path                   : 'monkey_view.sql',
+       encoding               : utf8,
+       relativeToChangelogFile: true
+    ]
+
+    /** Test parsing a createProcedure change with all supported attributes, but no closure  */
+    void "createProcedure from path with '#type' arguments"() {
+        CreateProcedureChange ch = verify(expPropsCreateProcedurePath, CreateProcedureChange, cl)
+        expect:
+        ch.procedureText == null
+
+        where:
+        type         | cl
+        'named'      | { createProcedure(expPropsCreateProcedurePath) }
+        'positional' | { createProcedure(it.path, procedureName, true, it.replaceIfExists, it.dbms, utf8, schemaName, catalogName) }
+        'mixed'      | { createProcedure(it.path, procedureName, it.relativeToChangelogFile, it.replaceIfExists, it.dbms, catalogName: catalogName, utf8, schemaName) }
+    }
+
+    /** Test parsing a createProcedure change with all supported attributes, with closure  */
+    void "createProcedure with closure and '#type' arguments"() {
+        CreateProcedureChange ch = verify(expPropsCreateProcedure, CreateProcedureChange, cl)
+        expect:
+        ch.procedureText == sqlSelect
+        ch.path == null
+        where:
+        type         | cl
+        'named'      | { createProcedure(expPropsCreateProcedure) {sqlSelect} }
+        'positional' | { createProcedure(procedureName, it.replaceIfExists, it.dbms, schemaName, catalogName) {sqlSelect} }
+        'mixed'      | { createProcedure(procedureName, it.replaceIfExists, it.dbms, catalogName: catalogName, schemaName) {sqlSelect} }
+    }
     void "error #expectedErr" () {
         when:
         buildChanges (input)
@@ -818,4 +872,6 @@ class ChangeSetSpec extends Specification {
         expectedErr     | input
         MissingClosure  | {sql dbms: 'd'}
     }
+
+    // TODO check all known changes have a method in the methoddDefs
 }

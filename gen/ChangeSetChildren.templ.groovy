@@ -6,32 +6,32 @@ import liquibase.database.ColumnParentTypeEnum
 import liquibase.database.FkCascadeActionOptions
 import static org.liquibase.groovy.delegate.ChangeSetDelegate.*
 import static groovy.lang.Closure.DELEGATE_ONLY
-<% def skip = ['customChange','createProcedure','sql', 'rollback', 'output', 'dropColumn']
-   def skipMapArgVersion = ['createView'] %>
+<% def skip = ['customChange','sql','rollback','output']
+   List<String> skipMapArgVersion = ['createProcedure'] //'createView' %>
 @CompileStatic
 @SelfType(ChangeSetDelegate)
 trait ChangeSetChildren {
-<% methods.findAll{it.args && !skip.contains(it.name) }.each { m -> %>
-	${m.fnDef(false, 'addChange', true)}
+<% methods.findAll{ it.args && !skip.contains(it.name) }.each { m -> %>
+	${m.functionDefinitions( 'addChange', true)}
 <% if(m.args.size() > 2) {
-%>
-	${m.fnDef(true, 'addChange', true)}
-<% if(m.childOptional()) {
-%>
-	${m.fnDef(false, 'addChange')}
-
-	${m.fnDef(true, 'addChange')}
-<%  } // Add Map or Map + Closure versions if hasChild
+		if(m.childOptional()) { %>
+	${m.functionDefinitions('addChange')}
+<%  	} // Add Map or Map + Closure versions if hasChild
 	if(!skipMapArgVersion.contains(m.name) && (m.hasRequired() || m.hasChild )) {
 %>
-	${m.javadoc(m.args.size() > 3 )}<%
+	${m.javadoc(m.args, m.args.size() > 3 )}<%
 	if (m.hasChild){ %>
-	void $m.name(Map<String, Object> params,${m.args.last().toString( true, true)}) {
-		addChangeWithChild Tag.$m.name, params, ${m.args.last().name}
+	void $m.name(Map<String, Object> params,${m.child.asString( true, false).dropRight(1)}) {<%
+		if(m.child.stringClosure()) { %>
+		addChange args2Map(Tag.$m.name, params) ${m.child.asString(false, true).dropRight(1)}
 	}
-<%	} else { %>
+		<%	} else { %>
+		addChangeWithChild Tag.$m.name, params${m.child.asString(false, true).dropRight(1)}
+	}
+<%		}
+	} else { %>
 	void $m.name(Map<String, Object> params) {
-		addMapBasedChange Tag.$m.name, params
+		addChange Tag.$m.name, params
 	}
 <%    }// if(m.hasChild)
     } // map versions

@@ -42,7 +42,7 @@ import spock.lang.*
 class PreconditionDelegateTests extends Specification {
 
     /** Try creating a dbms precondition  */
-    void "dbms #type arguments"() {
+    void "dbms '#type' arguments"() {
         List<Precondition> preconditions = buildPreconditions cl
         expect:
         1 == preconditions.size()
@@ -57,7 +57,7 @@ class PreconditionDelegateTests extends Specification {
     static final String tlberglund = 'tlberglund'
 
     /** Try creating a runningAs precondition. */
-    void "runningAs #type arguments"() {
+    void "runningAs '#type' arguments"() {
         List<Precondition> preconditions = buildPreconditions cl
         expect:
         1 == preconditions.size()
@@ -69,7 +69,7 @@ class PreconditionDelegateTests extends Specification {
         'positional'| { runningAs( tlberglund ) }
     }
 
-    void "expectedQuotingStrategy #type arguments"() {
+    void "expectedQuotingStrategy '#type' arguments"() {
         List<Precondition> preconditions = buildPreconditions cl
         expect:
         1 == preconditions.size()
@@ -86,7 +86,7 @@ class PreconditionDelegateTests extends Specification {
             ,value: 'val'
     ]
     /** Try creating a dbms precondition  */
-    void "changeLogPropertyDefined #type arguments"() {
+    void "changeLogPropertyDefined '#type' arguments"() {
         verify(expChangeLogPropertyDefined, cl, ChangeLogPropertyDefinedPrecondition)
 
         where:
@@ -103,7 +103,7 @@ class PreconditionDelegateTests extends Specification {
     ]
 
     /** Try creating a changeSetExecuted precondition.  */
-    void "changeSetExecuted #type arguments"() {
+    void "changeSetExecuted '#type' arguments"() {
         verify (expChangeSetExecuted, cl, ChangeSetExecutedPrecondition)
 
         where:
@@ -116,7 +116,7 @@ class PreconditionDelegateTests extends Specification {
 
 
     /** Try creating a columnExists precondition.  */
-    void "columnExists #type arguments"() {
+    void "columnExists '#type' arguments"() {
         verify( expPropsColumnTableSchemaCatalogName, cl, ColumnExistsPrecondition)
 
         where:
@@ -130,7 +130,7 @@ class PreconditionDelegateTests extends Specification {
     }
 
     /** try creating a tableExists precondition. */
-    void "tableExists #type arguments"() {
+    void "tableExists '#type' arguments"() {
         verify( expPropsTableSchemaCatalogName, cl, TableExistsPrecondition)
 
         where:
@@ -140,7 +140,7 @@ class PreconditionDelegateTests extends Specification {
         'mixed'      | { tableExists( catalogName: catalogName, tableName, schemaName)}
     }
 
-    void "tableExists #type arguments"() {
+    void "tableExists '#type' arguments"() {
         verify( expPropsTableSchemaCatalogName, cl, TableIsEmptyPrecondition)
 
         where:
@@ -151,7 +151,7 @@ class PreconditionDelegateTests extends Specification {
     }
 
      /** Try creating a vewExists precondition. */
-    void "viewExists #type arguments"() {
+    void "viewExists '#type' arguments"() {
         verify( expPropsViewSchemaCatalogName, cl, ViewExistsPrecondition)
 
         where:
@@ -170,7 +170,7 @@ class PreconditionDelegateTests extends Specification {
     ]
 
     /** Try creating a foreignKeyConstraintExists precondition */
-    void "foreignKeyConstraintExists #type arguments"() {
+    void "foreignKeyConstraintExists '#type' arguments"() {
         verify expForeignKeyConstraintExists, cl, ForeignKeyExistsPrecondition
 
         where:
@@ -189,7 +189,7 @@ class PreconditionDelegateTests extends Specification {
     ]
 
     /** Try creating an indexExists precondition. */
-    void "indexExists #type arguments"() {
+    void "indexExists '#type' arguments"() {
         verify expIndexExists, cl, IndexExistsPrecondition
 
         where:
@@ -206,7 +206,7 @@ class PreconditionDelegateTests extends Specification {
         expectedRows: 1
     ]
 
-    void "rowCount #type arguments"() {
+    void "rowCount '#type' arguments"() {
         verify expRowCount, cl, RowCountPrecondition
 
         where:
@@ -221,7 +221,7 @@ class PreconditionDelegateTests extends Specification {
     ]
 
     /** Try creating a sequenceExists precondition. */
-    void "sequenceExists #type arguments"() {
+    void "sequenceExists '#type' arguments"() {
         verify expSequenceExists, cl, SequenceExistsPrecondition
 
         where:
@@ -236,7 +236,7 @@ class PreconditionDelegateTests extends Specification {
     ]
 
     /** Try creating a primaryKeyExists precondition. */
-    void "primaryKeyExists #type arguments"() {
+    void "primaryKeyExists '#type' arguments"() {
         verify( expPrimaryKeyExists, cl, PrimaryKeyExistsPrecondition)
 
         where:
@@ -252,14 +252,14 @@ class PreconditionDelegateTests extends Specification {
     ]
 
     /** Try creating a uniqueConstraintExists precondition.  */
-    void "uniqueConstraintExists #type arguments"() {
+    void "uniqueConstraintExists '#type' arguments"() {
         verify( expUniqueConstraintExists, cl , UniqueConstraintExistsPrecondition)
 
         where:
         type         | cl
         'named'      | { uniqueConstraintExists(expUniqueConstraintExists)}
-        'positional' | { uniqueConstraintExists( it.constraintName, tableName, columnNames, schemaName, catalogName) }
-        'mixed'      | { uniqueConstraintExists( catalogName: catalogName, it.constraintName, tableName, columnNames, schemaName)}
+        'positional' | { uniqueConstraintExists( tableName, it.constraintName, columnNames, schemaName, catalogName) }
+        'mixed'      | { uniqueConstraintExists( tableName, catalogName: catalogName, it.constraintName, columnNames, schemaName)}
     }
 
     /** And clauses are handled a little differently. Make sure we can create it correctly. */
@@ -349,7 +349,7 @@ class PreconditionDelegateTests extends Specification {
        ,expectedResult: 'res'
     ]
 
-    void "sqlCheck #type arguments"() {
+    void "sqlCheck '#type' arguments"() {
         verify( expSqlCheck, cl , SqlPrecondition)
 
         where:

@@ -20,12 +20,6 @@ import static liquibase.parser.ext.GroovyLiquibaseChangeLogParser.getMethods
 import static org.liquibase.groovy.delegate.DelegateUtil.MapCategory.ifNotNull
 import static org.liquibase.groovy.delegate.DelegateUtil.objArr
 
-/*@CompileStatic
-@TupleConstructor
-class Context {
-    final DatabaseChangeLog databaseChangeLog
-    final String changeId // used for error messages
-}*/
 @CompileStatic
 @groovy.util.logging.Log
 /** Class for generic functions in ...Delegate classes */
@@ -33,9 +27,10 @@ abstract class Delegatee<Tag extends Enum<Tag>> {
     protected final DatabaseChangeLog databaseChangeLog
     final String changeId // used for error messages
     final String parent
-    // Could go to C-tor
-    //Class<Tag> tagClass = (Class<Tag>)((ParameterizedType) getClass().getGenericSuperclass()).getActualTypeArguments()[0]
-    /** method cache for error messages */
+
+    /** method definition cache used for error messages It contains only the longest argument list with closure
+      TODO some tag like property / sql / createView / createProcedure / dropColumn requires 2
+     */
     protected @Lazy Map<String, MethodDef> methodDefs = methodDefs(this.class)
     MethodDef methodDef(String methodName) {methodDefs[methodName]}
     MethodDef methodDef(Tag methodName) {methodDefs[methodName.name()]}
@@ -112,11 +107,15 @@ abstract class Delegatee<Tag extends Enum<Tag>> {
         new ParseErrorWithFileNLine(msg, changeId, t)
     }
 
-    /** object to allow fluently call {@link #putNotNull} */
+    NullChecker<Tag> args2Map(Tag t, Map<String, Object> args = [:]) {
+        new NullChecker<Tag>(t, args)
+    }
+
+    /** object to allow fluently call {@link #call} */
     class NullChecker<E extends Enum<E>>{
         final E elem
         public final Map<String, Object> asMap
-        NullChecker(E e, Map<String, Object> args) {
+        NullChecker(E e, Map<String, Object> args = [:]) {
             elem = e
             asMap = args
         }
@@ -124,7 +123,7 @@ abstract class Delegatee<Tag extends Enum<Tag>> {
         /** If `value` not null & `key` is not in the map yet put them in the map
             @throws ArgumentSetTwice if key is in the map already
          */
-        NullChecker<E> putNotNull( String key, value) throws ArgumentSetTwice {
+        NullChecker<E> call(String key, value) throws ArgumentSetTwice {
             ifNotNull(value){
                 if(asMap.get(key)){
                     throw new ArgumentSetTwice(elem as String, key, changeId)
@@ -160,11 +159,11 @@ abstract class Delegatee<Tag extends Enum<Tag>> {
     }
 
     /**
-     * Generates a map: argNames[i] -> args[i]
+     * Generates a map: argNames[i] -> args[i] skips null values
      * Skips last args if {needsClosure} true
      * @param args expected to get all arguments including the starting Map and closing Closure
      * @param argNames expected to contain all parameter names excluding the first Map parameter
-     * @throws InvalidArguments
+     * @throws InvalidArguments if mandatory parameter(s) are missing or there are more args than expected
      * @throws ArgumentSetTwice
      * @throws MissingClosure if {needsClosure} true and the last args not Closure
      *
@@ -245,12 +244,10 @@ abstract class Delegatee<Tag extends Enum<Tag>> {
         new UnrecognizedElement(name, knownElements())
     }
 
-
     @PackageScope InvalidAttribute InvalidAttribute(Tag tag, String name) {
         MethodDef m = methodDefs[tag.name()]
         new InvalidAttribute(tag.name(), name, changeId, m.toString(), parent)
     }
-
 
     /**
      * Groovy calls methodMissing when it can't find a matching method to call.

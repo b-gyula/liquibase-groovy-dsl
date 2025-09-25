@@ -1,11 +1,12 @@
 import com.sun.org.apache.xerces.internal.xs.XSSimpleTypeDefinition
 import groovy.transform.CompileStatic
+import groovy.transform.ToString
 import groovy.transform.TupleConstructor
 
 import java.util.regex.Pattern
 
 import static com.sun.org.apache.xerces.internal.xs.XSConstants.*
-import static ChangeGenerator.*
+import static APIGenerator.*
 
 @CompileStatic
 @groovy.util.logging.Log
@@ -34,10 +35,10 @@ abstract class NameAndDesc<This> {
 class Method extends NameAndDesc<Method> {
 	final List<Arg> args = []
 	boolean hasChild
-
+	Arg getChild() {args.last()}
 	boolean hasRequired() { args.any { it.required } }
 
-	boolean childOptional() { hasChild && !args.last().required }
+	boolean childOptional() { hasChild && !child.required }
 
 	boolean filterParams(Arg arg, boolean skipArgsWithNoDesc = true) {
 		boolean hasDesc = arg.desc
@@ -47,7 +48,7 @@ class Method extends NameAndDesc<Method> {
 		hasDesc || !skipArgsWithNoDesc
 	}
 
-	String argDescs(boolean asHtml, boolean skipArgsWithNoDesc = true) {
+	String argDescs(List<Arg> args, boolean asHtml, boolean skipArgsWithNoDesc = true) {
 		def filtered = args.findAll { filterParams(it, skipArgsWithNoDesc) }
 		!filtered ? '' :
 			(asHtml ?
@@ -56,47 +57,50 @@ class Method extends NameAndDesc<Method> {
 						|\t\t<dd>${it.desc}</dd>""" }}
 						|\t</dl>"""
 				: filtered.sum { "\n|\t  @param $it.name $it.desc" })
+		//return ''
 	}
 
 	/** Generate the argument list
-	 * @param addType add type
+	 @param addTypeAndDefault add type and default value (=null)
 	 */
-	String argList(boolean addNamedArgsMap, boolean addTypeAndDefault = false,
-						boolean skipOptionalChild = false, List<String> skip = []) {
-		String r = args.findAll{ !skip.contains(it.name) }
-			.dropRight(childOptional() ? 1 : 0).sum {
-			it.toString(addTypeAndDefault, addTypeAndDefault) + ','
+	String argList( boolean typeNameNDefault,	boolean skipOptionalChild , List<String> skip = []) {
+		String r = processArgs(skipOptionalChild, skip)
+			.sum {
+			it.asString(typeNameNDefault,	it.isClosure())
 		}
-		if (childOptional() && !skipOptionalChild && !skip.contains(args.last().name)) {
-			r += args.last().toString(addTypeAndDefault, false)
-		} else {
-			r = r.dropRight(1) // Cut last ,
-		}
-		addNamedArgsMap ? namedArgs.toString(addTypeAndDefault) + (r.empty ? '' : ',') + r : r
+		r.dropRight(1) // Cut last ,
 	}
 
-	String javadoc(boolean argsAsHtml = false, boolean skipArgsWithNoDesc = true) {
-		"""/** ${desc}${argDescs(argsAsHtml, skipArgsWithNoDesc)} */""".stripMargin()
+	String javadoc(List<Arg> args, boolean argsAsHtml = false, boolean skipArgsWithNoDesc = true) {
+		"""/** ${desc}${argDescs(args, argsAsHtml, skipArgsWithNoDesc)} */""".stripMargin()
 	}
 
 	String toString() { name }
 
+	List<Arg> processArgs(boolean skipOptionalChild = false, List<String> skip = []) {
+		args.findAll{ !skip.contains(it.name) }
+			.dropRight(childOptional() && skipOptionalChild ? 1 : 0)
+	}
+
 	/** Generate method definition */
 	String fnDef(boolean addNamedArgsMap, String methodToCall,
 					 boolean skipOptionalChild = false, List<String> skip = []) {
-		"""${javadoc(args.size() > 3)}
-	void $name(${argList(addNamedArgsMap,true, skipOptionalChild, skip)}) {
-		$methodToCall Tag.$name,${argList(addNamedArgsMap,false, skipOptionalChild, skip)}
+		"""${javadoc(processArgs(skipOptionalChild, skip), args.size() > 3)}
+	void $name(${addNamedArgsMap ? namedArgs.typeNNameNDefault() : ''}${argList(true, skipOptionalChild, skip)}) {
+		$methodToCall args2Map(Tag.$name${addNamedArgsMap ? ','+namedArgs.name : ''}) ${argList(false, skipOptionalChild, skip)}
 	}"""
 	}
 
 	/** Generate method definition with all parameters and if there are more than 2 parameters
 		another definition with named Map argument in front for mixe method calls
 	 */
-	String functionDefinitions(String methodToCall, List<String> skip = [], boolean skipOptionalChild = false ) {
-		String r = fnDef(false, methodToCall, skipOptionalChild)
+	String functionDefinitions(String methodToCall, boolean skipOptionalChild = false ) {
+		// When the child is optional and we do not skip it -> skip exclusive parameters (createView)
+		List<String> skip = skipOptionalChild ? [] : (child.requiredExcept ?: [])
+
+		String r = fnDef(false, methodToCall, skipOptionalChild, skip)
 		if(args.size() > 2) {
-			r += '\n\n' + fnDef(true, methodToCall, skipOptionalChild)
+			r += '\n\n\t' + fnDef(true, methodToCall, skipOptionalChild, skip)
 		}
 		r
 	}
@@ -105,19 +109,55 @@ class Method extends NameAndDesc<Method> {
 
 	/** move required first */
 	List<Arg> resortArgs() {
-		args.sort{ a,b -> a.required ^ b.required ? (!a.required || a.closure ? 1 : -1) : 0 }
+		args.sort{ a,b -> a.required ^ b.required ? (!a.required || a.isClosure() ? 1 : -1) : 0 }
 	}
 
+	Arg arg(String argName) {
+		args.find {it.name == argName}
+	}
+
+	@ToString
 	@TupleConstructor(includeSuperProperties = true, callSuper = true)
 	static class Arg extends NameAndDesc<Arg> {
-		List<String> requiredExcept // null: never, empty : always otherwise <list of exclusive other arg names>
+		List<String> requiredExcept = NO// null: never, empty : always otherwise <list of exclusive other arg names>
 		String type = 'String'
 		boolean directChild = false
 		//String since
-		static final List<String> YES = []
-		static final List<String> NO = null
-		boolean getRequired() { requiredExcept != null }
-		boolean isClosure() { type.contains('Closure')}
+		static final List<String> YES = null
+		static final List<String> NO = []
+		static final String StringClosure = 'Closure<String>'
+		static final String ClosureType = 'Closure'
+
+		/** Always required false exclusive */
+		boolean getRequired() { requiredExcept == null}
+
+		boolean isClosure(String clType = ClosureType) {
+			type.contains(clType)
+		}
+
+		 boolean stringClosure() {
+			isClosure(StringClosure)
+		}
+
+		String typeNNameNDefault( boolean child = false) {
+			" $type $name${!child && !required ? '=null' : ''},"
+		}
+
+		String nameNName( boolean child = false) {
+			if(child) {
+				if (isClosure( StringClosure)) {
+					return "('$name',$name ? $name() as String: null) "
+				}
+				return ", $name "
+			} else {
+				return "('$name',$name) "
+			}
+		}
+
+		String asString(boolean typeNameNDefault, boolean child = false) {
+			typeNameNDefault ? typeNNameNDefault(child) : nameNName (child)
+		}
+
 		/**  See {@link com.sun.org.apache.xerces.internal.xs.XSConstants} */
 		boolean setType(XSSimpleTypeDefinition td) {
 			if (td.isDefinedFacet(XSSimpleTypeDefinition.FACET_ENUMERATION)) {
@@ -150,10 +190,6 @@ class Method extends NameAndDesc<Method> {
 
 		String nameAsHtml() {
 			required ? "<b>$name</b>" : name
-		}
-
-		String toString(boolean addType = false, boolean addDefault = false) {
-			"${addType ? ' ' + type : ''} $name${addDefault && !required ? '=null' : ''}"
 		}
 	}
 }
