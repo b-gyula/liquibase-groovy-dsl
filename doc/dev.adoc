@@ -1,0 +1,16 @@
+
+== Overview
+Each tag having children tag(s) have a corresponding `...Delegate` class used for children handling (and for the autocomplete). 
+Each tag has a method in its parent ...Delegate class with the same name.
+The method parameters are the properties of the object. The changes and preconditions are generated from the latest XSD with the `gen/.../APIGenerator`. The others are hardcoded. The mandatory parameters(properties) are in front of the parameter list without default value.
+Each method has 3 versions:
+ . Simple Map + Closure?
+ . Map + <All parameters with type and name>
+ . <All parmaeters with type and name>
+
+Positional parameter order :
+- required are in front
+- closure for children is always last
+- Most unique meaning first:
+ column related change: column name, table name, ...
+ index: e.g. indexExists index name, tablename

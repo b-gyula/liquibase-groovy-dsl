@@ -105,6 +105,7 @@ class ChangeSetTests {
      * Helper method that builds a changeSet from the given closure.  Tests will use this to test
      * parsing the various closures that make up the Groovy DSL.
      * @param closure the closure containing changes to parse.
+     * @param args parameters
      * @return the changeSet, with parsed changes from the closure added.
      */
     static ChangeSet buildChanges(args = null,
@@ -145,7 +146,7 @@ class ChangeSetTests {
      * @param closure used to create the change
      * @param cls Class of the expected change
      */
-    static <T extends Change> T verify( Map<String, Object> expectedProps, Closure closure, Class<T> cls) {
+    static <T extends Change> T verify( Map<String, Object> expectedProps, Class<T> cls, Closure closure) {
         ChangeSet changeSet = buildChanges( expectedProps, closure )
         assertEquals 0, changeSet.rollback.changes.size()
         assert 1 == changeSet.changes.size()
@@ -157,7 +158,7 @@ class ChangeSetTests {
     static Change buildChange(ChangeSetDelegate.Tag t, Map args=[:],
                               @DelegatesTo(strategy = DELEGATE_ONLY) Closure closure) {
         buildBaseChangeSetDelegate()
-           .addChangeWithChild(t,args,closure)
+           .addChangeWithChild(t, args, closure)
     }
 }
 

@@ -11,8 +11,8 @@
  * or implied. See the License for the specific language governing permissions and limitations under
  * the License.
  */
-@groovy.transform.BaseScript(ParserScript)
-import liquibase.parser.ext.ParserScript
+@groovy.transform.BaseScript(GroovyScript)
+import liquibase.GroovyScript
 import static liquibase.database.ObjectQuotingStrategy.*
 import static liquibase.database.ColumnParentTypeEnum.*
 import static liquibase.changelog.ChangeSet.ValidationFailOption.*
@@ -167,7 +167,7 @@ databaseChangeLog(logicalFilePath: '.') {
 
 
     changeSet( 'dropView','') {
-        dropView('monkey_emotion_vw', 'animal')
+        dropView('monkey_emotion_vw', schemaName:'animal')
     }
 
 

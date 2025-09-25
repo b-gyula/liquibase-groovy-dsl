@@ -23,7 +23,6 @@ import liquibase.precondition.Precondition
 import liquibase.precondition.PreconditionLogic
 import liquibase.precondition.core.AndPrecondition
 import liquibase.precondition.core.OrPrecondition
-import liquibase.precondition.core.SqlPrecondition
 import liquibase.precondition.CustomPreconditionWrapper
 import liquibase.precondition.PreconditionFactory
 import liquibase.precondition.core.NotPrecondition
@@ -33,7 +32,6 @@ import liquibase.precondition.core.PreconditionContainer.ErrorOption
 import liquibase.precondition.core.PreconditionContainer.FailOption
 import liquibase.util.PatchedObjectUtil
 
-import static groovy.lang.Closure.DELEGATE_FIRST
 import static groovy.lang.Closure.DELEGATE_ONLY
 import static liquibase.parser.ext.GroovyLiquibaseChangeLogParser.dbChangeLogTagName
 import static liquibase.parser.groovy.exception.InvalidArguments.argsToString
@@ -57,10 +55,14 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
         addPrecondition name, args as Object[]
     }
 
+    /** Called from all known */
+    protected void addPrecondition(NullChecker args ) {
+        addPrecondition args.elem.name(), args.asMap
+    }
+
     protected void addPrecondition(Tag name, Object... args ) {
         addPrecondition name.name(), args
     }
-
     /**
      * Handle all non-nesting preconditions using the PreconditionFactory.
      * @param name the name of the precondition to create
@@ -81,12 +83,12 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
         }
 
         MethodDef m = methodDefs[name]
-        if(m) { // There is a dedicated method
+        if ( args.length == 1 && args[0] instanceof Map<String, Object> ) {
+            setProps(precondition, args[0] as Map<String, Object>)
+        }else if(m) { // There is a dedicated method
             setProps precondition, argsAsMap(name, m, args)
         }
-        else if ( args != null && args[0] instanceof Map<String, Object> ) {
-            setProps(precondition, args[0] as Map<String, Object>)
-        } else {
+         else {
             logWarning("Unable to handle arguments ${argsToString(args)} for precondition '$name'")
         }
 
@@ -104,28 +106,20 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
      * @param closure the SQL for the precondition
      */
     def sqlCheck(Map<String, Object> namedArgs, // Legacy
-                 @DelegatesTo(value= SqlPrecondition, strategy=DELEGATE_FIRST) Closure sql) {
-        sqlCheck namedArgs, sql.call() as String
-/*        def precondition = new SqlPrecondition()
-        setProps precondition, params
-        def sql = DelegateUtil.expandExpressions(closure.call(), databaseChangeLog)
-        if ( sql != null && sql != "null" ) {
-            precondition.sql = sql
-        }
-        preconditions << precondition*/
+                  Closure<String> sql) {
+        addPrecondition args2Map(Tag.sqlCheck, namedArgs)('sql', sql.call() as String)
     }
 
-    def sqlCheck(String expectedResult, String sql) {
-        addPrecondition Tag.sqlCheck, expectedResult, sql
-    }
+//    def sqlCheck(String expectedResult, String sql) {
+//        addPrecondition Tag.sqlCheck, expectedResult, sql
+//    }
 
-    def sqlCheck(String expectedResult, @DelegatesTo(value= SqlPrecondition, strategy=DELEGATE_FIRST) Closure sql) {
-        sqlCheck  expectedResult, sql.call() as String
+    def sqlCheck(String expectedResult, Closure<String> sql) {
+        addPrecondition args2Map(Tag.sqlCheck) ('expectedResult', expectedResult) ('sql', sql.call() as String)
     }
 
     def sqlCheck(Map<String, Object> namedArgs, String sql) {
-        MethodDef m = methodDef(Tag.sqlCheck)
-        addPrecondition Tag.sqlCheck, argsToMap(Tag.sqlCheck.name(), false, m.toString(), ["sql"], namedArgs, sql)
+        addPrecondition args2Map(Tag.sqlCheck, namedArgs)('sql', sql)
     }
 
 
