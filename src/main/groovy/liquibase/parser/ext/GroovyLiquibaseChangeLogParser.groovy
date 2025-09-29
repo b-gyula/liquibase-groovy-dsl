@@ -60,56 +60,28 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
                                    ChangeLogParameters changeLogParameters = new ChangeLogParameters(),
                                    String physicalChangeLogLocation = 'memtest' ) {
         try {
-            DatabaseChangeLog changeLog = new DatabaseChangeLog(physicalChangeLogLocation)
-            changeLog.setChangeLogParameters(changeLogParameters)
-
             def binding = new Binding()
             def config = new CompilerConfiguration()
             config.scriptBaseClass = 'liquibase.GroovyScript'
             config.addCompilationCustomizers(new ImportCustomizer()
                 .addStaticStars('liquibase.database.ObjectQuotingStrategy'
-                                        ,'liquibase.changelog.ChangeSet.ValidationFailOption'
-                                       ,'liquibase.database.ColumnParentTypeEnum'
+                                ,'liquibase.changelog.ChangeSet.ValidationFailOption'
+                                ,'liquibase.database.ColumnParentTypeEnum'
+                                ,'liquibase.precondition.core.PreconditionContainer.OnSqlOutputOption'
+                                ,'liquibase.precondition.core.PreconditionContainer.FailOption'
 //                                        ,'liquibase.database.FkCascadeActionOptions'
                 )
-                .addImports('liquibase.precondition.core.PreconditionContainer.OnSqlOutputOption'
-                                    ,'liquibase.precondition.core.PreconditionContainer.ErrorOption'
-                                    ,'liquibase.precondition.core.PreconditionContainer.FailOption')
+                .addImport ('OnError','liquibase.precondition.core.PreconditionContainer.ErrorOption')
+                //.addImport ('OnFail' ,'liquibase.precondition.core.PreconditionContainer.FailOption')
             )
             def shell = new GroovyShell(binding, config)
 
             // Parse the script, give it the local changeLog instance, give it access to root-level
             // method delegates, and call.
             Script script = shell.parse(new InputStreamReader(inputStream, "UTF8")
-                                            ,physicalChangeLogLocation)
-            script.setProperty("changeLog", changeLog)
-            script.setProperty("resourceAccessor", resourceAccessor)
-            try {
-                script.run()
-            } catch (CompilationFailedException e){
-                throw e // Contains file + line
-            } catch(MethodSelectionException e) {
-                // Get private fields
-                String methodName = e.metaClass.getAttribute(e, 'methodName')
-                Class[] argTypes = e.metaClass.getAttribute(e, 'arguments') as Class[]
-                FastArray methods = e.metaClass.getAttribute(e, 'methods') as FastArray
-                //MetaMethod method = script.metaClass.methods.find {it.name == methodName}
-                MetaMethod method = methods.array.find { (it as CachedMethod).name == methodName} as MetaMethod
+                                        ,physicalChangeLogLocation)
 
-                // Most common problem: closure missing as last parameter
-                if(method.nativeParameterTypes.last() == Closure.class &&
-                        (argTypes.length < 1 || argTypes.last() != Closure.class)) {
-                    throw ChangeLogParseExceptionWithfileAndLineNumber(changeLog,
-                            new MissingClosure(methodName), script.class,
-                            )
-                }
-                throw ChangeLogParseExceptionWithfileAndLineNumber(changeLog, e, script.class)
-            }
-            catch (e) {
-                throw ChangeLogParseExceptionWithfileAndLineNumber(changeLog, e, script.class)
-            }
-            // The changeLog will have been populated by the script
-            return changeLog
+            runScript script, resourceAccessor, changeLogParameters, physicalChangeLogLocation
         }
         finally {
             try {
@@ -119,6 +91,41 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
                 // Can't do much more than hope for the best here
             }
         }
+    }
+
+    static DatabaseChangeLog runScript (Script script, ResourceAccessor resourceAccessor,
+                                        ChangeLogParameters changeLogParameters = new ChangeLogParameters(),
+                                        String physicalChangeLogLocation = 'memtest') {
+        DatabaseChangeLog changeLog = new DatabaseChangeLog(physicalChangeLogLocation)
+        changeLog.setChangeLogParameters(changeLogParameters)
+        script.setProperty("changeLog", changeLog)
+        script.setProperty("resourceAccessor", resourceAccessor)
+        try {
+            script.run()
+        } catch (CompilationFailedException e){
+            throw e // Contains file + line
+        } catch(MethodSelectionException e) {
+            // Get private fields
+            String methodName = e.metaClass.getAttribute(e, 'methodName')
+            Class[] argTypes = e.metaClass.getAttribute(e, 'arguments') as Class[]
+            FastArray methods = e.metaClass.getAttribute(e, 'methods') as FastArray
+            //MetaMethod method = script.metaClass.methods.find {it.name == methodName}
+            MetaMethod method = methods.array.find { (it as CachedMethod).name == methodName} as MetaMethod
+
+            // Most common problem: closure missing as last parameter
+            if(method.nativeParameterTypes.last() == Closure.class &&
+               (argTypes.length < 1 || argTypes.last() != Closure.class)) {
+                throw ChangeLogParseExceptionWithfileAndLineNumber(changeLog,
+                   new MissingClosure(methodName), script.class,
+                )
+            }
+            throw ChangeLogParseExceptionWithfileAndLineNumber(changeLog, e, script.class)
+        }
+        catch (e) {
+            throw ChangeLogParseExceptionWithfileAndLineNumber(changeLog, e, script.class)
+        }
+        // The changeLog will have been populated by the script
+        changeLog
     }
 
     // TODO get method by name and check if its declared in this class
@@ -133,7 +140,7 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
         PRIORITY_DEFAULT
     }
 
-    /** If t is
+    /** If t is ParseErrorWithFileNLine
      * Create a new ChangeLogParseException with the message `errMsg` if not null
      otherwise t.message + the filename from `databaseChangeLog` and the line number from
      the stacktrace of `t` searching for the classname of `clazz`
@@ -183,7 +190,7 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
     static boolean isMap(Class cls) { Map.class.isAssignableFrom (cls)}
 
     static UnrecognizedElement unrecognizedRootElement(String name) {
-        new UnrecognizedElement(name, [],"Unrecognized root element '$name'! Only '$dbChangeLogTagName' expected")
+        new UnrecognizedElement(name, [],'', "Unrecognized root element '$name'! Only '$dbChangeLogTagName' expected")
     }
 
     static String nonEmptyParameterRequiredFor(Enum tag, String propName) {

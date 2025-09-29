@@ -1,12 +1,12 @@
 import groovy.transform.CompileStatic
 
-import static Method.Arg
+import static Method.*
 import static Method.Arg.*
 import spock.lang.*
 
 //@CompileStatic
 @Newify([Method, Arg])
-class ChangeGeneratorSpec extends Specification {
+class APIGeneratorSpec extends Specification {
 //    static void main(String[] args) {
 //        argListWithOptionalChild()
 //    }
@@ -36,8 +36,8 @@ class ChangeGeneratorSpec extends Specification {
 		typeNameNDefault 	| skipOptionalChild | expected
 		true  | false| " int a, int b=null, Closure c"
 		true  | true | " int a, int b=null"
-		false	| true | "('a',a) ('b',b)"
-		false	| false| "('a',a) ('b',b) ,c"
+		false	| true | "('a',a) ('b',b).asMap"
+		false	| false| "('a',a) ('b',b) .asMap, c"
 	}
 
 	void 'argList without child'() {
@@ -49,9 +49,9 @@ class ChangeGeneratorSpec extends Specification {
 		where:
 		typeNameNDefault 				  | skipOptionalChild | expected
 		true | false | " int a, int b=null, String c=null"
-		false	  | false | "('a',a) ('b',b) ('c',c)"
+		false	  | false | "('a',a) ('b',b) ('c',c).asMap"
 		true | true | " int a, int b=null, String c=null"
-		false	  | true | "('a',a) ('b',b) ('c',c)"
+		false	  | true | "('a',a) ('b',b) ('c',c).asMap"
 	}
 
 	void 'argList with required child'() {
@@ -59,13 +59,15 @@ class ChangeGeneratorSpec extends Specification {
 											  , arg('b')
 											  , arg('c', YES, ClosureType)], true)
 		expect:
-		m.argList(typeNameNDefault, skipOptionalChild) == expected
+		m.argList(typeNameNDefault, skipOptionalChild, [], aMap) == expected
 		where:
-		typeNameNDefault 	| skipOptionalChild | expected
-		true 		  | false| " int a, int b=null, Closure c"
-		false		  | false| "('a',a) ('b',b) ,c"
-		true		  | true | " int a, int b=null, Closure c"
-		false		  | true | "('a',a) ('b',b) ,c"
+		typeNameNDefault 	| skipOptionalChild | aMap | expected
+		true 		  | false| AsMap |" int a, int b=null, Closure c"
+		false		  | false| AsMap |"('a',a) ('b',b) .asMap, c"
+		false		  | false|  ''	  |"('a',a) ('b',b) , c"
+		true		  | true | AsMap |" int a, int b=null, Closure c"
+		false		  | true | AsMap | "('a',a) ('b',b) .asMap, c"
+		false		  | true | '' 	  | "('a',a) ('b',b) , c"
 	}
 
 /*	void 'argList with no child'() {
@@ -76,10 +78,10 @@ class ChangeGeneratorSpec extends Specification {
 		m.argList(typeNameNDefault, skipOptionalChild) == expected
 		where:
 		typeNameNDefault 	| skipOptionalChild | expected
-		true  | false| " int a, int b=null, Closure c=null"
-		false	| false| " a, b, c"
-		true  | true | " int a, int b=null, Closure c=null"
-		false	| true | " a, b, c"
+		true  		| false| " int a, int b=null, Closure c=null"
+		false			| false| " ('a',a) ('b',b) .asMap, c"
+		true  		| true | " int a, int b=null, Closure c=null"
+		false			| true | " ('a',a) ('b',b) .asMap, c"
 	}*/
 
 	void 'args required sort'() {
@@ -101,36 +103,35 @@ class ChangeGeneratorSpec extends Specification {
 		addNamedArgs | skipOptionalChild | expected
 			false | true| """/**  */
 \tvoid fn( int a, String b=null, Closure c) {
-\t\tm args(Tag.fn) ('a',a) ('b',b) ,c
+\t\tm chkMap(Tag.fn) ('a',a) ('b',b) .asMap, c
 \t}"""
 		true| true| """/**  */
 \tvoid fn( Map<String, Object> namedArgs, int a, String b=null, Closure c) {
-\t\tm args(Tag.fn,namedArgs) ('a',a) ('b',b) ,c
+\t\tm chkMap(Tag.fn,namedArgs) ('a',a) ('b',b) .asMap, c
 \t}"""
 	}
 
 	void 'fnDef no desc optional child'() {
 		Method m = Method('fn', '', [arg('a', YES, 'int')
 											  				  ,arg('b', NO, 'String')
-															  ,arg('c', NO, ClosureType)])
+															  ,arg('c', NO, ClosureType)], true)
 		expect:
-		m.fnDef(false, 'mt', true) == """/**  */
-\tvoid fn( int a, String b=null, Closure c=null) {
-\t\tmt Tag.fn, a, b, c
+		m.fnDef(false, 'm', true) == """/**  */
+\tvoid fn( int a, String b=null) {
+\t\tm chkMap(Tag.fn) ('a',a) ('b',b).asMap
 \t}"""
 	}
 
 	void 'fnDef docs as plain text'() {
 		Method m = Method('fn', 'fn desc', [new Arg('a', 'desc_a', YES, 'int')
 														, new Arg('b', 'desc b', NO, 'String')
-														, new Arg('c', 'desc c', NO, ClosureType)])
+														, new Arg('c', 'desc c', NO, ClosureType)], true)
 		expect:
-		m.fnDef(false, 'mt', true) == """/** fn desc
+		m.fnDef(false, 'm', true) == """/** fn desc
 \t  @param a desc_a
-\t  @param b desc b
-\t  @param c desc c */
-\tvoid fn( int a, String b=null, Closure c=null) {
-\t\tmt Tag.fn, a, b, c
+\t  @param b desc b */
+\tvoid fn( int a, String b=null) {
+\t\tm chkMap(Tag.fn) ('a',a) ('b',b).asMap
 \t}"""
 	}
 
@@ -138,10 +139,10 @@ class ChangeGeneratorSpec extends Specification {
 		Method m = Method('fn', 'fn desc', [new Arg('a', 'desc_a', YES, 'int')
 														, new Arg('b2', 'desc b2', NO, 'String')
 														, new Arg('b1', 'desc b1', YES, 'String')
-														, new Arg('c', 'desc c', NO, ClosureType)])
+														, new Arg('c', 'desc c', NO, ClosureType)], true)
 		m.resortArgs()
 		expect:
-		m.fnDef(false, 'mt', true) == """/** fn desc
+		m.fnDef(false, 'm', true) == """/** fn desc
 	 <br>Params:<dl>
 	 <dt><b>a</b></dt>
 		<dd>desc_a</dd>
@@ -149,11 +150,9 @@ class ChangeGeneratorSpec extends Specification {
 		<dd>desc b1</dd>
 	 <dt>b2</dt>
 		<dd>desc b2</dd>
-	 <dt>c</dt>
-		<dd>desc c</dd>
 	</dl> */
-	void fn( int a, String b1, String b2=null, Closure c=null) {
-		mt Tag.fn, a, b1, b2, c
+	void fn( int a, String b1, String b2=null) {
+		m chkMap(Tag.fn) ('a',a) ('b1',b1) ('b2',b2).asMap
 	}"""
 	}
 

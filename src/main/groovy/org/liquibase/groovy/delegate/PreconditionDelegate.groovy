@@ -56,8 +56,8 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
     }
 
     /** Called from all known */
-    protected void addPrecondition(NullChecker args ) {
-        addPrecondition args.elem.name(), args.asMap
+    protected void addPrecondition(NullChecker chkr) {
+        addPrecondition chkr.elem.name(), chkr.asMap
     }
 
     protected void addPrecondition(Tag name, Object... args ) {
@@ -101,27 +101,41 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
            "'${name}' is an unknown precondition. Known elements are:" + knownElements.toListString())
     }
 
-    /** Executes an SQL string and checks the returned value. The SQL must return a single row with a single value.
+    /** Executes an SQL statement and checks the returned value. The SQL must return a single row with a single value.
      * @param params the attributes of the precondition
      * @param closure the SQL for the precondition
      */
     def sqlCheck(Map<String, Object> namedArgs, // Legacy
                   Closure<String> sql) {
-        addPrecondition args2Map(Tag.sqlCheck, namedArgs)('sql', sql.call() as String)
+        addPrecondition chkMap(Tag.sqlCheck, namedArgs)('sql', sql.call() as String)
     }
 
-//    def sqlCheck(String expectedResult, String sql) {
-//        addPrecondition Tag.sqlCheck, expectedResult, sql
-//    }
-
-    def sqlCheck(String expectedResult, Closure<String> sql) {
-        addPrecondition args2Map(Tag.sqlCheck) ('expectedResult', expectedResult) ('sql', sql.call() as String)
+    /** Executes the SQL statement in the child closure and checks the returned value
+     matches the value defined in {@code expectedResult}
+     The SQL must return a single row with a single value.
+     @param sql SQL to execute
+     @param expectedResult the single value expected*/
+    def sqlCheck(String expectedResult, String sql) {
+        addPrecondition Tag.sqlCheck, expectedResult, sql
     }
 
+    /** Executes the SQL statement in the child closure and checks the returned value
+     matches the value defined in {@code expectedResult}
+     The SQL must return a single row with a single value.
+     @param sql SQL to execute
+     @param expectedResult the single value expected*/
+    void sqlCheck(String expectedResult, Closure<String> sql) {
+        addPrecondition chkMap(Tag.sqlCheck) ('expectedResult',expectedResult) ('sql',sql ? sql() as String: null)
+    }
+
+    /** Executes the SQL statement in the child closure and checks the returned value
+     matches the value defined in {@code expectedResult}
+     The SQL must return a single row with a single value.
+     @param sql SQL to execute
+     @param expectedResult the single value expected*/
     def sqlCheck(Map<String, Object> namedArgs, String sql) {
-        addPrecondition args2Map(Tag.sqlCheck, namedArgs)('sql', sql)
+        addPrecondition chkMap(Tag.sqlCheck, namedArgs)('sql', sql)
     }
-
 
     /**
      * Create a customPrecondition.  A custom precondition is a class that implements the Liquibase

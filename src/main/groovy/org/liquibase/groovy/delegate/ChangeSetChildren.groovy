@@ -1,5 +1,5 @@
 package org.liquibase.groovy.delegate
-/* Generated @ Thu Sep 25 21:37:36 CEST 2025 on M600 */
+/* Generated @ Sat Sep 27 15:34:45 CEST 2025 on M600 */
 import groovy.transform.CompileStatic
 import groovy.transform.SelfType
 import liquibase.database.ColumnParentTypeEnum
@@ -14,13 +14,13 @@ trait ChangeSetChildren {
 	/** Create a table with the defined columns */
 	void createTable( String tableName, Boolean ifNotExists=null, String schemaName=null, String catalogName=null, String tablespace=null, String tableType=null, String remarks=null, Boolean rowDependencies=null, 
 				@DelegatesTo(value=CreateTableDelegate, strategy=DELEGATE_ONLY) Closure columns) {
-		addChange args2Map(Tag.createTable) ('tableName',tableName) ('ifNotExists',ifNotExists) ('schemaName',schemaName) ('catalogName',catalogName) ('tablespace',tablespace) ('tableType',tableType) ('remarks',remarks) ('rowDependencies',rowDependencies) , columns
+		createTable chkMap(Tag.createTable) ('tableName',tableName) ('ifNotExists',ifNotExists) ('schemaName',schemaName) ('catalogName',catalogName) ('tablespace',tablespace) ('tableType',tableType) ('remarks',remarks) ('rowDependencies',rowDependencies) .asMap, columns
 	}
 
 	/** Create a table with the defined columns */
 	void createTable( Map<String, Object> namedArgs, String tableName, Boolean ifNotExists=null, String schemaName=null, String catalogName=null, String tablespace=null, String tableType=null, String remarks=null, Boolean rowDependencies=null, 
 				@DelegatesTo(value=CreateTableDelegate, strategy=DELEGATE_ONLY) Closure columns) {
-		addChange args2Map(Tag.createTable,namedArgs) ('tableName',tableName) ('ifNotExists',ifNotExists) ('schemaName',schemaName) ('catalogName',catalogName) ('tablespace',tablespace) ('tableType',tableType) ('remarks',remarks) ('rowDependencies',rowDependencies) , columns
+		createTable chkMap(Tag.createTable,namedArgs) ('tableName',tableName) ('ifNotExists',ifNotExists) ('schemaName',schemaName) ('catalogName',catalogName) ('tablespace',tablespace) ('tableType',tableType) ('remarks',remarks) ('rowDependencies',rowDependencies) .asMap, columns
 	}
 
 	/** Create a table with the defined columns */
@@ -31,12 +31,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void dropTable( String tableName, Boolean cascadeConstraints=null, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.dropTable) ('tableName',tableName) ('cascadeConstraints',cascadeConstraints) ('schemaName',schemaName) ('catalogName',catalogName)
+		dropTable chkMap(Tag.dropTable) ('tableName',tableName) ('cascadeConstraints',cascadeConstraints) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
 	void dropTable( Map<String, Object> namedArgs, String tableName, Boolean cascadeConstraints=null, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.dropTable,namedArgs) ('tableName',tableName) ('cascadeConstraints',cascadeConstraints) ('schemaName',schemaName) ('catalogName',catalogName)
+		dropTable chkMap(Tag.dropTable,namedArgs) ('tableName',tableName) ('cascadeConstraints',cascadeConstraints) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
@@ -52,7 +52,7 @@ trait ChangeSetChildren {
 		See: https://docs.liquibase.com/concepts/changelogs/how-liquibase-finds-files.html</dd>
 	</dl> */
 	void createView( String viewName, String path, Boolean replaceIfExists=null, Boolean fullDefinition=null, Boolean relativeToChangelogFile=null, String remarks=null, String encoding=null, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.createView) ('viewName',viewName) ('path',path) ('replaceIfExists',replaceIfExists) ('fullDefinition',fullDefinition) ('relativeToChangelogFile',relativeToChangelogFile) ('remarks',remarks) ('encoding',encoding) ('schemaName',schemaName) ('catalogName',catalogName)
+		createView chkMap(Tag.createView) ('viewName',viewName) ('path',path) ('replaceIfExists',replaceIfExists) ('fullDefinition',fullDefinition) ('relativeToChangelogFile',relativeToChangelogFile) ('remarks',remarks) ('encoding',encoding) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/** 
@@ -63,7 +63,7 @@ trait ChangeSetChildren {
 		See: https://docs.liquibase.com/concepts/changelogs/how-liquibase-finds-files.html</dd>
 	</dl> */
 	void createView( Map<String, Object> namedArgs, String viewName, String path, Boolean replaceIfExists=null, Boolean fullDefinition=null, Boolean relativeToChangelogFile=null, String remarks=null, String encoding=null, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.createView,namedArgs) ('viewName',viewName) ('path',path) ('replaceIfExists',replaceIfExists) ('fullDefinition',fullDefinition) ('relativeToChangelogFile',relativeToChangelogFile) ('remarks',remarks) ('encoding',encoding) ('schemaName',schemaName) ('catalogName',catalogName)
+		createView chkMap(Tag.createView,namedArgs) ('viewName',viewName) ('path',path) ('replaceIfExists',replaceIfExists) ('fullDefinition',fullDefinition) ('relativeToChangelogFile',relativeToChangelogFile) ('remarks',remarks) ('encoding',encoding) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/** 
@@ -72,7 +72,7 @@ trait ChangeSetChildren {
 		<dd>SQL generating the view</dd>
 	</dl> */
 	void createView( String viewName, Boolean replaceIfExists=null, Boolean fullDefinition=null, String remarks=null, String schemaName=null, String catalogName=null, Closure<String> selectQuery) {
-		addChange args2Map(Tag.createView) ('viewName',viewName) ('replaceIfExists',replaceIfExists) ('fullDefinition',fullDefinition) ('remarks',remarks) ('schemaName',schemaName) ('catalogName',catalogName) ('selectQuery',selectQuery ? selectQuery() as String: null)
+		createView chkMap(Tag.createView) ('viewName',viewName) ('replaceIfExists',replaceIfExists) ('fullDefinition',fullDefinition) ('remarks',remarks) ('schemaName',schemaName) ('catalogName',catalogName) ('selectQuery',selectQuery ? selectQuery() as String: null).asMap
 	}
 
 	/** 
@@ -81,7 +81,7 @@ trait ChangeSetChildren {
 		<dd>SQL generating the view</dd>
 	</dl> */
 	void createView( Map<String, Object> namedArgs, String viewName, Boolean replaceIfExists=null, Boolean fullDefinition=null, String remarks=null, String schemaName=null, String catalogName=null, Closure<String> selectQuery) {
-		addChange args2Map(Tag.createView,namedArgs) ('viewName',viewName) ('replaceIfExists',replaceIfExists) ('fullDefinition',fullDefinition) ('remarks',remarks) ('schemaName',schemaName) ('catalogName',catalogName) ('selectQuery',selectQuery ? selectQuery() as String: null)
+		createView chkMap(Tag.createView,namedArgs) ('viewName',viewName) ('replaceIfExists',replaceIfExists) ('fullDefinition',fullDefinition) ('remarks',remarks) ('schemaName',schemaName) ('catalogName',catalogName) ('selectQuery',selectQuery ? selectQuery() as String: null).asMap
 	}
 
 	/** 
@@ -94,17 +94,17 @@ trait ChangeSetChildren {
 		<dd>SQL generating the view</dd>
 	</dl> */
 	void createView(Map<String, Object> params, Closure<String> selectQuery=null) {
-		addChange args2Map(Tag.createView, params) ('selectQuery',selectQuery ? selectQuery() as String: null)
+		addChange chkMap(Tag.createView, params)('selectQuery',selectQuery ? selectQuery() as String: null)
 	}
 		
 	/**  */
 	void renameView( String oldViewName, String newViewName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.renameView) ('oldViewName',oldViewName) ('newViewName',newViewName) ('schemaName',schemaName) ('catalogName',catalogName)
+		renameView chkMap(Tag.renameView) ('oldViewName',oldViewName) ('newViewName',newViewName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
 	void renameView( Map<String, Object> namedArgs, String oldViewName, String newViewName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.renameView,namedArgs) ('oldViewName',oldViewName) ('newViewName',newViewName) ('schemaName',schemaName) ('catalogName',catalogName)
+		renameView chkMap(Tag.renameView,namedArgs) ('oldViewName',oldViewName) ('newViewName',newViewName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
@@ -114,12 +114,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void dropView( String viewName, Boolean ifExists=null, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.dropView) ('viewName',viewName) ('ifExists',ifExists) ('schemaName',schemaName) ('catalogName',catalogName)
+		dropView chkMap(Tag.dropView) ('viewName',viewName) ('ifExists',ifExists) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
 	void dropView( Map<String, Object> namedArgs, String viewName, Boolean ifExists=null, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.dropView,namedArgs) ('viewName',viewName) ('ifExists',ifExists) ('schemaName',schemaName) ('catalogName',catalogName)
+		dropView chkMap(Tag.dropView,namedArgs) ('viewName',viewName) ('ifExists',ifExists) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
@@ -138,7 +138,7 @@ trait ChangeSetChildren {
 	</dl> */
 	void insert( String tableName, String schemaName=null, String catalogName=null, String dbms=null, 
 				@DelegatesTo(value=InsertDelegate, strategy=DELEGATE_ONLY) Closure columns) {
-		addChange args2Map(Tag.insert) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('dbms',dbms) , columns
+		insert chkMap(Tag.insert) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('dbms',dbms) .asMap, columns
 	}
 
 	/** Inserts data into an existing table
@@ -152,7 +152,7 @@ trait ChangeSetChildren {
 	</dl> */
 	void insert( Map<String, Object> namedArgs, String tableName, String schemaName=null, String catalogName=null, String dbms=null, 
 				@DelegatesTo(value=InsertDelegate, strategy=DELEGATE_ONLY) Closure columns) {
-		addChange args2Map(Tag.insert,namedArgs) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('dbms',dbms) , columns
+		insert chkMap(Tag.insert,namedArgs) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('dbms',dbms) .asMap, columns
 	}
 
 	/** Inserts data into an existing table
@@ -172,13 +172,13 @@ trait ChangeSetChildren {
 	/**  */
 	void addColumn( String tableName, String schemaName=null, String catalogName=null, 
 				@DelegatesTo(value=AddColumnDelegate, strategy=DELEGATE_ONLY) Closure columns) {
-		addChange args2Map(Tag.addColumn) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) , columns
+		addColumn chkMap(Tag.addColumn) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) .asMap, columns
 	}
 
 	/**  */
 	void addColumn( Map<String, Object> namedArgs, String tableName, String schemaName=null, String catalogName=null, 
 				@DelegatesTo(value=AddColumnDelegate, strategy=DELEGATE_ONLY) Closure columns) {
-		addChange args2Map(Tag.addColumn,namedArgs) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) , columns
+		addColumn chkMap(Tag.addColumn,namedArgs) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) .asMap, columns
 	}
 
 	/**  */
@@ -207,7 +207,7 @@ trait ChangeSetChildren {
 		Will run for all dbms' if empty or absent</dd>
 	</dl> */
 	void createProcedure( String path, String procedureName=null, Boolean relativeToChangelogFile=null, Boolean replaceIfExists=null, String dbms=null, String encoding=null, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.createProcedure) ('path',path) ('procedureName',procedureName) ('relativeToChangelogFile',relativeToChangelogFile) ('replaceIfExists',replaceIfExists) ('dbms',dbms) ('encoding',encoding) ('schemaName',schemaName) ('catalogName',catalogName)
+		createProcedure chkMap(Tag.createProcedure) ('path',path) ('procedureName',procedureName) ('relativeToChangelogFile',relativeToChangelogFile) ('replaceIfExists',replaceIfExists) ('dbms',dbms) ('encoding',encoding) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/** Create a definition for a stored procedure from either the tag content or from file defined by {@code path.}
@@ -230,7 +230,7 @@ trait ChangeSetChildren {
 		Will run for all dbms' if empty or absent</dd>
 	</dl> */
 	void createProcedure( Map<String, Object> namedArgs, String path, String procedureName=null, Boolean relativeToChangelogFile=null, Boolean replaceIfExists=null, String dbms=null, String encoding=null, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.createProcedure,namedArgs) ('path',path) ('procedureName',procedureName) ('relativeToChangelogFile',relativeToChangelogFile) ('replaceIfExists',replaceIfExists) ('dbms',dbms) ('encoding',encoding) ('schemaName',schemaName) ('catalogName',catalogName)
+		createProcedure chkMap(Tag.createProcedure,namedArgs) ('path',path) ('procedureName',procedureName) ('relativeToChangelogFile',relativeToChangelogFile) ('replaceIfExists',replaceIfExists) ('dbms',dbms) ('encoding',encoding) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/** Create a definition for a stored procedure from either the tag content or from file defined by {@code path.}
@@ -250,7 +250,7 @@ trait ChangeSetChildren {
 	</dl> */
 	void createProcedure( String procedureName=null, Boolean replaceIfExists=null, String dbms=null, String schemaName=null, String catalogName=null, 
 				@DelegatesTo(value=CreateProcedureDelegate, strategy=DELEGATE_ONLY) Closure procedureText) {
-		addChange args2Map(Tag.createProcedure) ('procedureName',procedureName) ('replaceIfExists',replaceIfExists) ('dbms',dbms) ('schemaName',schemaName) ('catalogName',catalogName) , procedureText
+		createProcedure chkMap(Tag.createProcedure) ('procedureName',procedureName) ('replaceIfExists',replaceIfExists) ('dbms',dbms) ('schemaName',schemaName) ('catalogName',catalogName) .asMap, procedureText
 	}
 
 	/** Create a definition for a stored procedure from either the tag content or from file defined by {@code path.}
@@ -270,17 +270,17 @@ trait ChangeSetChildren {
 	</dl> */
 	void createProcedure( Map<String, Object> namedArgs, String procedureName=null, Boolean replaceIfExists=null, String dbms=null, String schemaName=null, String catalogName=null, 
 				@DelegatesTo(value=CreateProcedureDelegate, strategy=DELEGATE_ONLY) Closure procedureText) {
-		addChange args2Map(Tag.createProcedure,namedArgs) ('procedureName',procedureName) ('replaceIfExists',replaceIfExists) ('dbms',dbms) ('schemaName',schemaName) ('catalogName',catalogName) , procedureText
+		createProcedure chkMap(Tag.createProcedure,namedArgs) ('procedureName',procedureName) ('replaceIfExists',replaceIfExists) ('dbms',dbms) ('schemaName',schemaName) ('catalogName',catalogName) .asMap, procedureText
 	}
 
 	/**  */
 	void dropProcedure( String procedureName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.dropProcedure) ('procedureName',procedureName) ('schemaName',schemaName) ('catalogName',catalogName)
+		dropProcedure chkMap(Tag.dropProcedure) ('procedureName',procedureName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
 	void dropProcedure( Map<String, Object> namedArgs, String procedureName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.dropProcedure,namedArgs) ('procedureName',procedureName) ('schemaName',schemaName) ('catalogName',catalogName)
+		dropProcedure chkMap(Tag.dropProcedure,namedArgs) ('procedureName',procedureName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
@@ -302,20 +302,20 @@ trait ChangeSetChildren {
 		See: https://docs.liquibase.com/concepts/changelogs/how-liquibase-finds-files.html</dd>
 	 <dt>stripComments</dt>
 		<dd>When true, any comments are removed in the statement before executing on the database. Default: true.</dd>
-	 <dt>splitStatements</dt>
-		<dd>When true, Liquibase splits statements on {@code endDelimiter} and executes them separately. Default: true.</dd>
-	 <dt>endDelimiter</dt>
-		<dd>The delimiter to separate raw SQL statements. The default value is `;`
-		See: https://docs.liquibase.com/change-types/enddelimiter-sql.html</dd>
 	 <dt>dbms</dt>
 		<dd>Specifies which database type(s) a changeset is to be used for.
 		See valid database type names on Liquibase Database Tutorials
 		. Separate multiple databases with commas. Specify that a changeset is not applicable to a particular
 		database type by prefixing with !. The keywords all and none are also available.
 		Will run for all dbms' if empty or absent</dd>
+	 <dt>splitStatements</dt>
+		<dd>When true, Liquibase splits statements on {@code endDelimiter} and executes them separately. Default: true.</dd>
+	 <dt>endDelimiter</dt>
+		<dd>The delimiter to separate raw SQL statements. The default value is `;`
+		See: https://docs.liquibase.com/change-types/enddelimiter-sql.html</dd>
 	</dl> */
-	void sqlFile( String path, Boolean relativeToChangelogFile=null, Boolean stripComments=null, Boolean splitStatements=null, String endDelimiter=null, String dbms=null, String encoding=null) {
-		addChange args2Map(Tag.sqlFile) ('path',path) ('relativeToChangelogFile',relativeToChangelogFile) ('stripComments',stripComments) ('splitStatements',splitStatements) ('endDelimiter',endDelimiter) ('dbms',dbms) ('encoding',encoding)
+	void sqlFile( String path, Boolean relativeToChangelogFile=null, Boolean stripComments=null, String dbms=null, Boolean splitStatements=null, String endDelimiter=null, String encoding=null) {
+		sqlFile chkMap(Tag.sqlFile) ('path',path) ('relativeToChangelogFile',relativeToChangelogFile) ('stripComments',stripComments) ('dbms',dbms) ('splitStatements',splitStatements) ('endDelimiter',endDelimiter) ('encoding',encoding).asMap
 	}
 
 	/** Execute any SQL statement(s) in the external file defined in {@code path.}
@@ -332,20 +332,20 @@ trait ChangeSetChildren {
 		See: https://docs.liquibase.com/concepts/changelogs/how-liquibase-finds-files.html</dd>
 	 <dt>stripComments</dt>
 		<dd>When true, any comments are removed in the statement before executing on the database. Default: true.</dd>
-	 <dt>splitStatements</dt>
-		<dd>When true, Liquibase splits statements on {@code endDelimiter} and executes them separately. Default: true.</dd>
-	 <dt>endDelimiter</dt>
-		<dd>The delimiter to separate raw SQL statements. The default value is `;`
-		See: https://docs.liquibase.com/change-types/enddelimiter-sql.html</dd>
 	 <dt>dbms</dt>
 		<dd>Specifies which database type(s) a changeset is to be used for.
 		See valid database type names on Liquibase Database Tutorials
 		. Separate multiple databases with commas. Specify that a changeset is not applicable to a particular
 		database type by prefixing with !. The keywords all and none are also available.
 		Will run for all dbms' if empty or absent</dd>
+	 <dt>splitStatements</dt>
+		<dd>When true, Liquibase splits statements on {@code endDelimiter} and executes them separately. Default: true.</dd>
+	 <dt>endDelimiter</dt>
+		<dd>The delimiter to separate raw SQL statements. The default value is `;`
+		See: https://docs.liquibase.com/change-types/enddelimiter-sql.html</dd>
 	</dl> */
-	void sqlFile( Map<String, Object> namedArgs, String path, Boolean relativeToChangelogFile=null, Boolean stripComments=null, Boolean splitStatements=null, String endDelimiter=null, String dbms=null, String encoding=null) {
-		addChange args2Map(Tag.sqlFile,namedArgs) ('path',path) ('relativeToChangelogFile',relativeToChangelogFile) ('stripComments',stripComments) ('splitStatements',splitStatements) ('endDelimiter',endDelimiter) ('dbms',dbms) ('encoding',encoding)
+	void sqlFile( Map<String, Object> namedArgs, String path, Boolean relativeToChangelogFile=null, Boolean stripComments=null, String dbms=null, Boolean splitStatements=null, String endDelimiter=null, String encoding=null) {
+		sqlFile chkMap(Tag.sqlFile,namedArgs) ('path',path) ('relativeToChangelogFile',relativeToChangelogFile) ('stripComments',stripComments) ('dbms',dbms) ('splitStatements',splitStatements) ('endDelimiter',endDelimiter) ('encoding',encoding).asMap
 	}
 
 	/** Execute any SQL statement(s) in the external file defined in {@code path.}
@@ -362,17 +362,17 @@ trait ChangeSetChildren {
 		See: https://docs.liquibase.com/concepts/changelogs/how-liquibase-finds-files.html</dd>
 	 <dt>stripComments</dt>
 		<dd>When true, any comments are removed in the statement before executing on the database. Default: true.</dd>
-	 <dt>splitStatements</dt>
-		<dd>When true, Liquibase splits statements on {@code endDelimiter} and executes them separately. Default: true.</dd>
-	 <dt>endDelimiter</dt>
-		<dd>The delimiter to separate raw SQL statements. The default value is `;`
-		See: https://docs.liquibase.com/change-types/enddelimiter-sql.html</dd>
 	 <dt>dbms</dt>
 		<dd>Specifies which database type(s) a changeset is to be used for.
 		See valid database type names on Liquibase Database Tutorials
 		. Separate multiple databases with commas. Specify that a changeset is not applicable to a particular
 		database type by prefixing with !. The keywords all and none are also available.
 		Will run for all dbms' if empty or absent</dd>
+	 <dt>splitStatements</dt>
+		<dd>When true, Liquibase splits statements on {@code endDelimiter} and executes them separately. Default: true.</dd>
+	 <dt>endDelimiter</dt>
+		<dd>The delimiter to separate raw SQL statements. The default value is `;`
+		See: https://docs.liquibase.com/change-types/enddelimiter-sql.html</dd>
 	</dl> */
 	void sqlFile(Map<String, Object> params) {
 		addChange Tag.sqlFile, params
@@ -380,12 +380,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void renameTable( String oldTableName, String newTableName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.renameTable) ('oldTableName',oldTableName) ('newTableName',newTableName) ('schemaName',schemaName) ('catalogName',catalogName)
+		renameTable chkMap(Tag.renameTable) ('oldTableName',oldTableName) ('newTableName',newTableName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
 	void renameTable( Map<String, Object> namedArgs, String oldTableName, String newTableName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.renameTable,namedArgs) ('oldTableName',oldTableName) ('newTableName',newTableName) ('schemaName',schemaName) ('catalogName',catalogName)
+		renameTable chkMap(Tag.renameTable,namedArgs) ('oldTableName',oldTableName) ('newTableName',newTableName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
@@ -395,12 +395,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void renameColumn( String oldColumnName, String newColumnName, String tableName, String schemaName=null, String catalogName=null, String columnDataType=null, String remarks=null) {
-		addChange args2Map(Tag.renameColumn) ('oldColumnName',oldColumnName) ('newColumnName',newColumnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('columnDataType',columnDataType) ('remarks',remarks)
+		renameColumn chkMap(Tag.renameColumn) ('oldColumnName',oldColumnName) ('newColumnName',newColumnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('columnDataType',columnDataType) ('remarks',remarks).asMap
 	}
 
 	/**  */
 	void renameColumn( Map<String, Object> namedArgs, String oldColumnName, String newColumnName, String tableName, String schemaName=null, String catalogName=null, String columnDataType=null, String remarks=null) {
-		addChange args2Map(Tag.renameColumn,namedArgs) ('oldColumnName',oldColumnName) ('newColumnName',newColumnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('columnDataType',columnDataType) ('remarks',remarks)
+		renameColumn chkMap(Tag.renameColumn,namedArgs) ('oldColumnName',oldColumnName) ('newColumnName',newColumnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('columnDataType',columnDataType) ('remarks',remarks).asMap
 	}
 
 	/**  */
@@ -414,7 +414,7 @@ trait ChangeSetChildren {
 		<dd>Name of the column to drop, if dropping a single column. Ignore if nested columns are defined</dd>
 	</dl> */
 	void dropColumn( String columnName, String tableName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.dropColumn) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
+		dropColumn chkMap(Tag.dropColumn) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/** Drop column(s). Either {@code columnName} or nested column(s) needs to be defined exclusively
@@ -423,19 +423,19 @@ trait ChangeSetChildren {
 		<dd>Name of the column to drop, if dropping a single column. Ignore if nested columns are defined</dd>
 	</dl> */
 	void dropColumn( Map<String, Object> namedArgs, String columnName, String tableName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.dropColumn,namedArgs) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
+		dropColumn chkMap(Tag.dropColumn,namedArgs) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/** Drop column(s). Either {@code columnName} or nested column(s) needs to be defined exclusively */
 	void dropColumn( String tableName, String schemaName=null, String catalogName=null, 
 				@DelegatesTo(value=DropColumnDelegate, strategy=DELEGATE_ONLY) Closure columns) {
-		addChange args2Map(Tag.dropColumn) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) , columns
+		dropColumn chkMap(Tag.dropColumn) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) .asMap, columns
 	}
 
 	/** Drop column(s). Either {@code columnName} or nested column(s) needs to be defined exclusively */
 	void dropColumn( Map<String, Object> namedArgs, String tableName, String schemaName=null, String catalogName=null, 
 				@DelegatesTo(value=DropColumnDelegate, strategy=DELEGATE_ONLY) Closure columns) {
-		addChange args2Map(Tag.dropColumn,namedArgs) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) , columns
+		dropColumn chkMap(Tag.dropColumn,namedArgs) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) .asMap, columns
 	}
 
 	/** Drop column(s). Either {@code columnName} or nested column(s) needs to be defined exclusively
@@ -450,12 +450,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void mergeColumns( String column1Name, String joinString, String column2Name, String finalColumnName, String finalColumnType, String tableName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.mergeColumns) ('column1Name',column1Name) ('joinString',joinString) ('column2Name',column2Name) ('finalColumnName',finalColumnName) ('finalColumnType',finalColumnType) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
+		mergeColumns chkMap(Tag.mergeColumns) ('column1Name',column1Name) ('joinString',joinString) ('column2Name',column2Name) ('finalColumnName',finalColumnName) ('finalColumnType',finalColumnType) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
 	void mergeColumns( Map<String, Object> namedArgs, String column1Name, String joinString, String column2Name, String finalColumnName, String finalColumnType, String tableName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.mergeColumns,namedArgs) ('column1Name',column1Name) ('joinString',joinString) ('column2Name',column2Name) ('finalColumnName',finalColumnName) ('finalColumnType',finalColumnType) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
+		mergeColumns chkMap(Tag.mergeColumns,namedArgs) ('column1Name',column1Name) ('joinString',joinString) ('column2Name',column2Name) ('finalColumnName',finalColumnName) ('finalColumnType',finalColumnType) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
@@ -465,12 +465,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void modifyDataType( String newDataType, String columnName, String tableName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.modifyDataType) ('newDataType',newDataType) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
+		modifyDataType chkMap(Tag.modifyDataType) ('newDataType',newDataType) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
 	void modifyDataType( Map<String, Object> namedArgs, String newDataType, String columnName, String tableName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.modifyDataType,namedArgs) ('newDataType',newDataType) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
+		modifyDataType chkMap(Tag.modifyDataType,namedArgs) ('newDataType',newDataType) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
@@ -485,7 +485,7 @@ trait ChangeSetChildren {
 		Default: false.</dd>
 	</dl> */
 	void createSequence( String sequenceName, Integer startValue=null, Integer incrementBy=null, Integer minValue=null, Integer maxValue=null, Boolean ordered=null, String cacheSize=null, String dataType=null, Boolean cycle=null, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.createSequence) ('sequenceName',sequenceName) ('startValue',startValue) ('incrementBy',incrementBy) ('minValue',minValue) ('maxValue',maxValue) ('ordered',ordered) ('cacheSize',cacheSize) ('dataType',dataType) ('cycle',cycle) ('schemaName',schemaName) ('catalogName',catalogName)
+		createSequence chkMap(Tag.createSequence) ('sequenceName',sequenceName) ('startValue',startValue) ('incrementBy',incrementBy) ('minValue',minValue) ('maxValue',maxValue) ('ordered',ordered) ('cacheSize',cacheSize) ('dataType',dataType) ('cycle',cycle) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/** 
@@ -495,7 +495,7 @@ trait ChangeSetChildren {
 		Default: false.</dd>
 	</dl> */
 	void createSequence( Map<String, Object> namedArgs, String sequenceName, Integer startValue=null, Integer incrementBy=null, Integer minValue=null, Integer maxValue=null, Boolean ordered=null, String cacheSize=null, String dataType=null, Boolean cycle=null, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.createSequence,namedArgs) ('sequenceName',sequenceName) ('startValue',startValue) ('incrementBy',incrementBy) ('minValue',minValue) ('maxValue',maxValue) ('ordered',ordered) ('cacheSize',cacheSize) ('dataType',dataType) ('cycle',cycle) ('schemaName',schemaName) ('catalogName',catalogName)
+		createSequence chkMap(Tag.createSequence,namedArgs) ('sequenceName',sequenceName) ('startValue',startValue) ('incrementBy',incrementBy) ('minValue',minValue) ('maxValue',maxValue) ('ordered',ordered) ('cacheSize',cacheSize) ('dataType',dataType) ('cycle',cycle) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/** 
@@ -515,7 +515,7 @@ trait ChangeSetChildren {
 		Default: false.</dd>
 	</dl> */
 	void alterSequence( String sequenceName, Integer incrementBy=null, Integer minValue=null, Integer maxValue=null, Boolean ordered=null, String cacheSize=null, String dataType=null, Boolean cycle=null, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.alterSequence) ('sequenceName',sequenceName) ('incrementBy',incrementBy) ('minValue',minValue) ('maxValue',maxValue) ('ordered',ordered) ('cacheSize',cacheSize) ('dataType',dataType) ('cycle',cycle) ('schemaName',schemaName) ('catalogName',catalogName)
+		alterSequence chkMap(Tag.alterSequence) ('sequenceName',sequenceName) ('incrementBy',incrementBy) ('minValue',minValue) ('maxValue',maxValue) ('ordered',ordered) ('cacheSize',cacheSize) ('dataType',dataType) ('cycle',cycle) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/** 
@@ -525,7 +525,7 @@ trait ChangeSetChildren {
 		Default: false.</dd>
 	</dl> */
 	void alterSequence( Map<String, Object> namedArgs, String sequenceName, Integer incrementBy=null, Integer minValue=null, Integer maxValue=null, Boolean ordered=null, String cacheSize=null, String dataType=null, Boolean cycle=null, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.alterSequence,namedArgs) ('sequenceName',sequenceName) ('incrementBy',incrementBy) ('minValue',minValue) ('maxValue',maxValue) ('ordered',ordered) ('cacheSize',cacheSize) ('dataType',dataType) ('cycle',cycle) ('schemaName',schemaName) ('catalogName',catalogName)
+		alterSequence chkMap(Tag.alterSequence,namedArgs) ('sequenceName',sequenceName) ('incrementBy',incrementBy) ('minValue',minValue) ('maxValue',maxValue) ('ordered',ordered) ('cacheSize',cacheSize) ('dataType',dataType) ('cycle',cycle) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/** 
@@ -540,12 +540,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void dropSequence( String sequenceName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.dropSequence) ('sequenceName',sequenceName) ('schemaName',schemaName) ('catalogName',catalogName)
+		dropSequence chkMap(Tag.dropSequence) ('sequenceName',sequenceName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
 	void dropSequence( Map<String, Object> namedArgs, String sequenceName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.dropSequence,namedArgs) ('sequenceName',sequenceName) ('schemaName',schemaName) ('catalogName',catalogName)
+		dropSequence chkMap(Tag.dropSequence,namedArgs) ('sequenceName',sequenceName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
@@ -555,12 +555,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void renameSequence( String oldSequenceName, String newSequenceName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.renameSequence) ('oldSequenceName',oldSequenceName) ('newSequenceName',newSequenceName) ('schemaName',schemaName) ('catalogName',catalogName)
+		renameSequence chkMap(Tag.renameSequence) ('oldSequenceName',oldSequenceName) ('newSequenceName',newSequenceName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
 	void renameSequence( Map<String, Object> namedArgs, String oldSequenceName, String newSequenceName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.renameSequence,namedArgs) ('oldSequenceName',oldSequenceName) ('newSequenceName',newSequenceName) ('schemaName',schemaName) ('catalogName',catalogName)
+		renameSequence chkMap(Tag.renameSequence,namedArgs) ('oldSequenceName',oldSequenceName) ('newSequenceName',newSequenceName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
@@ -571,13 +571,13 @@ trait ChangeSetChildren {
 	/**  */
 	void createIndex( String indexName, String tableName, String schemaName=null, String catalogName=null, String associatedWith=null, Boolean unique=null, Boolean clustered=null, String tablespace=null, 
 				@DelegatesTo(value=CreateIndexDelegate, strategy=DELEGATE_ONLY) Closure columns) {
-		addChange args2Map(Tag.createIndex) ('indexName',indexName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('associatedWith',associatedWith) ('unique',unique) ('clustered',clustered) ('tablespace',tablespace) , columns
+		createIndex chkMap(Tag.createIndex) ('indexName',indexName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('associatedWith',associatedWith) ('unique',unique) ('clustered',clustered) ('tablespace',tablespace) .asMap, columns
 	}
 
 	/**  */
 	void createIndex( Map<String, Object> namedArgs, String indexName, String tableName, String schemaName=null, String catalogName=null, String associatedWith=null, Boolean unique=null, Boolean clustered=null, String tablespace=null, 
 				@DelegatesTo(value=CreateIndexDelegate, strategy=DELEGATE_ONLY) Closure columns) {
-		addChange args2Map(Tag.createIndex,namedArgs) ('indexName',indexName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('associatedWith',associatedWith) ('unique',unique) ('clustered',clustered) ('tablespace',tablespace) , columns
+		createIndex chkMap(Tag.createIndex,namedArgs) ('indexName',indexName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('associatedWith',associatedWith) ('unique',unique) ('clustered',clustered) ('tablespace',tablespace) .asMap, columns
 	}
 
 	/**  */
@@ -588,12 +588,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void dropIndex( String indexName, String tableName, String schemaName=null, String catalogName=null, String associatedWith=null) {
-		addChange args2Map(Tag.dropIndex) ('indexName',indexName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('associatedWith',associatedWith)
+		dropIndex chkMap(Tag.dropIndex) ('indexName',indexName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('associatedWith',associatedWith).asMap
 	}
 
 	/**  */
 	void dropIndex( Map<String, Object> namedArgs, String indexName, String tableName, String schemaName=null, String catalogName=null, String associatedWith=null) {
-		addChange args2Map(Tag.dropIndex,namedArgs) ('indexName',indexName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('associatedWith',associatedWith)
+		dropIndex chkMap(Tag.dropIndex,namedArgs) ('indexName',indexName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('associatedWith',associatedWith).asMap
 	}
 
 	/**  */
@@ -603,12 +603,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void addNotNullConstraint( String columnName, String tableName, String schemaName=null, String catalogName=null, String defaultNullValue=null, String columnDataType=null, String constraintName=null, Boolean validate=null) {
-		addChange args2Map(Tag.addNotNullConstraint) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('defaultNullValue',defaultNullValue) ('columnDataType',columnDataType) ('constraintName',constraintName) ('validate',validate)
+		addNotNullConstraint chkMap(Tag.addNotNullConstraint) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('defaultNullValue',defaultNullValue) ('columnDataType',columnDataType) ('constraintName',constraintName) ('validate',validate).asMap
 	}
 
 	/**  */
 	void addNotNullConstraint( Map<String, Object> namedArgs, String columnName, String tableName, String schemaName=null, String catalogName=null, String defaultNullValue=null, String columnDataType=null, String constraintName=null, Boolean validate=null) {
-		addChange args2Map(Tag.addNotNullConstraint,namedArgs) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('defaultNullValue',defaultNullValue) ('columnDataType',columnDataType) ('constraintName',constraintName) ('validate',validate)
+		addNotNullConstraint chkMap(Tag.addNotNullConstraint,namedArgs) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('defaultNullValue',defaultNullValue) ('columnDataType',columnDataType) ('constraintName',constraintName) ('validate',validate).asMap
 	}
 
 	/**  */
@@ -618,12 +618,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void dropNotNullConstraint( String constraintName, String tableName, String schemaName=null, String catalogName=null, String columnName=null, String columnDataType=null) {
-		addChange args2Map(Tag.dropNotNullConstraint) ('constraintName',constraintName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('columnName',columnName) ('columnDataType',columnDataType)
+		dropNotNullConstraint chkMap(Tag.dropNotNullConstraint) ('constraintName',constraintName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('columnName',columnName) ('columnDataType',columnDataType).asMap
 	}
 
 	/**  */
 	void dropNotNullConstraint( Map<String, Object> namedArgs, String constraintName, String tableName, String schemaName=null, String catalogName=null, String columnName=null, String columnDataType=null) {
-		addChange args2Map(Tag.dropNotNullConstraint,namedArgs) ('constraintName',constraintName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('columnName',columnName) ('columnDataType',columnDataType)
+		dropNotNullConstraint chkMap(Tag.dropNotNullConstraint,namedArgs) ('constraintName',constraintName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('columnName',columnName) ('columnDataType',columnDataType).asMap
 	}
 
 	/**  */
@@ -633,12 +633,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void addForeignKeyConstraint( String baseTableName, String baseColumnNames, String constraintName, String referencedTableName, String referencedColumnNames, String baseTableSchemaName=null, String baseTableCatalogName=null, String referencedTableSchemaName=null, String referencedTableCatalogName=null, Boolean deferrable=null, Boolean initiallyDeferred=null, Boolean deleteCascade=null, FkCascadeActionOptions onDelete=null, FkCascadeActionOptions onUpdate=null, Boolean referencesUniqueColumn=null, Boolean validate=null) {
-		addChange args2Map(Tag.addForeignKeyConstraint) ('baseTableName',baseTableName) ('baseColumnNames',baseColumnNames) ('constraintName',constraintName) ('referencedTableName',referencedTableName) ('referencedColumnNames',referencedColumnNames) ('baseTableSchemaName',baseTableSchemaName) ('baseTableCatalogName',baseTableCatalogName) ('referencedTableSchemaName',referencedTableSchemaName) ('referencedTableCatalogName',referencedTableCatalogName) ('deferrable',deferrable) ('initiallyDeferred',initiallyDeferred) ('deleteCascade',deleteCascade) ('onDelete',onDelete) ('onUpdate',onUpdate) ('referencesUniqueColumn',referencesUniqueColumn) ('validate',validate)
+		addForeignKeyConstraint chkMap(Tag.addForeignKeyConstraint) ('baseTableName',baseTableName) ('baseColumnNames',baseColumnNames) ('constraintName',constraintName) ('referencedTableName',referencedTableName) ('referencedColumnNames',referencedColumnNames) ('baseTableSchemaName',baseTableSchemaName) ('baseTableCatalogName',baseTableCatalogName) ('referencedTableSchemaName',referencedTableSchemaName) ('referencedTableCatalogName',referencedTableCatalogName) ('deferrable',deferrable) ('initiallyDeferred',initiallyDeferred) ('deleteCascade',deleteCascade) ('onDelete',onDelete) ('onUpdate',onUpdate) ('referencesUniqueColumn',referencesUniqueColumn) ('validate',validate).asMap
 	}
 
 	/**  */
 	void addForeignKeyConstraint( Map<String, Object> namedArgs, String baseTableName, String baseColumnNames, String constraintName, String referencedTableName, String referencedColumnNames, String baseTableSchemaName=null, String baseTableCatalogName=null, String referencedTableSchemaName=null, String referencedTableCatalogName=null, Boolean deferrable=null, Boolean initiallyDeferred=null, Boolean deleteCascade=null, FkCascadeActionOptions onDelete=null, FkCascadeActionOptions onUpdate=null, Boolean referencesUniqueColumn=null, Boolean validate=null) {
-		addChange args2Map(Tag.addForeignKeyConstraint,namedArgs) ('baseTableName',baseTableName) ('baseColumnNames',baseColumnNames) ('constraintName',constraintName) ('referencedTableName',referencedTableName) ('referencedColumnNames',referencedColumnNames) ('baseTableSchemaName',baseTableSchemaName) ('baseTableCatalogName',baseTableCatalogName) ('referencedTableSchemaName',referencedTableSchemaName) ('referencedTableCatalogName',referencedTableCatalogName) ('deferrable',deferrable) ('initiallyDeferred',initiallyDeferred) ('deleteCascade',deleteCascade) ('onDelete',onDelete) ('onUpdate',onUpdate) ('referencesUniqueColumn',referencesUniqueColumn) ('validate',validate)
+		addForeignKeyConstraint chkMap(Tag.addForeignKeyConstraint,namedArgs) ('baseTableName',baseTableName) ('baseColumnNames',baseColumnNames) ('constraintName',constraintName) ('referencedTableName',referencedTableName) ('referencedColumnNames',referencedColumnNames) ('baseTableSchemaName',baseTableSchemaName) ('baseTableCatalogName',baseTableCatalogName) ('referencedTableSchemaName',referencedTableSchemaName) ('referencedTableCatalogName',referencedTableCatalogName) ('deferrable',deferrable) ('initiallyDeferred',initiallyDeferred) ('deleteCascade',deleteCascade) ('onDelete',onDelete) ('onUpdate',onUpdate) ('referencesUniqueColumn',referencesUniqueColumn) ('validate',validate).asMap
 	}
 
 	/**  */
@@ -648,12 +648,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void dropForeignKeyConstraint( String constraintName, String baseTableName, String baseTableSchemaName=null, String baseTableCatalogName=null) {
-		addChange args2Map(Tag.dropForeignKeyConstraint) ('constraintName',constraintName) ('baseTableName',baseTableName) ('baseTableSchemaName',baseTableSchemaName) ('baseTableCatalogName',baseTableCatalogName)
+		dropForeignKeyConstraint chkMap(Tag.dropForeignKeyConstraint) ('constraintName',constraintName) ('baseTableName',baseTableName) ('baseTableSchemaName',baseTableSchemaName) ('baseTableCatalogName',baseTableCatalogName).asMap
 	}
 
 	/**  */
 	void dropForeignKeyConstraint( Map<String, Object> namedArgs, String constraintName, String baseTableName, String baseTableSchemaName=null, String baseTableCatalogName=null) {
-		addChange args2Map(Tag.dropForeignKeyConstraint,namedArgs) ('constraintName',constraintName) ('baseTableName',baseTableName) ('baseTableSchemaName',baseTableSchemaName) ('baseTableCatalogName',baseTableCatalogName)
+		dropForeignKeyConstraint chkMap(Tag.dropForeignKeyConstraint,namedArgs) ('constraintName',constraintName) ('baseTableName',baseTableName) ('baseTableSchemaName',baseTableSchemaName) ('baseTableCatalogName',baseTableCatalogName).asMap
 	}
 
 	/**  */
@@ -663,12 +663,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void dropAllForeignKeyConstraints( String baseTableName, String baseTableSchemaName=null, String baseTableCatalogName=null) {
-		addChange args2Map(Tag.dropAllForeignKeyConstraints) ('baseTableName',baseTableName) ('baseTableSchemaName',baseTableSchemaName) ('baseTableCatalogName',baseTableCatalogName)
+		dropAllForeignKeyConstraints chkMap(Tag.dropAllForeignKeyConstraints) ('baseTableName',baseTableName) ('baseTableSchemaName',baseTableSchemaName) ('baseTableCatalogName',baseTableCatalogName).asMap
 	}
 
 	/**  */
 	void dropAllForeignKeyConstraints( Map<String, Object> namedArgs, String baseTableName, String baseTableSchemaName=null, String baseTableCatalogName=null) {
-		addChange args2Map(Tag.dropAllForeignKeyConstraints,namedArgs) ('baseTableName',baseTableName) ('baseTableSchemaName',baseTableSchemaName) ('baseTableCatalogName',baseTableCatalogName)
+		dropAllForeignKeyConstraints chkMap(Tag.dropAllForeignKeyConstraints,namedArgs) ('baseTableName',baseTableName) ('baseTableSchemaName',baseTableSchemaName) ('baseTableCatalogName',baseTableCatalogName).asMap
 	}
 
 	/**  */
@@ -678,12 +678,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void addPrimaryKey( String columnNames, String tableName, String schemaName=null, String catalogName=null, String constraintName=null, String tablespace=null, Boolean clustered=null, String forIndexName=null, String forIndexSchemaName=null, String forIndexCatalogName=null, Boolean validate=null) {
-		addChange args2Map(Tag.addPrimaryKey) ('columnNames',columnNames) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('constraintName',constraintName) ('tablespace',tablespace) ('clustered',clustered) ('forIndexName',forIndexName) ('forIndexSchemaName',forIndexSchemaName) ('forIndexCatalogName',forIndexCatalogName) ('validate',validate)
+		addPrimaryKey chkMap(Tag.addPrimaryKey) ('columnNames',columnNames) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('constraintName',constraintName) ('tablespace',tablespace) ('clustered',clustered) ('forIndexName',forIndexName) ('forIndexSchemaName',forIndexSchemaName) ('forIndexCatalogName',forIndexCatalogName) ('validate',validate).asMap
 	}
 
 	/**  */
 	void addPrimaryKey( Map<String, Object> namedArgs, String columnNames, String tableName, String schemaName=null, String catalogName=null, String constraintName=null, String tablespace=null, Boolean clustered=null, String forIndexName=null, String forIndexSchemaName=null, String forIndexCatalogName=null, Boolean validate=null) {
-		addChange args2Map(Tag.addPrimaryKey,namedArgs) ('columnNames',columnNames) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('constraintName',constraintName) ('tablespace',tablespace) ('clustered',clustered) ('forIndexName',forIndexName) ('forIndexSchemaName',forIndexSchemaName) ('forIndexCatalogName',forIndexCatalogName) ('validate',validate)
+		addPrimaryKey chkMap(Tag.addPrimaryKey,namedArgs) ('columnNames',columnNames) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('constraintName',constraintName) ('tablespace',tablespace) ('clustered',clustered) ('forIndexName',forIndexName) ('forIndexSchemaName',forIndexSchemaName) ('forIndexCatalogName',forIndexCatalogName) ('validate',validate).asMap
 	}
 
 	/**  */
@@ -693,12 +693,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void dropPrimaryKey( String tableName, String constraintName=null, String schemaName=null, String catalogName=null, Boolean dropIndex=null) {
-		addChange args2Map(Tag.dropPrimaryKey) ('tableName',tableName) ('constraintName',constraintName) ('schemaName',schemaName) ('catalogName',catalogName) ('dropIndex',dropIndex)
+		dropPrimaryKey chkMap(Tag.dropPrimaryKey) ('tableName',tableName) ('constraintName',constraintName) ('schemaName',schemaName) ('catalogName',catalogName) ('dropIndex',dropIndex).asMap
 	}
 
 	/**  */
 	void dropPrimaryKey( Map<String, Object> namedArgs, String tableName, String constraintName=null, String schemaName=null, String catalogName=null, Boolean dropIndex=null) {
-		addChange args2Map(Tag.dropPrimaryKey,namedArgs) ('tableName',tableName) ('constraintName',constraintName) ('schemaName',schemaName) ('catalogName',catalogName) ('dropIndex',dropIndex)
+		dropPrimaryKey chkMap(Tag.dropPrimaryKey,namedArgs) ('tableName',tableName) ('constraintName',constraintName) ('schemaName',schemaName) ('catalogName',catalogName) ('dropIndex',dropIndex).asMap
 	}
 
 	/**  */
@@ -708,12 +708,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void addLookupTable( String existingTableName, String existingColumnName, String newTableName, String newColumnName, String existingTableCatalogName=null, String existingTableSchemaName=null, String newTableCatalogName=null, String newTableSchemaName=null, String newColumnDataType=null, String constraintName=null) {
-		addChange args2Map(Tag.addLookupTable) ('existingTableName',existingTableName) ('existingColumnName',existingColumnName) ('newTableName',newTableName) ('newColumnName',newColumnName) ('existingTableCatalogName',existingTableCatalogName) ('existingTableSchemaName',existingTableSchemaName) ('newTableCatalogName',newTableCatalogName) ('newTableSchemaName',newTableSchemaName) ('newColumnDataType',newColumnDataType) ('constraintName',constraintName)
+		addLookupTable chkMap(Tag.addLookupTable) ('existingTableName',existingTableName) ('existingColumnName',existingColumnName) ('newTableName',newTableName) ('newColumnName',newColumnName) ('existingTableCatalogName',existingTableCatalogName) ('existingTableSchemaName',existingTableSchemaName) ('newTableCatalogName',newTableCatalogName) ('newTableSchemaName',newTableSchemaName) ('newColumnDataType',newColumnDataType) ('constraintName',constraintName).asMap
 	}
 
 	/**  */
 	void addLookupTable( Map<String, Object> namedArgs, String existingTableName, String existingColumnName, String newTableName, String newColumnName, String existingTableCatalogName=null, String existingTableSchemaName=null, String newTableCatalogName=null, String newTableSchemaName=null, String newColumnDataType=null, String constraintName=null) {
-		addChange args2Map(Tag.addLookupTable,namedArgs) ('existingTableName',existingTableName) ('existingColumnName',existingColumnName) ('newTableName',newTableName) ('newColumnName',newColumnName) ('existingTableCatalogName',existingTableCatalogName) ('existingTableSchemaName',existingTableSchemaName) ('newTableCatalogName',newTableCatalogName) ('newTableSchemaName',newTableSchemaName) ('newColumnDataType',newColumnDataType) ('constraintName',constraintName)
+		addLookupTable chkMap(Tag.addLookupTable,namedArgs) ('existingTableName',existingTableName) ('existingColumnName',existingColumnName) ('newTableName',newTableName) ('newColumnName',newColumnName) ('existingTableCatalogName',existingTableCatalogName) ('existingTableSchemaName',existingTableSchemaName) ('newTableCatalogName',newTableCatalogName) ('newTableSchemaName',newTableSchemaName) ('newColumnDataType',newColumnDataType) ('constraintName',constraintName).asMap
 	}
 
 	/**  */
@@ -723,12 +723,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void addAutoIncrement( String columnName, String tableName, String columnDataType=null, Long startWith=null, Long incrementBy=null, Boolean defaultOnNull=null, String generationType=null, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.addAutoIncrement) ('columnName',columnName) ('tableName',tableName) ('columnDataType',columnDataType) ('startWith',startWith) ('incrementBy',incrementBy) ('defaultOnNull',defaultOnNull) ('generationType',generationType) ('schemaName',schemaName) ('catalogName',catalogName)
+		addAutoIncrement chkMap(Tag.addAutoIncrement) ('columnName',columnName) ('tableName',tableName) ('columnDataType',columnDataType) ('startWith',startWith) ('incrementBy',incrementBy) ('defaultOnNull',defaultOnNull) ('generationType',generationType) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
 	void addAutoIncrement( Map<String, Object> namedArgs, String columnName, String tableName, String columnDataType=null, Long startWith=null, Long incrementBy=null, Boolean defaultOnNull=null, String generationType=null, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.addAutoIncrement,namedArgs) ('columnName',columnName) ('tableName',tableName) ('columnDataType',columnDataType) ('startWith',startWith) ('incrementBy',incrementBy) ('defaultOnNull',defaultOnNull) ('generationType',generationType) ('schemaName',schemaName) ('catalogName',catalogName)
+		addAutoIncrement chkMap(Tag.addAutoIncrement,namedArgs) ('columnName',columnName) ('tableName',tableName) ('columnDataType',columnDataType) ('startWith',startWith) ('incrementBy',incrementBy) ('defaultOnNull',defaultOnNull) ('generationType',generationType) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
@@ -738,12 +738,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void addDefaultValue( String columnName, String tableName, String defaultValue=null, String defaultValueNumeric=null, String defaultValueDate=null, String defaultValueBoolean=null, String defaultValueComputed=null, String defaultValueSequenceNext=null, String defaultValueConstraintName=null, String columnDataType=null, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.addDefaultValue) ('columnName',columnName) ('tableName',tableName) ('defaultValue',defaultValue) ('defaultValueNumeric',defaultValueNumeric) ('defaultValueDate',defaultValueDate) ('defaultValueBoolean',defaultValueBoolean) ('defaultValueComputed',defaultValueComputed) ('defaultValueSequenceNext',defaultValueSequenceNext) ('defaultValueConstraintName',defaultValueConstraintName) ('columnDataType',columnDataType) ('schemaName',schemaName) ('catalogName',catalogName)
+		addDefaultValue chkMap(Tag.addDefaultValue) ('columnName',columnName) ('tableName',tableName) ('defaultValue',defaultValue) ('defaultValueNumeric',defaultValueNumeric) ('defaultValueDate',defaultValueDate) ('defaultValueBoolean',defaultValueBoolean) ('defaultValueComputed',defaultValueComputed) ('defaultValueSequenceNext',defaultValueSequenceNext) ('defaultValueConstraintName',defaultValueConstraintName) ('columnDataType',columnDataType) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
 	void addDefaultValue( Map<String, Object> namedArgs, String columnName, String tableName, String defaultValue=null, String defaultValueNumeric=null, String defaultValueDate=null, String defaultValueBoolean=null, String defaultValueComputed=null, String defaultValueSequenceNext=null, String defaultValueConstraintName=null, String columnDataType=null, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.addDefaultValue,namedArgs) ('columnName',columnName) ('tableName',tableName) ('defaultValue',defaultValue) ('defaultValueNumeric',defaultValueNumeric) ('defaultValueDate',defaultValueDate) ('defaultValueBoolean',defaultValueBoolean) ('defaultValueComputed',defaultValueComputed) ('defaultValueSequenceNext',defaultValueSequenceNext) ('defaultValueConstraintName',defaultValueConstraintName) ('columnDataType',columnDataType) ('schemaName',schemaName) ('catalogName',catalogName)
+		addDefaultValue chkMap(Tag.addDefaultValue,namedArgs) ('columnName',columnName) ('tableName',tableName) ('defaultValue',defaultValue) ('defaultValueNumeric',defaultValueNumeric) ('defaultValueDate',defaultValueDate) ('defaultValueBoolean',defaultValueBoolean) ('defaultValueComputed',defaultValueComputed) ('defaultValueSequenceNext',defaultValueSequenceNext) ('defaultValueConstraintName',defaultValueConstraintName) ('columnDataType',columnDataType) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
@@ -753,12 +753,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void dropDefaultValue( String columnName, String tableName, String schemaName=null, String catalogName=null, String columnDataType=null) {
-		addChange args2Map(Tag.dropDefaultValue) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('columnDataType',columnDataType)
+		dropDefaultValue chkMap(Tag.dropDefaultValue) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('columnDataType',columnDataType).asMap
 	}
 
 	/**  */
 	void dropDefaultValue( Map<String, Object> namedArgs, String columnName, String tableName, String schemaName=null, String catalogName=null, String columnDataType=null) {
-		addChange args2Map(Tag.dropDefaultValue,namedArgs) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('columnDataType',columnDataType)
+		dropDefaultValue chkMap(Tag.dropDefaultValue,namedArgs) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('columnDataType',columnDataType).asMap
 	}
 
 	/**  */
@@ -768,12 +768,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void addUniqueConstraint( String columnNames, String tableName, String schemaName=null, String catalogName=null, String constraintName=null, String tablespace=null, Boolean disabled=null, Boolean deferrable=null, Boolean initiallyDeferred=null, String forIndexCatalogName=null, String forIndexSchemaName=null, String forIndexName=null, Boolean clustered=null, Boolean validate=null) {
-		addChange args2Map(Tag.addUniqueConstraint) ('columnNames',columnNames) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('constraintName',constraintName) ('tablespace',tablespace) ('disabled',disabled) ('deferrable',deferrable) ('initiallyDeferred',initiallyDeferred) ('forIndexCatalogName',forIndexCatalogName) ('forIndexSchemaName',forIndexSchemaName) ('forIndexName',forIndexName) ('clustered',clustered) ('validate',validate)
+		addUniqueConstraint chkMap(Tag.addUniqueConstraint) ('columnNames',columnNames) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('constraintName',constraintName) ('tablespace',tablespace) ('disabled',disabled) ('deferrable',deferrable) ('initiallyDeferred',initiallyDeferred) ('forIndexCatalogName',forIndexCatalogName) ('forIndexSchemaName',forIndexSchemaName) ('forIndexName',forIndexName) ('clustered',clustered) ('validate',validate).asMap
 	}
 
 	/**  */
 	void addUniqueConstraint( Map<String, Object> namedArgs, String columnNames, String tableName, String schemaName=null, String catalogName=null, String constraintName=null, String tablespace=null, Boolean disabled=null, Boolean deferrable=null, Boolean initiallyDeferred=null, String forIndexCatalogName=null, String forIndexSchemaName=null, String forIndexName=null, Boolean clustered=null, Boolean validate=null) {
-		addChange args2Map(Tag.addUniqueConstraint,namedArgs) ('columnNames',columnNames) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('constraintName',constraintName) ('tablespace',tablespace) ('disabled',disabled) ('deferrable',deferrable) ('initiallyDeferred',initiallyDeferred) ('forIndexCatalogName',forIndexCatalogName) ('forIndexSchemaName',forIndexSchemaName) ('forIndexName',forIndexName) ('clustered',clustered) ('validate',validate)
+		addUniqueConstraint chkMap(Tag.addUniqueConstraint,namedArgs) ('columnNames',columnNames) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('constraintName',constraintName) ('tablespace',tablespace) ('disabled',disabled) ('deferrable',deferrable) ('initiallyDeferred',initiallyDeferred) ('forIndexCatalogName',forIndexCatalogName) ('forIndexSchemaName',forIndexSchemaName) ('forIndexName',forIndexName) ('clustered',clustered) ('validate',validate).asMap
 	}
 
 	/**  */
@@ -783,12 +783,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void dropUniqueConstraint( String constraintName, String tableName, String schemaName=null, String catalogName=null, String uniqueColumns=null) {
-		addChange args2Map(Tag.dropUniqueConstraint) ('constraintName',constraintName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('uniqueColumns',uniqueColumns)
+		dropUniqueConstraint chkMap(Tag.dropUniqueConstraint) ('constraintName',constraintName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('uniqueColumns',uniqueColumns).asMap
 	}
 
 	/**  */
 	void dropUniqueConstraint( Map<String, Object> namedArgs, String constraintName, String tableName, String schemaName=null, String catalogName=null, String uniqueColumns=null) {
-		addChange args2Map(Tag.dropUniqueConstraint,namedArgs) ('constraintName',constraintName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('uniqueColumns',uniqueColumns)
+		dropUniqueConstraint chkMap(Tag.dropUniqueConstraint,namedArgs) ('constraintName',constraintName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('uniqueColumns',uniqueColumns).asMap
 	}
 
 	/**  */
@@ -798,12 +798,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void setTableRemarks( String remarks, String tableName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.setTableRemarks) ('remarks',remarks) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
+		setTableRemarks chkMap(Tag.setTableRemarks) ('remarks',remarks) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
 	void setTableRemarks( Map<String, Object> namedArgs, String remarks, String tableName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.setTableRemarks,namedArgs) ('remarks',remarks) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
+		setTableRemarks chkMap(Tag.setTableRemarks,namedArgs) ('remarks',remarks) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
@@ -813,12 +813,12 @@ trait ChangeSetChildren {
 
 	/**  */
 	void setColumnRemarks( String remarks, String columnName, String tableName, String schemaName=null, String catalogName=null, String columnDataType=null, ColumnParentTypeEnum columnParentType=null) {
-		addChange args2Map(Tag.setColumnRemarks) ('remarks',remarks) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('columnDataType',columnDataType) ('columnParentType',columnParentType)
+		setColumnRemarks chkMap(Tag.setColumnRemarks) ('remarks',remarks) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('columnDataType',columnDataType) ('columnParentType',columnParentType).asMap
 	}
 
 	/**  */
 	void setColumnRemarks( Map<String, Object> namedArgs, String remarks, String columnName, String tableName, String schemaName=null, String catalogName=null, String columnDataType=null, ColumnParentTypeEnum columnParentType=null) {
-		addChange args2Map(Tag.setColumnRemarks,namedArgs) ('remarks',remarks) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('columnDataType',columnDataType) ('columnParentType',columnParentType)
+		setColumnRemarks chkMap(Tag.setColumnRemarks,namedArgs) ('remarks',remarks) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) ('columnDataType',columnDataType) ('columnParentType',columnParentType).asMap
 	}
 
 	/**  */
@@ -829,13 +829,13 @@ trait ChangeSetChildren {
 	/** Update data in the specified table */
 	void update( String tableName, String schemaName=null, String catalogName=null, 
 				@DelegatesTo(value=UpdateDelegate, strategy=DELEGATE_ONLY) Closure children) {
-		addChange args2Map(Tag.update) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) , children
+		update chkMap(Tag.update) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) .asMap, children
 	}
 
 	/** Update data in the specified table */
 	void update( Map<String, Object> namedArgs, String tableName, String schemaName=null, String catalogName=null, 
 				@DelegatesTo(value=UpdateDelegate, strategy=DELEGATE_ONLY) Closure children) {
-		addChange args2Map(Tag.update,namedArgs) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) , children
+		update chkMap(Tag.update,namedArgs) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) .asMap, children
 	}
 
 	/** Update data in the specified table */
@@ -846,24 +846,24 @@ trait ChangeSetChildren {
 
 	/**  */
 	void delete( String tableName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.delete) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
+		delete chkMap(Tag.delete) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
 	void delete( Map<String, Object> namedArgs, String tableName, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.delete,namedArgs) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
+		delete chkMap(Tag.delete,namedArgs) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/**  */
 	void delete( String tableName, String schemaName=null, String catalogName=null, 
 				@DelegatesTo(value=DeleteDelegate, strategy=DELEGATE_ONLY) Closure children) {
-		addChange args2Map(Tag.delete) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) , children
+		delete chkMap(Tag.delete) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) .asMap, children
 	}
 
 	/**  */
 	void delete( Map<String, Object> namedArgs, String tableName, String schemaName=null, String catalogName=null, 
 				@DelegatesTo(value=DeleteDelegate, strategy=DELEGATE_ONLY) Closure children) {
-		addChange args2Map(Tag.delete,namedArgs) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) , children
+		delete chkMap(Tag.delete,namedArgs) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName) .asMap, children
 	}
 
 	/**  */
@@ -886,7 +886,7 @@ trait ChangeSetChildren {
 		<dd>Character separating the fields. Default: ','</dd>
 	</dl> */
 	void loadData( String tableName, String file, Boolean relativeToChangelogFile=null, String encoding=null, String separator=null, String quotchar=null, String commentLineStartsWith=null, Boolean usePreparedStatements=null, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.loadData) ('tableName',tableName) ('file',file) ('relativeToChangelogFile',relativeToChangelogFile) ('encoding',encoding) ('separator',separator) ('quotchar',quotchar) ('commentLineStartsWith',commentLineStartsWith) ('usePreparedStatements',usePreparedStatements) ('schemaName',schemaName) ('catalogName',catalogName)
+		loadData chkMap(Tag.loadData) ('tableName',tableName) ('file',file) ('relativeToChangelogFile',relativeToChangelogFile) ('encoding',encoding) ('separator',separator) ('quotchar',quotchar) ('commentLineStartsWith',commentLineStartsWith) ('usePreparedStatements',usePreparedStatements) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/** Load data from a CSV defined {@code file} into an existing table defined by {@code tableName.}
@@ -903,7 +903,7 @@ trait ChangeSetChildren {
 		<dd>Character separating the fields. Default: ','</dd>
 	</dl> */
 	void loadData( Map<String, Object> namedArgs, String tableName, String file, Boolean relativeToChangelogFile=null, String encoding=null, String separator=null, String quotchar=null, String commentLineStartsWith=null, Boolean usePreparedStatements=null, String schemaName=null, String catalogName=null) {
-		addChange args2Map(Tag.loadData,namedArgs) ('tableName',tableName) ('file',file) ('relativeToChangelogFile',relativeToChangelogFile) ('encoding',encoding) ('separator',separator) ('quotchar',quotchar) ('commentLineStartsWith',commentLineStartsWith) ('usePreparedStatements',usePreparedStatements) ('schemaName',schemaName) ('catalogName',catalogName)
+		loadData chkMap(Tag.loadData,namedArgs) ('tableName',tableName) ('file',file) ('relativeToChangelogFile',relativeToChangelogFile) ('encoding',encoding) ('separator',separator) ('quotchar',quotchar) ('commentLineStartsWith',commentLineStartsWith) ('usePreparedStatements',usePreparedStatements) ('schemaName',schemaName) ('catalogName',catalogName).asMap
 	}
 
 	/** Load data from a CSV defined {@code file} into an existing table defined by {@code tableName.}
@@ -921,7 +921,7 @@ trait ChangeSetChildren {
 	</dl> */
 	void loadData( String tableName, String file, Boolean relativeToChangelogFile=null, String encoding=null, String separator=null, String quotchar=null, String commentLineStartsWith=null, Boolean usePreparedStatements=null, String schemaName=null, String catalogName=null, 
 				@DelegatesTo(value=LoadDataDelegate, strategy=DELEGATE_ONLY) Closure columns) {
-		addChange args2Map(Tag.loadData) ('tableName',tableName) ('file',file) ('relativeToChangelogFile',relativeToChangelogFile) ('encoding',encoding) ('separator',separator) ('quotchar',quotchar) ('commentLineStartsWith',commentLineStartsWith) ('usePreparedStatements',usePreparedStatements) ('schemaName',schemaName) ('catalogName',catalogName) , columns
+		loadData chkMap(Tag.loadData) ('tableName',tableName) ('file',file) ('relativeToChangelogFile',relativeToChangelogFile) ('encoding',encoding) ('separator',separator) ('quotchar',quotchar) ('commentLineStartsWith',commentLineStartsWith) ('usePreparedStatements',usePreparedStatements) ('schemaName',schemaName) ('catalogName',catalogName) .asMap, columns
 	}
 
 	/** Load data from a CSV defined {@code file} into an existing table defined by {@code tableName.}
@@ -939,7 +939,7 @@ trait ChangeSetChildren {
 	</dl> */
 	void loadData( Map<String, Object> namedArgs, String tableName, String file, Boolean relativeToChangelogFile=null, String encoding=null, String separator=null, String quotchar=null, String commentLineStartsWith=null, Boolean usePreparedStatements=null, String schemaName=null, String catalogName=null, 
 				@DelegatesTo(value=LoadDataDelegate, strategy=DELEGATE_ONLY) Closure columns) {
-		addChange args2Map(Tag.loadData,namedArgs) ('tableName',tableName) ('file',file) ('relativeToChangelogFile',relativeToChangelogFile) ('encoding',encoding) ('separator',separator) ('quotchar',quotchar) ('commentLineStartsWith',commentLineStartsWith) ('usePreparedStatements',usePreparedStatements) ('schemaName',schemaName) ('catalogName',catalogName) , columns
+		loadData chkMap(Tag.loadData,namedArgs) ('tableName',tableName) ('file',file) ('relativeToChangelogFile',relativeToChangelogFile) ('encoding',encoding) ('separator',separator) ('quotchar',quotchar) ('commentLineStartsWith',commentLineStartsWith) ('usePreparedStatements',usePreparedStatements) ('schemaName',schemaName) ('catalogName',catalogName) .asMap, columns
 	}
 
 	/** Load data from a CSV defined {@code file} into an existing table defined by {@code tableName.}
@@ -977,7 +977,7 @@ trait ChangeSetChildren {
 		<dd>If true, records with no matching database record should be ignored</dd>
 	</dl> */
 	void loadUpdateData( String tableName, String primaryKey, String file, Boolean relativeToChangelogFile=null, String encoding=null, String separator=null, String quotchar=null, String commentLineStartsWith=null, Boolean usePreparedStatements=null, String schemaName=null, String catalogName=null, Boolean onlyUpdate=null) {
-		addChange args2Map(Tag.loadUpdateData) ('tableName',tableName) ('primaryKey',primaryKey) ('file',file) ('relativeToChangelogFile',relativeToChangelogFile) ('encoding',encoding) ('separator',separator) ('quotchar',quotchar) ('commentLineStartsWith',commentLineStartsWith) ('usePreparedStatements',usePreparedStatements) ('schemaName',schemaName) ('catalogName',catalogName) ('onlyUpdate',onlyUpdate)
+		loadUpdateData chkMap(Tag.loadUpdateData) ('tableName',tableName) ('primaryKey',primaryKey) ('file',file) ('relativeToChangelogFile',relativeToChangelogFile) ('encoding',encoding) ('separator',separator) ('quotchar',quotchar) ('commentLineStartsWith',commentLineStartsWith) ('usePreparedStatements',usePreparedStatements) ('schemaName',schemaName) ('catalogName',catalogName) ('onlyUpdate',onlyUpdate).asMap
 	}
 
 	/** Loads or updates data from a CSV file into an existing table.
@@ -997,7 +997,7 @@ trait ChangeSetChildren {
 		<dd>If true, records with no matching database record should be ignored</dd>
 	</dl> */
 	void loadUpdateData( Map<String, Object> namedArgs, String tableName, String primaryKey, String file, Boolean relativeToChangelogFile=null, String encoding=null, String separator=null, String quotchar=null, String commentLineStartsWith=null, Boolean usePreparedStatements=null, String schemaName=null, String catalogName=null, Boolean onlyUpdate=null) {
-		addChange args2Map(Tag.loadUpdateData,namedArgs) ('tableName',tableName) ('primaryKey',primaryKey) ('file',file) ('relativeToChangelogFile',relativeToChangelogFile) ('encoding',encoding) ('separator',separator) ('quotchar',quotchar) ('commentLineStartsWith',commentLineStartsWith) ('usePreparedStatements',usePreparedStatements) ('schemaName',schemaName) ('catalogName',catalogName) ('onlyUpdate',onlyUpdate)
+		loadUpdateData chkMap(Tag.loadUpdateData,namedArgs) ('tableName',tableName) ('primaryKey',primaryKey) ('file',file) ('relativeToChangelogFile',relativeToChangelogFile) ('encoding',encoding) ('separator',separator) ('quotchar',quotchar) ('commentLineStartsWith',commentLineStartsWith) ('usePreparedStatements',usePreparedStatements) ('schemaName',schemaName) ('catalogName',catalogName) ('onlyUpdate',onlyUpdate).asMap
 	}
 
 	/** Loads or updates data from a CSV file into an existing table.
@@ -1018,7 +1018,7 @@ trait ChangeSetChildren {
 	</dl> */
 	void loadUpdateData( String tableName, String primaryKey, String file, Boolean relativeToChangelogFile=null, String encoding=null, String separator=null, String quotchar=null, String commentLineStartsWith=null, Boolean usePreparedStatements=null, String schemaName=null, String catalogName=null, Boolean onlyUpdate=null, 
 				@DelegatesTo(value=LoadUpdateDataDelegate, strategy=DELEGATE_ONLY) Closure columns) {
-		addChange args2Map(Tag.loadUpdateData) ('tableName',tableName) ('primaryKey',primaryKey) ('file',file) ('relativeToChangelogFile',relativeToChangelogFile) ('encoding',encoding) ('separator',separator) ('quotchar',quotchar) ('commentLineStartsWith',commentLineStartsWith) ('usePreparedStatements',usePreparedStatements) ('schemaName',schemaName) ('catalogName',catalogName) ('onlyUpdate',onlyUpdate) , columns
+		loadUpdateData chkMap(Tag.loadUpdateData) ('tableName',tableName) ('primaryKey',primaryKey) ('file',file) ('relativeToChangelogFile',relativeToChangelogFile) ('encoding',encoding) ('separator',separator) ('quotchar',quotchar) ('commentLineStartsWith',commentLineStartsWith) ('usePreparedStatements',usePreparedStatements) ('schemaName',schemaName) ('catalogName',catalogName) ('onlyUpdate',onlyUpdate) .asMap, columns
 	}
 
 	/** Loads or updates data from a CSV file into an existing table.
@@ -1039,7 +1039,7 @@ trait ChangeSetChildren {
 	</dl> */
 	void loadUpdateData( Map<String, Object> namedArgs, String tableName, String primaryKey, String file, Boolean relativeToChangelogFile=null, String encoding=null, String separator=null, String quotchar=null, String commentLineStartsWith=null, Boolean usePreparedStatements=null, String schemaName=null, String catalogName=null, Boolean onlyUpdate=null, 
 				@DelegatesTo(value=LoadUpdateDataDelegate, strategy=DELEGATE_ONLY) Closure columns) {
-		addChange args2Map(Tag.loadUpdateData,namedArgs) ('tableName',tableName) ('primaryKey',primaryKey) ('file',file) ('relativeToChangelogFile',relativeToChangelogFile) ('encoding',encoding) ('separator',separator) ('quotchar',quotchar) ('commentLineStartsWith',commentLineStartsWith) ('usePreparedStatements',usePreparedStatements) ('schemaName',schemaName) ('catalogName',catalogName) ('onlyUpdate',onlyUpdate) , columns
+		loadUpdateData chkMap(Tag.loadUpdateData,namedArgs) ('tableName',tableName) ('primaryKey',primaryKey) ('file',file) ('relativeToChangelogFile',relativeToChangelogFile) ('encoding',encoding) ('separator',separator) ('quotchar',quotchar) ('commentLineStartsWith',commentLineStartsWith) ('usePreparedStatements',usePreparedStatements) ('schemaName',schemaName) ('catalogName',catalogName) ('onlyUpdate',onlyUpdate) .asMap, columns
 	}
 
 	/** Loads or updates data from a CSV file into an existing table.
@@ -1065,24 +1065,24 @@ trait ChangeSetChildren {
 
 	/** Execute a shell command. */
 	void executeCommand( String executable, String os=null, String timeout=null) {
-		addChange args2Map(Tag.executeCommand) ('executable',executable) ('os',os) ('timeout',timeout)
+		executeCommand chkMap(Tag.executeCommand) ('executable',executable) ('os',os) ('timeout',timeout).asMap
 	}
 
 	/** Execute a shell command. */
 	void executeCommand( Map<String, Object> namedArgs, String executable, String os=null, String timeout=null) {
-		addChange args2Map(Tag.executeCommand,namedArgs) ('executable',executable) ('os',os) ('timeout',timeout)
+		executeCommand chkMap(Tag.executeCommand,namedArgs) ('executable',executable) ('os',os) ('timeout',timeout).asMap
 	}
 
 	/** Execute a shell command. */
 	void executeCommand( String executable, String os=null, String timeout=null, 
 				@DelegatesTo(value=ExecuteCommandDelegate, strategy=DELEGATE_ONLY) Closure args) {
-		addChange args2Map(Tag.executeCommand) ('executable',executable) ('os',os) ('timeout',timeout) , args
+		executeCommand chkMap(Tag.executeCommand) ('executable',executable) ('os',os) ('timeout',timeout) .asMap, args
 	}
 
 	/** Execute a shell command. */
 	void executeCommand( Map<String, Object> namedArgs, String executable, String os=null, String timeout=null, 
 				@DelegatesTo(value=ExecuteCommandDelegate, strategy=DELEGATE_ONLY) Closure args) {
-		addChange args2Map(Tag.executeCommand,namedArgs) ('executable',executable) ('os',os) ('timeout',timeout) , args
+		executeCommand chkMap(Tag.executeCommand,namedArgs) ('executable',executable) ('os',os) ('timeout',timeout) .asMap, args
 	}
 
 	/** Execute a shell command. */

@@ -43,15 +43,15 @@ abstract class GroovyScript extends Script {
      to the database. Default: {@code LEGACY}.</dd>
     </dl>
      */
-    void databaseChangeLog( Map<String, Object> args
+    void databaseChangeLog( Map<String, Object> namedArgs
                            ,String logicalFilePath = null, String contextFilter = null // These are required for mixed parameter calls
                            ,ObjectQuotingStrategy objectQuotingStrategy = null
-                           ,@DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_ONLY) Closure closure) {
-        // It is required to accept all versions containing named parameter must remain for backward compatibility!!!
-        args = argsToMap( args, logicalFilePath, contextFilter, objectQuotingStrategy, closure)
+                           ,@DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_ONLY) Closure changes) {
+        // It is required to accept all versions containing named parameter. Must remain for backward compatibility!!!
+        namedArgs = argsToMap( namedArgs, logicalFilePath, contextFilter, objectQuotingStrategy, changes)
         new DatabaseChangeLogDelegate(getProperty('changeLog') as DatabaseChangeLog,
-                                     getProperty('resourceAccessor') as ResourceAccessor, args)
-            .call( closure)
+                                     getProperty('resourceAccessor') as ResourceAccessor, namedArgs)
+            .call( changes)
     }
 
     /** Root element of the <a href='https://docs.liquibase.com/concepts/changelogs/home.html'>changelog</a>
@@ -73,8 +73,8 @@ abstract class GroovyScript extends Script {
      */
     void databaseChangeLog(String logicalFilePath = null, String contextFilter = null,
                            ObjectQuotingStrategy objectQuotingStrategy = null,
-                           @DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_ONLY) Closure closure) {
-         databaseChangeLog [:], logicalFilePath, contextFilter, objectQuotingStrategy, closure
+                           @DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_ONLY) Closure changes) {
+         databaseChangeLog [:], logicalFilePath, contextFilter, objectQuotingStrategy, changes
     }
 
     /** Possible method calls with forgotten parameters */

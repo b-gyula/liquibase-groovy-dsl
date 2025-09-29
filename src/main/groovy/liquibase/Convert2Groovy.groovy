@@ -34,7 +34,6 @@ class Convert2Groovy {
 	 into the file given as the optional 2nd parameter
 
 	 All included XMLs are also converted generating the same folder structure
-
 	 */
 	static void main(String[] args) {
 		if (args.size() > 0 && !args[0].isBlank()) {
@@ -112,8 +111,8 @@ import liquibase.GroovyScript
 	@TupleConstructor
 	static class TagInfo{
 		final Map<String, MethodDef> methods
-		final List<String> skip
-		TagInfo(Map<String, MethodDef> m, List<String> skip = null){
+		final Map<String, List<String>> skip
+		TagInfo(Map<String, MethodDef> m, Map<String, List<String>> skip = null){
 			methods = m
 			this.skip = skip
 		}
@@ -131,9 +130,9 @@ import liquibase.GroovyScript
 	}
 
 	protected static Map<String, TagInfo> _tagInfoMap = [
-		 script: new TagInfo(getMethods(GroovyScript), ['schemaLocation'])
+		 script: new TagInfo(getMethods(GroovyScript), [databaseChangeLog:['schemaLocation']])
 		,databaseChangeLog: new TagInfo(getMethodDefs(DatabaseChangeLogDelegate))
-		,changeSet: new TagInfo(getMethodDefs(ChangeSetDelegate))
+		,changeSet: new TagInfo(getMethodDefs(ChangeSetDelegate), [validCheckSum:['comment']]) // Skip validCheckSum / comment
 		,column: new TagInfo(methodDefs(ConstraintDelegate))
 		,preConditions: new TagInfo(methodDefs(PreconditionDelegate))
 		,not: new TagInfo(methodDefs(PreconditionDelegate))
@@ -153,19 +152,27 @@ import liquibase.GroovyScript
 		}
 	}
 
-	static String asString(Object value) {
+	static String asString(Object value, Class cls = null ) {
 		if(value == null) return null
+
 		String s = value.toString()
-		switch (value) { // TODO Enum
-			case Boolean:
-			case Number:
-			//case Enum:
-				return s
-			default:
-				if (s.contains('\n')) return "'''${value}'''"
-				s= s.replace('\\', '\\\\')
-				if (s.contains("'")) return '"' + s.replace('"', '\\"') + '"'
+		if(!s.startsWith('${')) {
+			Class expClass = cls ?: value.class
+			try {
+				switch (expClass) { // TODO Enum
+					case Number: s.toBigInteger()
+						return s
+					case Boolean: s.toBoolean()
+						return s
+				}
+			} catch (Exception ignore) {
+				log.warning("Value '$value' cannot be converted to expected type: $expClass.simpleName")
+				// output as quoted string
+			}
 		}
+		if (s.contains('\n')) return "'''${value}'''"
+		s= s.replace('\\', '\\\\')
+		if (s.contains("'")) return '"' + s.replace('"', '\\"') + '"'
 		return "'${s.replace("'", "\\'")}'"
 	}
 
@@ -180,9 +187,8 @@ import liquibase.GroovyScript
 			def n = it.next()
 			if(chk(n)) {
 				it.remove()
-				String r = asString(convert(n.value,cls))
 				if(null == process) {
-					return r
+					return asString( n.value, cls )
 				} else {
 					process(n)
 				}
@@ -192,26 +198,36 @@ import liquibase.GroovyScript
 	}
 
 	/**
-	 *
-	 * @param node
-	 * @param info
-	 * @param o
+	 * Serialize {@code node} into {@code o} printer using {@code tInfo}
+	 * Make a copy of children a remove processed
+	 * 1. Get method definition using the {@code node.name}
+	 * 2. serialize all parameters from the method definition
+	 * 3. Remaining children having value treated as unknown parameter and serialized with child.name
+	 * 4. other remaining children treated as real child and serialized recursively
+	 * @param node to serialize
+	 * @param tInfo
+	 * @param o output printer
 	 * @param posArgs the max positional parameters
 	 */
-	static void serialize(ParsedNode node, IndentPrinter o, TagInfo info = tagInfo('script'), int posArgs = 3) {
-		List<ParsedNode> children = node.children.inject(new LinkedList<>()) { l, n ->
-			if(info?.skip?.contains(n.name)) {
-				log.info("Skipped '$n' as per config")
+	static void serialize(ParsedNode node, IndentPrinter o, TagInfo tInfo = tagInfo('script'), int posArgs = 3) {
+		// Make a copy of children we process since `node.children` makes an immutable copy on every call
+		List<ParsedNode> children = node.children.inject(new LinkedList<ParsedNode>()) { l, n ->
+			if(tInfo?.skip?[node.name]?.contains(n.name)) {
+				log.info("Skipped '$node.name/$n' as per config")
 			} else {
 				l.add (n)
 			}
 			l
 		}
 		if(!children){ // Just use value as single parameter
-			println o, "$node.name " + asString(node.value)
+			if(null != node.value) {
+				println o, "$node.name " + asString(node.value)
+			} else {
+				log.warning("Skipped node '$node' with null value")
+			}
 		} else {
 			CollectionStringBuilder params = new CollectionStringBuilder()
-			MethodDef m = info ? info.methods[node.name] : null
+			MethodDef m = tInfo ? tInfo.methods[node.name] : null
 			if(m) {
 				m.args.each { // known positional value parameter -> write out in expected order
 					if (!MethodDef.isClosure(it)) {
@@ -226,7 +242,7 @@ import liquibase.GroovyScript
 					}
 				}
 			} else {
-				unrecognizedElement(node.name, info?.methods?.keySet() )
+				unrecognizedElement(node.name, tInfo?.methods?.keySet() )
 			}
 			TagInfo childTags
 			if(children) { // Add remaining not known values as params

@@ -933,7 +933,7 @@ emotion=angry
     void parseDatabaseChangeLog1stLevelArgSetTwiceErrors() {
         def chLog = new DatabaseChangeLogDelegate(null, resourceAccessor)
         use(DelegateeCategory) {
-            ["preConditions( FailOption.HALT, onFail: FailOption.HALT){}": chLog.attributeSetTwice(Tag.preConditions, 'onFail'),
+            ["preConditions( OnFail.HALT, onFail: OnFail.HALT){}": chLog.attributeSetTwice(Tag.preConditions, 'onFail'),
               "preConditions( 'HALT', onFail: 'HALT'){}": chLog.attributeSetTwice(Tag.preConditions, 'onFail'),
               "property 'a', 'v', name: 'b'": chLog.attributeSetTwice(Tag.property, Arg.name),
               "property 'a', file: 'b'": chLog.attributeSetTwice(Tag.property, Arg.file),

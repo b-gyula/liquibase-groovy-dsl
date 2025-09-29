@@ -22,8 +22,6 @@ import liquibase.Scope
 import liquibase.change.Change
 import liquibase.change.ChangeFactory
 import liquibase.change.ChangeWithColumns
-import liquibase.change.core.CreateProcedureChange
-import liquibase.change.core.CreateViewChange
 import liquibase.change.core.SQLFileChange
 import liquibase.change.custom.CustomChangeWrapper
 import liquibase.changelog.ChangeSet
@@ -31,9 +29,9 @@ import liquibase.exception.ChangeLogParseException
 import liquibase.exception.RollbackImpossibleException
 import liquibase.parser.groovy.exception.InvalidArguments
 import liquibase.parser.groovy.exception.UnrecognizedElement
-import liquibase.precondition.core.PreconditionContainer.OnSqlOutputOption
 import liquibase.precondition.core.PreconditionContainer.ErrorOption
 import liquibase.precondition.core.PreconditionContainer.FailOption
+import liquibase.precondition.core.PreconditionContainer.OnSqlOutputOption
 import liquibase.serializer.LiquibaseSerializable
 
 import static PreconditionDelegate.buildPreconditionContainer
@@ -98,7 +96,7 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
      <dt>onSqlOutput</dt>
      <dd>Controls how preconditions are evaluated with the update-sql command for XML, YAML, and JSON changelogs. Since 1.9.5</dd>
      </dl> */
-    void preConditions(Map namedArgs, FailOption onFail = null, ErrorOption onError = null,
+    void preConditions(Map<String,Object> namedArgs, FailOption onFail = null, ErrorOption onError = null,
                        String onFailMessage = null, String onErrorMessage = null,
                        OnSqlOutputOption onSqlOutput = null,
                        @DelegatesTo(value = PreconditionDelegate, strategy = DELEGATE_ONLY) Closure preconditions) {
@@ -107,6 +105,21 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
                 buildPreconditionContainer(databaseChangeLog, namedArgs, preconditions, changeId)
     }
 
+    /** Preconditions required to execute the changeset. The closure containing nested elements of a precondition.
+     If no conditional tags are specified, the default logic is AND for multiple conditions
+     <br>Params:
+     <dl>
+     <dt>onError</dt>
+     <dd>Controls what happens if there is an error checking whether the precondition passed or not.</dd>
+     <dt>onErrorMessage</dt>
+     <dd>Provides a custom message to output when preconditions fail. Since 2.0</dd>
+     <dt>onFail</dt>
+     <dd>Controls what happens if the preconditions check fails.</dd>
+     <dt>onFailMessage</dt>
+     <dd>Provides a custom message to output when preconditions fail. Since 2.0</dd>
+     <dt>onSqlOutput</dt>
+     <dd>Controls how preconditions are evaluated with the update-sql command for XML, YAML, and JSON changelogs. Since 1.9.5</dd>
+     </dl> */
     void preConditions(FailOption onFail = null, ErrorOption onError = null,
                        String onFailMessage = null, String onErrorMessage = null,
                        OnSqlOutputOption onSqlOutput = null,
@@ -114,6 +127,7 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
         preConditions [:], onFail, onError, onFailMessage, onErrorMessage, onSqlOutput, preconditions
     }
 
+    // TODO add closure version
     // 1:any | 1:all | 1:*
     void validCheckSum(String checksum) {
         changeSet.addValidCheckSum(checksum)
@@ -285,7 +299,7 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
     /** Helper method called from the generated methods. Calling (Tag, Map) version is more efficient
      Helps to find missing method definitions
      */
-    protected Change addChange(NullChecker<Tag> args, @DelegatesTo(strategy = DELEGATE_ONLY)  Closure cl = null) {
+    protected Change addChange(NullChecker<Tag> args, @DelegatesTo(strategy = DELEGATE_ONLY) Closure cl = null) {
         if(cl) {
             return addChangeWithChild(args.elem, args.asMap, cl)
         }else {
@@ -338,20 +352,11 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
      Will run for all dbms' if empty or absent</dd>
      <dt>replaceIfExists</dt>
      <dd>If the stored procedure defined by {@code procedureName} already exists, alter it instead of creating it. Default: false.</dd>
-     </dl>
-
-    /**
-     * Processes a createProcedure change, which takes a closure in addition to an optional
-     * parameter map.
-     * @param params the properties to set on the new changes.
-     * @param closure the closure to call with the definition of the procedure.
-     */
+     </dl> */
     void createProcedure(Map params = [:],
                          @DelegatesTo(value = CreateProcedureDelegate, strategy = DELEGATE_ONLY) Closure<String> procedureText = null) {
-        CreateProcedureChange change = addChange(Tag.createProcedure, params)
-        setProp change, 'procedureText', callOnDelegate(change, procedureText)
+        addChangeWithMixedChild chkMap(Tag.createProcedure, params),'procedureText', procedureText
     }
-
 
     /**
      * Processes a customChange change, which takes a closure in addition to a map.
@@ -401,22 +406,36 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
         // To support empty changes (allowed by the spec)
     }
 
+    /**
+     * Output {@code message} into {@code target} stream
+     * @param namedArgs
+     * @param message text to output
+     * @param target stream output {@code message} into
+     */
     void output(String message, String target = null) {
         output argsAsMap(Tag.output, message, target)
     }
 
+    /**
+     *  Output {@code message} into {@code target} stream
+     * @param namedArgs
+     * @param message text to output
+     * @param target stream output {@code message} into
+     */
     void output(Map<String, String> namedArgs, String message, String target = null ) {
-        output argsAsMap(Tag.output, namedArgs, message, target)
+        addChange Tag.output, argsAsMap(Tag.output, namedArgs, message, target)
     }
 
+/*  Processes an output change. This method only takes a map, but we can't use methodMissing for
+    this change because Liquibase initializes the target to the invalid value of an empty string
+    instead of null.*/
     /**
-     * Processes an output change. This method only takes a map, but we can't use methodMissing for
-     * this change because Liquibase initializes the target to the invalid value of an empty string
-     * instead of null.
-     *
-     * @param params the properties to set on the new changes.
+     * Output {@code message} into {@code target} stream
+     * @param params the properties to set. Valid parameters are:<br>
+     * {@code message} text to output<br>
+     * {@code target} stream output {@code message} into
      */
-    void output(Map params) {
+    void output(Map params=null, Closure<String> message = null) {
         // Workaround for Issue #28:  Liquibase initializes the target to the invalid value of an
         // empty string instead of null, then checks for null when deciding if it wants to use the
         // default of STDERR.  workaround this by explicitly setting the default if no target was
@@ -424,7 +443,13 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
         if ( !params.containsKey('target') ) {
             params.target = 'STDERR'
         }
-        addChange(Tag.output, params)
+        addChange chkMap(Tag.output, params)('message',message ? message() as String: null)
+    }
+
+    protected void addChangeWithMixedChild(NullChecker params, String childName,
+                                 @DelegatesTo(strategy = DELEGATE_ONLY) Closure<String> child) {
+        Change change = addChange(lookupChange(params.elem.name()))
+        setProps change, params(childName, callOnDelegate(change, child)).asMap
     }
 
     /** Execute any SQL statement(s) in the content.
@@ -446,56 +471,47 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
      . Separate multiple databases with commas. Specify that a changeset is not applicable to a particular
      database type by prefixing with !. The keywords all and none are also available.
      Will run for all dbms' if empty or absent</dd>
-     </dl> */ // FIXME dbms cannot be the 1st
-    void sql(Boolean stripComments=null, String dbms=null, Boolean splitStatements=null, String endDelimiter=null,
-             @DelegatesTo(value = CommentDelegate, strategy = DELEGATE_ONLY) Closure sql) {
-        this.sql [:], stripComments, dbms, splitStatements, endDelimiter, sql
-    }
-
-    /** Execute any SQL statement(s) in the content.
-     The SQL change can also contain comments of either of the following formats:
-     A multi-line comment that starts with /* and ends with *\/.
-     A single line comment starting with -- and finishing at the end of the line.
-     or a comment element can be used
-     <br>Params:<dl>
-     <dt>stripComments</dt>
-     <dd>When true, any comments are removed in the statement before executing on the database. Default: true.</dd>
-     <dt>splitStatements</dt>
-     <dd>When true, Liquibase splits statements on {@code endDelimiter} and executes them separately. Default: true.</dd>
-     <dt>endDelimiter</dt>
-     <dd>The delimiter to separate raw SQL statements. The default value is `;`
-     See: https://docs.liquibase.com/change-types/enddelimiter-sql.html</dd>
-     <dt>dbms</dt>
-     <dd>Specifies which database type(s) a changeset is to be used for.
-     See valid database type names on Liquibase Database Tutorials
-     . Separate multiple databases with commas. Specify that a changeset is not applicable to a particular
-     database type by prefixing with !. The keywords all and none are also available.
-     Will run for all dbms' if empty or absent</dd>
-     </dl> */ // FIXME dbms cannot be the 2nd
-    void sql(Map namedArgs, Boolean stripComments=null, String dbms=null, Boolean splitStatements=null, String endDelimiter=null,
+     </dl> */
+    void sql(Map<String,Object> namedArgs, Boolean stripComments=null, String dbms=null, Boolean splitStatements=null, String endDelimiter=null,
              @DelegatesTo(value = SqlDelegate, strategy = DELEGATE_ONLY) Closure<String> sql) {
-        //argsAsMap(Tag.sql, namedArgs, stripComments, splitStatements, endDelimiter, dbms, sql)
-        Change change = addChange(Tag.sql, namedArgs, stripComments, dbms, splitStatements, endDelimiter)
-        setProp change, 'sql', callOnDelegate(change, sql)
-//        def delegate = new CommentDelegate(changeSetId: changeSet.id, changeName: 'sql')
-//        sql.delegate = delegate
-//        sql.resolveStrategy = Closure.DELEGATE_FIRST
-        // expand expressions because the comment delegate won't...
-        //change.sql = expandExpressions(callOnDelegate(change, closure))
-        //change.comment = (expandExpressions(delegate.comment))
-        //addChange(change)
+        addChangeWithMixedChild( chkMap(Tag.sql, namedArgs) ('stripComments',stripComments) ('dbms',dbms) ('splitStatements',splitStatements) ('endDelimiter',endDelimiter), 'sql', sql)
     }
 
-    /** Execute an sql change. */
-    void sql(String sql, String dbms=null, Boolean stripComments=null, Boolean splitStatements=null, String endDelimiter=null) {
-        addChange Tag.sql, [:], sql, dbms, stripComments, splitStatements, endDelimiter
+    /** Execute any SQL statement(s) in the content.
+     The SQL change can also contain comments of either of the following formats:
+     A multi-line comment that starts with /* and ends with *\/.
+     A single line comment starting with -- and finishing at the end of the line.
+     or a comment element can be used
+     <br>Params:<dl>
+     <dt>stripComments</dt>
+     <dd>When true, any comments are removed in the statement before executing on the database. Default: true.</dd>
+     <dt>splitStatements</dt>
+     <dd>When true, Liquibase splits statements on {@code endDelimiter} and executes them separately. Default: true.</dd>
+     <dt>endDelimiter</dt>
+     <dd>The delimiter to separate raw SQL statements. The default value is `;`
+     See: https://docs.liquibase.com/change-types/enddelimiter-sql.html</dd>
+     <dt>dbms</dt>
+     <dd>Specifies which database type(s) a changeset is to be used for.
+     See valid database type names on Liquibase Database Tutorials
+     . Separate multiple databases with commas. Specify that a changeset is not applicable to a particular
+     database type by prefixing with !. The keywords all and none are also available.
+     Will run for all dbms' if empty or absent</dd>
+     </dl> */ // TODO should be generated
+    void sql( Boolean stripComments=null, String dbms=null, Boolean splitStatements=null, String endDelimiter=null,
+              @DelegatesTo(value=SqlDelegate, strategy=DELEGATE_ONLY) Closure<String> sql) {
+        //sql chkMap(Tag.sql) ('stripComments',stripComments) ('dbms',dbms) ('splitStatements',splitStatements) ('endDelimiter',endDelimiter) .asMap, sql
+        addChangeWithMixedChild( chkMap(Tag.sql) ('stripComments',stripComments) ('dbms',dbms) ('splitStatements',splitStatements) ('endDelimiter',endDelimiter), 'sql', sql)
     }
 
-    void sql(Map namedArgs, String sql, String dbms=null, Boolean stripComments=null, Boolean splitStatements=null, String endDelimiter=null) {
-        addChange Tag.sql, namedArgs, sql, dbms, stripComments, splitStatements, endDelimiter
+    void sql(String sql, Boolean stripComments=null, String dbms=null, Boolean splitStatements=null, String endDelimiter=null) {
+        addChange chkMap(Tag.sql) ('sql',sql)('stripComments', stripComments)('dbms', dbms) ('splitStatements',splitStatements) ('endDelimiter' , endDelimiter)
     }
 
-    /**
+    void sql(Map<String,Object> namedArgs, String sql, Boolean stripComments=null, String dbms=null, Boolean splitStatements=null, String endDelimiter=null) {
+        addChange chkMap(Tag.sql,namedArgs) ('sql',sql)('dbms', dbms)('stripComments', stripComments) ('splitStatements',splitStatements) ('endDelimiter' , endDelimiter)
+    }
+
+     /**
      * Processes a sqlFile change.  We can't use methodMissing here because we have additional
      * validation we need to do.
      * @param params the properties to set on the new changes.
@@ -513,9 +529,9 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
     }
 
     /**
-     * Parse a stop change.  This version of the method is syntactic sugar that allows
-     * {@code stop 'some message'} in stead of the usual parameter based change.
-     * @param message the stop message.
+     * Stop Liquibase execution with a message
+     * {@code stop 'some message'} instead of the usual parameter based change.
+     * @param message Message to send to output
     */
     void stop(String message) {
         stop([message:message])
@@ -581,8 +597,8 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
      */
     @PackageScope
     <T extends Change> T addChangeWithChild(Tag name,
-                               Map params,
-                               @DelegatesTo(strategy = DELEGATE_ONLY) Closure closure) {
+                                           Map params,
+                                           @DelegatesTo(strategy = DELEGATE_ONLY) Closure closure) {
         T change = makeChangeFromMap(name.name(), params)
 
         // Make a new delegate and give it the change to populate.

@@ -1,16 +1,42 @@
 
 == Overview
-Each tag having children tag(s) have a corresponding `...Delegate` class used for children handling (and for the autocomplete). 
+Each tag having children tag(s) have a corresponding `<tag name capitalized>Delegate` class used
+for children handling (and for the autocomplete).
 Each tag has a method in its parent ...Delegate class with the same name.
-The method parameters are the properties of the object. The changes and preconditions are generated from the latest XSD with the `gen/.../APIGenerator`. The others are hardcoded. The mandatory parameters(properties) are in front of the parameter list without default value.
-Each method has 3 versions:
- . Simple Map + Closure?
- . Map + <All parameters with type and name>
- . <All parmaeters with type and name>
+The method parameters are the properties of the object. The changes and preconditions are generated
+from the latest XSD
+with the `gen/.../APIGenerator`. Others are hardcoded. The mandatory parameters(properties) are in
+front of the parameter list without default value. Each method has 3 versions:
+ . Simple Map + Closure? for backward compatibility and for flexibility to handle future changes
+ . Map + <All parameters with type and name> for mixed positional and named parameter calls
+ . <All parameters with type and name> for only positional parameter calls
 
-Positional parameter order :
+Positional parameter order:
 - required are in front
 - closure for children is always last
 - Most unique meaning first:
  column related change: column name, table name, ...
  index: e.g. indexExists index name, tablename
+
+Some tags have mutually exclusive parameters like `property/` `path` | `name`+`value` or
+`createProcedure`:  `path` | `procedureText` child closure. There are multiple method definitions with
+different parameter lists to match these requirements
+
+To improve error messages, the parameter information is read from the corresponding `...Delegate`
+class by collecting public method using reflection.
+
+Remaining tasks:
+- compiled version parser: solution for `include(All)`
+- Add doc for `.../column` methods
+- positional test for each column type
+- test for `constraint`s
+- Add error test cases to all changes (argument set twice, wrong number)
+- store multiple method definitions for elements having 2 exclusive parameters sets like
+`sql` / `createProcedure` / `dropColumn`
+- addt ests for output
+- Invalid argument check based on the new method declarations DatabaseChangeLogDelegate / ...
+- check reference of low level error messages like update / whereParams / param
+- Add possible values to enum conversion errors
+- Generate single map version for preconditions
+- Create annotation & add to arguments & check runtime (get liquibase version and compare)
+- Restore backward compatibility to earlier Liquibase versions. current: 4.24

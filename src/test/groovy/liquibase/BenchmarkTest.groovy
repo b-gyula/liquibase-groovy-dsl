@@ -22,7 +22,7 @@ import java.util.concurrent.TimeUnit
 @CompileStatic
 class BenchmarkTest {
 	static final String commonTestChangelog = 'changelogs/common.test'
-	static final String commonTestChangelogNoInc = 'changelogs/common.test.noinc'
+	static final String commonTestChangelogNoInc = commonTestChangelog + '.noinc'
 	static final File commonTestChangelogRoot = new File('src/test/resources')
 	static ResourceAccessor ra = new FolderResourceAccessor(commonTestChangelogRoot)
 	static ResourceAccessor raProj = new DirectoryResourceAccessor(Path.of('.'))
@@ -45,12 +45,15 @@ class BenchmarkTest {
 		groovy
 	}
 
-	//static final File commonTestsChangelogRoot = new File('test')
-	static String serialize(DatabaseChangeLog log) {
+	static String serializeStr(DatabaseChangeLog log, String ignore = '') {
 		StringChangeLogSerializer serializer = new StringChangeLogSerializer()
+		//ChangeLogSerializer serializer = new GroovyChangeLogSerializer()
+		//ChangeLogSerializer serializer = new XMLChangeLogSerializer()
+		boolean pretty = false
 		try(PrintWriter p = new PrintWriter(log.filePath+'.txt' )) {
-			String r = log.changeSets.inject (new DelegateUtil.CollectionStringBuilder()) { r, c ->
-				r << serializer.serialize(c, false)
+			String r = serializer.serialize(log.preconditions, pretty)
+			r += log.changeSets.inject (new DelegateUtil.CollectionStringBuilder()) { c, ch ->
+				c << serializer.serialize(ch, pretty).replace(ignore,'')
 			}
 			p.write(r)
 			p.flush()
@@ -70,7 +73,7 @@ class BenchmarkTest {
 		DatabaseChangeLog groovy = compiledGroovy()
 
 		//DatabaseChangeLog xml = parseXML()
-		serialize(groovy)
+		serializeStr(groovy)
 	}
 }
 

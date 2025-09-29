@@ -110,7 +110,7 @@ class PreconditionDelegateTests extends Specification {
         type         | cl
         'named'      | { changeSetExecuted(id: it.id, author: it.author, changeLogFile: it.changeLogFile)}
         'mixed'      | { changeSetExecuted( it.id, changeLogFile: it.changeLogFile, it.author)}
-        'positional' | { changeSetExecuted it.id, tlberglund, changeLogXML }
+        'positional' | { changeSetExecuted( it.id, tlberglund, changeLogXML) }
     }
 
 

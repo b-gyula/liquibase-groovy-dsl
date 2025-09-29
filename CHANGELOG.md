@@ -1,3 +1,29 @@
+Changes for 4.1
+================
+- Attributes can be passed as positional method parameter for each element, that adds auto complete 
+  help @ script creation in IDEs with groovy support like IntelliJ IDEA, Eclipse and Netbeans.
+- Add documentation also in IDEs 
+- From now if the IDE does not show error during script edit, there is a big chance the script is 
+valid and no parse error occurs @ runtime
+- Error messages are improved containing the script name+line and possible names / parameters
+e.g: "changeSet includerelative/pathinclude1::1::nvoxland: Unrecognized child element: 'colum' for 
+'createTable'! Valid elements are [column] @changelogs/pathincluded/pathinclude1.changelog.groovy:10"
+  Liquibase `Enum`s can also be used as either strings or just their enum value as every script has
+  imported statically
+  `liquibase.database.ObjectQuotingStrategy.*`
+  ,`liquibase.changelog.ChangeSet.ValidationFailOption.*`
+  ,`liquibase.database.ColumnParentTypeEnum.*`
+- `column` element attributes are limited to their meaningfull set e.g. `index` / `column` does not offer
+  `defaultValueNumeric` as it is ignored during execution.
+
+**Breaking change**
+- The change [createProcedure](https://docs.liquibase.com/reference-guide/change-types/createprocedure)
+  has 2 disjunct set of properties: `path` + related properties if the procedure text shall be read
+  from a separate file. If those are not defined, the SQL is expected to be in the (closure) parameter.
+  Now calling `createProcedure 'string'` will treat 'string' as the `path` instead of the SQL body as
+  earlier
+- Multiple nested `comment`s are not concatenated (latest wins) in `sql` elemet ike in other file formats
+
 Changes for 4.0.1
 =================
 

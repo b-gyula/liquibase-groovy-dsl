@@ -9,6 +9,6 @@ import static org.liquibase.groovy.delegate.PreconditionDelegate.Tag
 @SelfType(PreconditionDelegate)
 trait PreConditionChildren {
 <% methods.findAll{it.args && !it.hasChild && !skip.contains(it.name) }.each { m -> %>
-	${m.functionDefinitions('addPrecondition', true)}
-<% } // each %>
+	${m.functionDefinitions('addPrecondition', true, '')}
+<%	} // each %>
 }

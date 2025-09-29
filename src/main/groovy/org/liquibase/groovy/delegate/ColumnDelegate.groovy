@@ -364,7 +364,7 @@ class AddColumnDelegate extends ColumnDelegateHasConstraint<AddColumnConfig> {
         super( changeSet, change, AddColumnConfig)
     }
 
-    void column(Map namedArgs,
+    void column(Map<String,Object> namedArgs,
                 String name,
                 String type,
                 Boolean computed=null,
@@ -394,8 +394,7 @@ class AddColumnDelegate extends ColumnDelegateHasConstraint<AddColumnConfig> {
                 String afterColumn=null,
                 String beforeColumn=null,
                 Integer position=null,
-                @DelegatesTo(value = ConstraintDelegate, strategy = DELEGATE_ONLY)
-                        Closure constraints) {
+                @DelegatesTo(value = ConstraintDelegate, strategy = DELEGATE_ONLY) Closure constraints) {
         column argsToMap(namedArgs,
                 name,
                 type,
@@ -428,7 +427,7 @@ class AddColumnDelegate extends ColumnDelegateHasConstraint<AddColumnConfig> {
                 position), constraints
     }
 
-    void column(Map namedArgs,
+    void column(Map<String,Object> namedArgs,
                 String name,
                 String type,
                 Boolean computed=null,
@@ -519,8 +518,7 @@ class AddColumnDelegate extends ColumnDelegateHasConstraint<AddColumnConfig> {
                 String afterColumn=null,
                 String beforeColumn=null,
                 Integer position=null,
-                @DelegatesTo(value = ConstraintDelegate, strategy = DELEGATE_ONLY)
-                        Closure constraints){
+                @DelegatesTo(value = ConstraintDelegate, strategy = DELEGATE_ONLY) Closure constraints){
         column argsToMap(name,
                 type,
                 computed,
