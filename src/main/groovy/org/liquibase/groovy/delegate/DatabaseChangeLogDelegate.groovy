@@ -163,7 +163,7 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
                    ObjectQuotingStrategy objectQuotingStrategy = null, String runWith = null,
                    String created = null, String runWithSpoolFile = null, Boolean ignore = null,
                    @DelegatesTo(value=ChangeSetDelegate, strategy=DELEGATE_ONLY) Closure changes) {
-        changeSet args2Map( Tag.changeSet, namedArgs)
+        changeSet chkMap( Tag.changeSet, namedArgs)
             .call('id', id)
             .call('author', author)
             .call(Arg.dbms, dbms)
@@ -319,9 +319,10 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
 	void include(Map<String, Object> namedArgs, String file, Boolean relativeToChangelogFile = null,
                  String contextFilter = null, String labels = null,
                  Boolean errorIfMissing = null, Boolean ignore = null) {
-        include args2Map(Tag.include, namedArgs) (Arg.file, file)
+        include chkMap(Tag.include, namedArgs) (Arg.file, file)
 				.call(Arg.relativeToChangelogFile, relativeToChangelogFile)
-            .call(Arg.contextFilter, contextFilter)(Arg.labels, labels)(Arg.ignore, ignore)(Arg.errorIfMissing, errorIfMissing)
+            .call(Arg.contextFilter, contextFilter)(Arg.labels, labels)(Arg.ignore, ignore)
+				.call(Arg.errorIfMissing, errorIfMissing)
             .asMap
     }
 
@@ -634,7 +635,7 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
     }
 
     /** {@link #preConditions} */
-    void preConditions(Map namedArgs,
+    void preConditions(Map<String,Object> namedArgs,
                        FailOption onFail = null, ErrorOption onError = null,
                        String onFailMessage = null, String onErrorMessage = null,
                        OnSqlOutputOption onSqlOutput = null,
@@ -676,7 +677,7 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
     void property(Map<String, Object> namedArgs, String name, String value,
                   String contextFilter = null, String labels = null,
                   String dbms = null, Boolean global = null) {
-        property args2Map(Tag.property, namedArgs)
+        property chkMap(Tag.property, namedArgs)
                 .call(Arg.name, name)
                 .call(Arg.value, value)
                 .call(Arg.contextFilter, contextFilter)
@@ -723,7 +724,7 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
     void property(Map<String, Object> namedArgs, String file, Boolean relativeToChangelogFile = null,
                   String contextFilter = null, String labels = null,
                   String dbms = null, Boolean global = null, Boolean errorIfMissing = null) {
-        property args2Map(Tag.property, namedArgs) // TODO use method definition
+        property chkMap(Tag.property, namedArgs) // TODO use method definition
                 .call(Arg.contextFilter, contextFilter)
                 .call(Arg.labels, labels)
                 .call(Arg.file, file)

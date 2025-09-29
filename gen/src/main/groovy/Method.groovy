@@ -40,6 +40,8 @@ class Method extends NameAndDesc<Method> {
 
 	boolean childOptional() { hasChild && !child.required }
 
+	String toString() { name }
+
 	boolean filterParams(Arg arg, boolean skipArgsWithNoDesc = true) {
 		boolean hasDesc = arg.desc
 		if (!hasDesc) {
@@ -60,47 +62,46 @@ class Method extends NameAndDesc<Method> {
 		//return ''
 	}
 
+	List<Arg> processArgs(boolean skipOptionalChild = false, List<String> skip = []) {
+		args.findAll{ !skip.contains(it.name) }
+			.dropRight(childOptional() && skipOptionalChild ? 1 : 0)
+	}
+
 	/** Generate the argument list
 	 @param addTypeAndDefault add type and default value (=null)
 	 */
-	String argList( boolean typeNameNDefault,	boolean skipOptionalChild , List<String> skip = []) {
-		String r = processArgs(skipOptionalChild, skip)
-			.sum {
-			it.asString(typeNameNDefault,	it.isClosure())
+	String argList( boolean typeNameNDefault,	boolean skipOptionalChild, List<String> skip = [], String asMap = AsMap) {
+		String r = processArgs(skipOptionalChild, skip).sum {
+			it.asString(typeNameNDefault,	it.isClosure(), asMap)
 		}
-		r.dropRight(1) // Cut last ,
+		r = r.dropRight(1) // Cut last ,
+		!typeNameNDefault && (!hasChild || childOptional() && skipOptionalChild) ? r + asMap : r
 	}
 
 	String javadoc(List<Arg> args, boolean argsAsHtml = false, boolean skipArgsWithNoDesc = true) {
 		"""/** ${desc}${argDescs(args, argsAsHtml, skipArgsWithNoDesc)} */""".stripMargin()
 	}
 
-	String toString() { name }
-
-	List<Arg> processArgs(boolean skipOptionalChild = false, List<String> skip = []) {
-		args.findAll{ !skip.contains(it.name) }
-			.dropRight(childOptional() && skipOptionalChild ? 1 : 0)
-	}
-
 	/** Generate method definition */
 	String fnDef(boolean addNamedArgsMap, String methodToCall,
-					 boolean skipOptionalChild = false, List<String> skip = []) {
+					 boolean skipOptionalChild = false, List<String> skip = [], String asMap = AsMap) {
 		"""${javadoc(processArgs(skipOptionalChild, skip), args.size() > 3)}
-	void $name(${addNamedArgsMap ? namedArgs.typeNNameNDefault() : ''}${argList(true, skipOptionalChild, skip)}) {
-		$methodToCall args2Map(Tag.$name${addNamedArgsMap ? ','+namedArgs.name : ''}) ${argList(false, skipOptionalChild, skip)}
+	void $name(${addNamedArgsMap ? namedArgs.typeNNameNDefault() : ''}${argList(true, skipOptionalChild, skip, asMap)}) {
+		$methodToCall chkMap(Tag.$name${addNamedArgsMap ? ','+namedArgs.name : ''}) ${argList(false, skipOptionalChild, skip, asMap)}
 	}"""
 	}
 
+	static final String AsMap = '.asMap'
 	/** Generate method definition with all parameters and if there are more than 2 parameters
 		another definition with named Map argument in front for mixe method calls
 	 */
-	String functionDefinitions(String methodToCall, boolean skipOptionalChild = false ) {
+	String functionDefinitions(String methodToCall, boolean skipOptionalChild = false, String asMap = AsMap) {
 		// When the child is optional and we do not skip it -> skip exclusive parameters (createView)
 		List<String> skip = skipOptionalChild ? [] : (child.requiredExcept ?: [])
 
-		String r = fnDef(false, methodToCall, skipOptionalChild, skip)
+		String r = fnDef(false, methodToCall, skipOptionalChild, skip, asMap)
 		if(args.size() > 2) {
-			r += '\n\n\t' + fnDef(true, methodToCall, skipOptionalChild, skip)
+			r += '\n\n\t' + fnDef(true, methodToCall, skipOptionalChild, skip, asMap)
 		}
 		r
 	}
@@ -143,19 +144,19 @@ class Method extends NameAndDesc<Method> {
 			" $type $name${!child && !required ? '=null' : ''},"
 		}
 
-		String nameNName( boolean child = false) {
+		String nameNName( boolean child = false, String asMap = '.asMap') {
 			if(child) {
 				if (isClosure( StringClosure)) {
-					return "('$name',$name ? $name() as String: null) "
+					return "('$name',$name ? $name() as String: null)$asMap "
 				}
-				return ", $name "
+				return "$asMap, $name "
 			} else {
-				return "('$name',$name) "
+				return "('$name',$name) " //${child ? '.asMap' : ''}
 			}
 		}
 
-		String asString(boolean typeNameNDefault, boolean child = false) {
-			typeNameNDefault ? typeNNameNDefault(child) : nameNName (child)
+		String asString(boolean typeNameNDefault, boolean child = false, String asMap) {
+			typeNameNDefault ? typeNNameNDefault(child) : nameNName (child, asMap)
 		}
 
 		/**  See {@link com.sun.org.apache.xerces.internal.xs.XSConstants} */

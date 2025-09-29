@@ -40,6 +40,7 @@ abstract class Delegatee<Tag extends Enum<Tag>> {
         StringUtils.capitalize(tagName) + "Delegate"
     }
 
+    /** Get Delegate class for tagname */
     static Class<Delegate> delegateClass4tag(String tagName) {
         (Class<Delegate> )Class.forName("org.liquibase.groovy.delegate." + delegateClassSimpleName(tagName))
     }
@@ -107,7 +108,7 @@ abstract class Delegatee<Tag extends Enum<Tag>> {
         new ParseErrorWithFileNLine(msg, changeId, t)
     }
 
-    NullChecker<Tag> args2Map(Tag t, Map<String, Object> args = [:]) {
+    NullChecker<Tag> chkMap(Tag t, Map<String, Object> args = [:]) {
         new NullChecker<Tag>(t, args)
     }
 

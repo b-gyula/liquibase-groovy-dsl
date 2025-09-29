@@ -12,21 +12,21 @@ import static groovy.lang.Closure.DELEGATE_ONLY
 @SelfType(ChangeSetDelegate)
 trait ChangeSetChildren {
 <% methods.findAll{ it.args && !skip.contains(it.name) }.each { m -> %>
-	${m.functionDefinitions( 'addChange', true)}
+	${m.functionDefinitions( m.name, true)}
 <% if(m.args.size() > 2) {
 		if(m.childOptional()) { %>
-	${m.functionDefinitions('addChange')}
+	${m.functionDefinitions(m.name)}
 <%  	} // Add Map or Map + Closure versions if hasChild
 	if(!skipMapArgVersion.contains(m.name) && (m.hasRequired() || m.hasChild )) {
 %>
 	${m.javadoc(m.args, m.args.size() > 3 )}<%
 	if (m.hasChild){ %>
-	void $m.name(Map<String, Object> params,${m.child.asString( true, false).dropRight(1)}) {<%
+	void $m.name(Map<String, Object> params,${m.child.typeNNameNDefault(false).dropRight(1)}) {<%
 		if(m.child.stringClosure()) { %>
-		addChange args2Map(Tag.$m.name, params) ${m.child.asString(false, true).dropRight(1)}
+		addChange chkMap(Tag.$m.name, params)${m.child.nameNName(true, '').dropRight(1)}
 	}
 		<%	} else { %>
-		addChangeWithChild Tag.$m.name, params${m.child.asString(false, true).dropRight(1)}
+		addChangeWithChild Tag.$m.name, params${m.child.nameNName(true, '').dropRight(1)}
 	}
 <%		}
 	} else { %>

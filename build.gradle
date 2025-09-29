@@ -23,9 +23,18 @@ java {
 		languageVersion = JavaLanguageVersion.of(11)
 	}
 }
-//application {
-//	mainClass = 'liquibase.Convert2Groovy'
-//}
+
+jar {
+	manifest {
+		attributes(
+			'Main-Class' : 'liquibase.Convert2Groovy')
+	}
+}
+
+application {
+	mainClass = 'liquibase.Convert2Groovy'
+}
+
 run {
 	jvmArgs = ['-Djava.util.logging.config.file=logging.properties']
 }
@@ -58,7 +67,7 @@ dependencies {
     testRuntimeOnly "com.h2database:h2:${h2Version}"
     testRuntimeOnly "ch.qos.logback:logback-classic:${logbackVersion}"
     testRuntimeOnly "info.picocli:picocli:4.7.5"
-	compileOnly 'org.openjdk.jmh:jmh-core:1.37'
+	testImplementation 'org.openjdk.jmh:jmh-core:1.37'
 	jmh 'org.openjdk.jmh:jmh-generator-annprocess:1.37'
 	jmh 'org.openjdk.jmh:jmh-generator-bytecode:1.37'
 	jmhAnnotationProcessor 'org.openjdk.jmh:jmh-generator-annprocess:1.37'

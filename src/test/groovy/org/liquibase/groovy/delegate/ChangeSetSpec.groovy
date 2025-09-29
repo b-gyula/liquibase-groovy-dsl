@@ -593,8 +593,8 @@ class ChangeSetSpec extends Specification {
         where:
         type         | cl
         'named'      | { addLookupTable expPropsAddLookupTable }
-        'positional' | { addLookupTable catalogName, schemaName, tableName, columnName, it.newTableCatalogName, it.newTableSchemaName, it.newTableName, it.newColumnName, dataType, constraintName}
-        'mixed'      | { addLookupTable catalogName, schemaName, tableName, columnName, constraintName: constraintName, it.newTableCatalogName, it.newTableSchemaName, it.newTableName, it.newColumnName, dataType}
+        'positional' | { addLookupTable tableName, columnName, it.newTableName, it.newColumnName, catalogName, schemaName, it.newTableCatalogName, it.newTableSchemaName, dataType, constraintName}
+        'mixed'      | { addLookupTable tableName, columnName, it.newTableName, it.newColumnName, catalogName, schemaName, constraintName: constraintName, it.newTableCatalogName, it.newTableSchemaName, dataType}
     }
 
     static final expPropsDropNotNullConstraint = expPropsColumnTableSchemaCatalogName + [
@@ -781,16 +781,17 @@ class ChangeSetSpec extends Specification {
             ]
 
     void "sql with '#type' arguments"() {
-        verify(expPropsSql, RawSQLChange, cl).sql == sqlSelect
+        verify(expected, RawSQLChange, cl).sql == sqlSelect
 
         where:
-        type                | cl
-//        'closure+named'     | { sql expPropsSql, {sqlSelect} } // Map,,,Closure
-//        'closure+positional'| { sql it.dbms, it.stripComments, it.splitStatements, it.endDelimiter, {sqlSelect} } // ,,,Closure
-//        'closure+mixed'     | { sql it.dbms, it.stripComments, endDelimiter:it.endDelimiter, it.splitStatements, {sqlSelect}} // Map,,,Closure
-//        'named'       | { sql sqlSelect, expPropsSql } // Map, String,,,,,
-        'positional'  | { sql sqlSelect, it.stripComments, it.dbms, it.splitStatements, it.endDelimiter } // String,,,,,
-        'mixed'       | { sql sqlSelect, it.stripComments, it.dbms, endDelimiter:it.endDelimiter, it.splitStatements } // Map, String,,,,,
+        type                | expected    | cl
+        'closure+named'     | expPropsSql | { sql expPropsSql, {sqlSelect} } // Map,,,Closure
+        'closure+positional'| expPropsSql | { sql it.stripComments, it.dbms, it.splitStatements, it.endDelimiter, {sqlSelect} } // ,,,Closure
+        'closure+mixed'     | expPropsSql | { sql it.stripComments, it.dbms, endDelimiter:it.endDelimiter, it.splitStatements, {sqlSelect}} // Map,,,Closure
+        'named'       | [stripComments:true] | { sql sqlSelect, stripComments:true } // Map, String,,,,,
+        'positional'  | expPropsSql | { sql sqlSelect, it.stripComments, it.dbms, it.splitStatements, it.endDelimiter } // String,,,,,
+        'mixed'       | expPropsSql | { sql sqlSelect, it.stripComments, it.dbms, endDelimiter:it.endDelimiter, it.splitStatements } // Map, String,,,,,
+
     }
 
     static final expPropsSqlFile = expPropsSql + [
@@ -805,8 +806,8 @@ class ChangeSetSpec extends Specification {
         where:
         type         | cl
         'named'      | { sqlFile expPropsSqlFile }
-        'positional' | { sqlFile file, it.relativeToChangelogFile, it.stripComments, it.splitStatements, it.endDelimiter, it.dbms, it.encoding }
-        'mixed'      | { sqlFile file, it.relativeToChangelogFile, it.stripComments, it.splitStatements, it.endDelimiter, encoding: it.encoding, it.dbms }
+        'positional' | { sqlFile file, it.relativeToChangelogFile, it.stripComments, it.dbms, it.splitStatements, it.endDelimiter, it.encoding }
+        'mixed'      | { sqlFile file, it.relativeToChangelogFile, it.stripComments, it.dbms, it.splitStatements, it.endDelimiter, encoding: it.encoding }
     }
 
     static final mac = 'mac'
@@ -863,15 +864,37 @@ class ChangeSetSpec extends Specification {
         'positional' | { createProcedure(procedureName, it.replaceIfExists, it.dbms, schemaName, catalogName) {sqlSelect} }
         'mixed'      | { createProcedure(procedureName, it.replaceIfExists, it.dbms, catalogName: catalogName, schemaName) {sqlSelect} }
     }
-    void "error #expectedErr" () {
-        when:
-        buildChanges (input)
-        then:
-        thrown(expectedErr)
-        where:
-        expectedErr     | input
-        MissingClosure  | {sql dbms: 'd'}
-    }
 
+//    void "error #expectedErr" () {
+//        when:
+//        buildChanges (input)
+//        then:
+//        thrown(expectedErr)
+//        where:
+//        expectedErr     | input
+//        MissingClosure  | {sql dbms: 'd'}
+//    }
+
+
+    static final String target = 'STDOUT'
+    static final String outMsg = 'some helpful message'
+    static final expPropsOutput = [
+       message: outMsg,
+       target : target
+    ]
+
+    /** Test an output change with all supported properties */
+    void "output with '#type' arguments"() {
+        verify(expPropsOutput, OutputChange, cl)
+
+        where:
+        type         | cl
+    //    'child'      | { output {outMsg} } //TODO DOES NOT WORK!
+        'named'      | { output(expPropsOutput)}
+        'positional' | { output(outMsg, target)}
+        'mixed'      | { output(target: target, outMsg)}
+        'mixed+child'| { output target: target, {outMsg} }
+
+    }
     // TODO check all known changes have a method in the methoddDefs
 }

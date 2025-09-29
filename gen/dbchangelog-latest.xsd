@@ -1381,20 +1381,18 @@
                 <xsd:documentation>When true, any comments are removed in the statement before executing on the database. Default: true.</xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-
+        <xsd:attributeGroup ref="dbms"/>
         <xsd:attribute name="splitStatements" type="booleanExp">
             <xsd:annotation>
                 <xsd:documentation>When true, Liquibase splits statements on @endDelimiter and executes them separately. Default: true.</xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-
         <xsd:attribute name="endDelimiter" type="xsd:string">
             <xsd:annotation>
                 <xsd:documentation>The delimiter to separate raw SQL statements. The default value is `;`
                     See: https://docs.liquibase.com/change-types/enddelimiter-sql.html</xsd:documentation>
             </xsd:annotation>
         </xsd:attribute>
-        <xsd:attributeGroup ref="dbms"/>
         <xsd:attributeGroup ref="changeAttributes"/>
     </xsd:attributeGroup>
 

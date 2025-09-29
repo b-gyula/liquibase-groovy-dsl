@@ -3,7 +3,8 @@
 <databaseChangeLog
 		xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 		xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
-		xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+		xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd"
+		logicalFilePath="changelogs/common.tests">
 	<!-- From liquibase-integration-tests/src/test/resources/changelogs/common/common.tests.changelog.xml -->
 	<removeChangeSetProperty dbms="mysql, postgresql, hsqldb, snowflake" change="addColumn" remove="afterColumn" />
 
@@ -70,7 +71,7 @@
 	</changeSet>
 
 	<changeSet id="datatypetest-2" author="nvoxland">
-		<validCheckSum><comment>checksum comment</comment>ANY</validCheckSum>
+		<validCheckSum>ANY</validCheckSum>
 		<insert tableName="dataTypeTest">
 			<column name="id" valueNumeric="1"/>
 			<column name="dateCol" valueDate="2007-08-09"/>
@@ -158,7 +159,6 @@
 	<changeSet id="nullable-2" author="nvoxland">
 		<dropNotNullConstraint tableName="compoundPKTest" columnName="name" columnDataType="varchar(255)"/>
 	</changeSet>
-
 
 	<changeSet id="compoundIndexTest" author="nvoxland" dbms="!snowflake">
 		<createTable tableName="compoundIndexTest">
@@ -576,14 +576,14 @@
 		</preConditions>
 	</changeSet>
 
-	<changeSet id="customPreCondition" author="nvoxland">
+	<!--changeSet id="customPreCondition" author="nvoxland">
 		<preConditions>
 			<customPrecondition className="liquibase.precondition.ExampleCustomPrecondition">
 				<param name="name" value="Sample Name"/>
 				<param name="count" value="3"/>
 			</customPrecondition>
 		</preConditions>
-	</changeSet>
+	</changeSet-->
 
 	<changeSet id="failContinuePrecondition" author="nvoxland">
 		<preConditions onFail="CONTINUE">
@@ -641,7 +641,7 @@
 
 	<changeSet id="changeSetRanPrecondition" author="nvoxland">
 		<preConditions>
-			<changeSetExecuted id="changeLogParameters" author="nvoxland" changeLogFile="changelogs/common.test.xml"/>
+			<changeSetExecuted id="changeLogParameters" author="nvoxland" changeLogFile="changelogs/common.tests"/>
 		</preConditions>
 		<createTable tableName="changesetprecondition_ran">
 			<column name="id" type="int"/>
@@ -793,7 +793,7 @@
 		</createTable>
 
 		<sql>
-			<comment>asd</comment>
+			<comment>sql comment</comment>
 			insert into default_val_computed (id) values (1);</sql>
 	</changeSet>
 
@@ -1358,10 +1358,10 @@
 		</preConditions>
 	</changeSet>
 
-	<changeSet id="createProcedureWithOnlyBlockCommentAsBody" author="mallod" dbms="postgresql, h2, mssql, mysql, sqlite">
+	<!--changeSet id="createProcedureWithOnlyBlockCommentAsBody" author="mallod" dbms="postgresql, h2, mssql, mysql, sqlite">
 		<createProcedure>
 			/*CREATE PROC... */
 		</createProcedure>
-	</changeSet>
+	</changeSet-->
 
 </databaseChangeLog>

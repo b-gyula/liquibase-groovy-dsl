@@ -35,10 +35,8 @@ class ArgumentSetTwice extends ParseErrorWithFileNLine {
 
 @CompileStatic
 class UnrecognizedElement extends ParseErrorWithFileNLine {
-    UnrecognizedElement(String tagName, Collection<String> knownElements, String prefix = null,
-            String msg = "Unrecognized element: '$tagName'! ${knownElements ? 'Valid elements are:'+ knownElements.toListString() :''}"
-    ) {
-        super(msg, prefix)
+    UnrecognizedElement(String tagName, Collection<String> knownElements, String prefix = null, String msg = null ) {
+        super(msg ?: ("Unrecognized element: '$tagName'! ${knownElements ? ('Valid elements are:'+ knownElements.toListString()) :''}") as String, prefix)
     }
 }
 

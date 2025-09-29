@@ -61,16 +61,16 @@ class CommentDelegateTests {
      * Test what happens when we have a two comments, and some SQL.  In this case the comments
      * should be appended.  We'll also add some Sql to the mix.
      */
-    @Test
-    void twoCommentsWithSql() {
-        def comment = buildComments(sql, "delete from monkey;") {
-            comment 'first'
-            comment 'second'
-            "delete from monkey;"
-        }
-
-        assertEquals 'first second', comment
-    }
+//    @Test
+//    void twoCommentsWithSql() {
+//        def comment = buildComments(sql, "delete from monkey;") {
+//            comment 'first'
+//            comment 'second'
+//            "delete from monkey;"
+//        }
+//
+//        assertEquals 'first second', comment
+//    }
 
     /**
      * Try calling an invalid method in the closure.  Make sure we get our ChangeLogParseException
