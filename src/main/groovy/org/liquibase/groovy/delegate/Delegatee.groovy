@@ -29,7 +29,7 @@ abstract class Delegatee<Tag extends Enum<Tag>> {
     final String parent
 
     /** method definition cache used for error messages It contains only the longest argument list with closure
-      TODO some tag like property / sql / createView / createProcedure / dropColumn requires 2
+      TODO some tag like property / sql / createView / createProcedure / dropColumn requires 2 MethodDef / method
      */
     protected @Lazy Map<String, MethodDef> methodDefs = methodDefs(this.class)
     MethodDef methodDef(String methodName) {methodDefs[methodName]}
@@ -63,7 +63,7 @@ abstract class Delegatee<Tag extends Enum<Tag>> {
     }
 
     Set<String> knownElements() {methodDefs.keySet()}
-    def validArguments(Tag tag) {}
+
     protected String prefix(String msg) {"$changeId: $msg"}
 
     Delegatee(DatabaseChangeLog dbChangeLog, String changeId, String parent = null) {
@@ -186,9 +186,9 @@ abstract class Delegatee<Tag extends Enum<Tag>> {
         int i = args.first() instanceof Map ? 1 : 0
         Map<String, Object> map = i ? (Map)args.first(): new LinkedHashMap<>()
         // Make sure there are no more args, than expected
-        if(args.length - i > argNames.size()) { // TODO check if map contains only known args
+        if(args.length - i > argNames.size()) {
             throw new InvalidArguments(methodName, fnDef, prefix, args)
-        }
+        } // TODO check if map contains only known args
         for(int n = 0; i < args.length-cl; i++) {
             String name = argNames[n++]
             def val = args[i]
@@ -203,6 +203,42 @@ abstract class Delegatee<Tag extends Enum<Tag>> {
             }
         }
         map
+    }
+
+    protected void logTagPropertyNotYetSupportedWarning(Tag tag, String attrib, String minVersion, String actLbVersion) {
+        logWarning(prefix "Property '$attrib' of '$tag' ignored beacuse Liquibase v'$minVersion' supported first. v'$actLbVersion' not")
+    }
+
+    /** Check if all arguments are known for the {@code tag} in {@code args} using the method
+      definition.
+      Using the {code @Since} annotation on the argument definition recognises if the old name of
+      the property is set only in {@code args}. <i>Sets value with the actual name and removes the
+      entry with the old name</i><br>
+      throws {@link InvalidArguments} with the list of unknown argument names
+      throws {@link ArgumentSetTwice} if both the an argument's actual and old name are defined in {@code args}
+     */
+    protected void validateArgs(Tag tag, Map<String, Object> args)
+       throws InvalidArguments, ArgumentSetTwice {
+        MethodDef method = methodDef(tag.name())
+        if(method) {
+            Set<String> unsupportedKeys = args.keySet() - method.args*.name
+            if(unsupportedKeys) { // Check alternative name
+                method.args.each { String altName = it.getDeclaredAnnotation(Since)?.oldName()
+                    if(altName) {
+                        if(args[it.name]) {
+                            error new ArgumentSetTwice(tag.name(), it.name, null, altName)
+                        } else { // Silently set
+                            unsupportedKeys -= altName
+                            args[it.name] = args[altName]
+                            args.remove(altName)
+                        }
+                    }
+                }
+                if(unsupportedKeys) {
+                    error new InvalidArguments(tag.name(), method.toString(), unsupportedKeys)
+                }
+            }
+        }
     }
 
     /** Log a warning prefixed with the change id using Liquibase's logger*/

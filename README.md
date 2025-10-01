@@ -28,26 +28,27 @@ liquibaseRuntime "org.apache.groovy:groovy-sql:4.0.5"
 ### Oct 1, 2025
 Release 4.1 adds **code completion and documentation** right @ script edit in IDEs with groovy
 support like IntelliJ IDEA, Eclipse and Netbeans. 
-Code completion works if the BaseScript is defined as the first lines like this:
+Auto complete works if the `BaseScript` type is defined as the first lines like this:
 ```groovy
 @groovy.transform.BaseScript(GroovyScript)
 import liquibase.GroovyScript
 ```
-And the file is in the `src/main/` or similar folder where the IDE may treat it as part of the project's
-module, the liquibase-groovy-dsl jar is configured for.
+The file also needs to be is in the `src/main/` or similar folder where the IDE may treat it as part of 
+the project's module, the liquibase-groovy-dsl jar is configured for.
 ![edit helpers](doc/code-helpers.gif "Title")
+
 **If the IDE does not show error during script editing, then no syntax error will occur later 
 when the script excuted**, which greatly improves productivity. (Opposed to previous versions, where 
 scripts were checked runtime only)
 ![](doc/code-edit-anim.gif "Title")
 
-- Error messages greatly improved: containing the script name + line and possible names / parameters 
-  e.g. in case a mistyped "createTable/column" in file `changelogs/includerelative/pathinclude1.changelog.groovy`
+- Error messages greatly improved: the script name + line and possible names / parameters added<br> 
+  e.g. in case a mistyped "createTable/**colum**" in file `changelogs/includerelative/pathinclude1.changelog.groovy`
   included from `changelogs/common.test.groovy`:<br>
 >  `changeSet includerelative/pathinclude1::1::nvoxland: Unrecognized child element: 'colum' for 'createTable'! Valid elements are [column] @changelogs/includerelative/pathinclude1.changelog.groovy:7 @changelogs/common.test.groovy:616`
 
 instead of: 
->   `ChangeSet '1': 'createTable' is not a valid child element of createTable changes`
+> `ChangeSet '1': 'createTable' is not a valid child element of createTable changes`
 
 - known properties can be set with positional parameters. e.g. 
 ```groovy
@@ -79,16 +80,18 @@ databaseChangeLog(objectQuotingStrategy: LEGACY) {
 if you use any of the enum values._
 
 - **Converter from XML**: To convert changelog.xml _and all XMLs it includes transitively_ run
-> `java -jar liquibase-groovy-dsl-4.1.0.jar -cp liquibase-core-4.28.0.jar;<liquibase depenmdencies> <change log xml>`
+> `java -jar liquibase-groovy-dsl-4.1.0.jar -cp liquibase-core-4.28.0.jar;<liquibase dependencies> <change log xml>`
  _Known issues: `rollback` and `createProcedure` elements are not converted correctly_
 
 
-**Breaking change**
-The change [createProcedure](https://docs.liquibase.com/reference-guide/change-types/createprocedure)
-has 2 disjunct set of properties: `path` + related properties if the procedure text shall be read 
-from a separate file. If those are not defined, the SQL is expected to be in the (closure) parameter.
-Now calling `createProcedure 'string'` will treat 'string' as the `path` instead of the SQL body as 
-earlier
+**Breaking changes:**
+- The change [createProcedure](https://docs.liquibase.com/reference-guide/change-types/createprocedure)
+  has 2 disjunct set of properties: `path` + related properties if the procedure text shall be read 
+  from a separate file. If those are not defined, the SQL is expected to be in the `procedureText` 
+  (closure) parameter. Now calling `createProcedure 'string'` will treat 'string' as the `path` 
+  instead of the SQL body as earlier
+- Multiple nested `comment`s are not concatenated (latest wins) in `sql` element ike in other file formats
+- `ArgumentSetTwice` exception is thrown, when both `context` and `contextFilter` is set for `include[All]`
 
 ### March 1, 2025
 Release 4.0.1 adds support for Liquibase 4.31, including new attributes added to Liquibase since

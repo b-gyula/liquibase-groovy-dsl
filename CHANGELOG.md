@@ -13,6 +13,7 @@ e.g: "changeSet includerelative/pathinclude1::1::nvoxland: Unrecognized child el
   `liquibase.database.ObjectQuotingStrategy.*`
   ,`liquibase.changelog.ChangeSet.ValidationFailOption.*`
   ,`liquibase.database.ColumnParentTypeEnum.*`
+  ,`liquibase.precondition.core.PreconditionContainer.FailOption.*`
 - `column` element attributes are limited to their meaningfull set e.g. `index` / `column` does not offer
   `defaultValueNumeric` as it is ignored during execution.
 
@@ -20,9 +21,11 @@ e.g: "changeSet includerelative/pathinclude1::1::nvoxland: Unrecognized child el
 - The change [createProcedure](https://docs.liquibase.com/reference-guide/change-types/createprocedure)
   has 2 disjunct set of properties: `path` + related properties if the procedure text shall be read
   from a separate file. If those are not defined, the SQL is expected to be in the (closure) parameter.
-  Now calling `createProcedure 'string'` will treat 'string' as the `path` instead of the SQL body as
+  Now calling `createProcedure 'string'` will treat 'string' as the `path` attribute instead of the SQL body as
   earlier
-- Multiple nested `comment`s are not concatenated (latest wins) in `sql` elemet ike in other file formats
+
+- Multiple nested `comment`s are not concatenated (latest wins) in `sql` element ike in other file formats
+-  `ArgumentSetTwice` exception is thrown, when both `context` and `contextFilter` is set for `include[All]`
 
 Changes for 4.0.1
 =================

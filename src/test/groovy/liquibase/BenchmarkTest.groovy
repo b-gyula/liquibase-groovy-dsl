@@ -12,6 +12,7 @@ import liquibase.serializer.core.string.StringChangeLogSerializer
 import org.liquibase.groovy.delegate.DelegateUtil
 import org.openjdk.jmh.annotations.*
 import org.openjdk.jmh.annotations.Scope
+import spock.lang.Shared
 
 import java.nio.file.Path
 import java.util.concurrent.TimeUnit
@@ -21,10 +22,10 @@ import java.util.concurrent.TimeUnit
 @BenchmarkMode(Mode.AverageTime)
 @CompileStatic
 class BenchmarkTest {
-	static final String commonTestChangelog = 'changelogs/common.test'
+	static final String commonTestChangelog = 'changelogs/common.tests'
 	static final String commonTestChangelogNoInc = commonTestChangelog + '.noinc'
 	static final File commonTestChangelogRoot = new File('src/test/resources')
-	static ResourceAccessor ra = new FolderResourceAccessor(commonTestChangelogRoot)
+	static @Lazy ResourceAccessor ra = new FolderResourceAccessor(commonTestChangelogRoot)
 	static ResourceAccessor raProj = new DirectoryResourceAccessor(Path.of('.'))
 
 	//@Benchmark
@@ -50,7 +51,7 @@ class BenchmarkTest {
 		//ChangeLogSerializer serializer = new GroovyChangeLogSerializer()
 		//ChangeLogSerializer serializer = new XMLChangeLogSerializer()
 		boolean pretty = false
-		try(PrintWriter p = new PrintWriter(log.filePath+'.txt' )) {
+		try(PrintWriter p = new PrintWriter(log.physicalFilePath+'.txt' )) {
 			String r = serializer.serialize(log.preconditions, pretty)
 			r += log.changeSets.inject (new DelegateUtil.CollectionStringBuilder()) { c, ch ->
 				c << serializer.serialize(ch, pretty).replace(ignore,'')

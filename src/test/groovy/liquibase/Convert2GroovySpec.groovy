@@ -7,6 +7,7 @@ import liquibase.parser.core.ParsedNode
 import liquibase.resource.DirectoryResourceAccessor
 import liquibase.resource.Resource
 import liquibase.resource.ResourceAccessor
+import static org.junit.Assert.assertEquals
 import spock.lang.Ignore
 
 import java.nio.file.Files
@@ -77,23 +78,28 @@ f'''/
 		noExceptionThrown()
 	}
 
-	/** Due to terrible ResourceAccessor implementation, convert() has to be called first manually
+	/** Due to terrible ResourceAccessor implementation, has to be executed in folder src/test/resources
 	 parse and load both the original test xmls and their converted version
 	 and compare the result using the StringChangeLogSerializer */
-	@Ignore // Should be executed manually as slight differences are always expected
-	void validate() {
+	//@Ignore // Should be executed manually as slight differences are always expected
+	static void main(String[] args) {
+	//void validate() {
 		//String fileName = commonTestChangelogNoInc + '.xml'
 		String fileName = commonTestChangelog + '.xml'
-		ResourceAccessor ra = new FolderResourceAccessor(commonTestChangelogRoot)
+
+		//ResourceAccessor ra = new FolderResourceAccessor(commonTestChangelogRoot)
+		ResourceAccessor ra = new DirectoryResourceAccessor(Path.of('.'))
+		run(fileName, ra)
 		// Parse XML
 		DatabaseChangeLog xmlLog = parseToChangeLog(fileName, ra)
 
 		File groovyFile = new File(changeExtension(fileName))
 		// Parse
-		DatabaseChangeLog groovy = parseToChangeLog(groovyFile.path, new DirectoryResourceAccessor(Path.of('.')))
+		DatabaseChangeLog groovy = parseToChangeLog(groovyFile.path, ra)
 
-		expect:
-		serializeStr(xmlLog,'\n    objectQuotingStrategy="LEGACY"') == serializeStr(groovy)
+		//expect:
+		assertEquals serializeStr(xmlLog,'\n    objectQuotingStrategy="LEGACY"'), serializeStr(groovy)
+		0
 	}
 }
 

@@ -91,7 +91,7 @@ class util {
 
         /** Convert Tag to String */
         String invalidArgs(Tag name, Object... args) {
-            this.prefix(new InvalidArguments( name as String, '', args)).message
+            this.prefix(new InvalidArguments( name as String, '',null, args)).message
         }
 
         /** Convert Tag to String */

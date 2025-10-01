@@ -172,7 +172,7 @@ databaseChangeLog {
   preConditions {
     dbms(type: 'mysql')
   }
-  includeAll(path: '${INCLUDED_CHANGELOG_PATH}', context: 'override', contextFilter: 'myContext')
+  includeAll(path: '${INCLUDED_CHANGELOG_PATH}', contextFilter: 'myContext')
   changeSet(author: 'ssaliman', id: '${ROOT_CHANGE_SET}') {
     addColumn(tableName: 'monkey') {
       column(name: 'emotion', type: 'varchar(50)')

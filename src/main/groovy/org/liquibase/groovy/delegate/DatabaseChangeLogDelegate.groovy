@@ -32,6 +32,7 @@ import liquibase.precondition.core.PreconditionContainer.FailOption
 import liquibase.resource.ResourceAccessor
 import liquibase.util.FileUtil
 import liquibase.parser.ext.GroovyLiquibaseChangeLogParser.Arg
+import liquibase.util.LiquibaseUtil
 
 import static PreconditionDelegate.buildPreconditionContainer
 import static groovy.lang.Closure.DELEGATE_ONLY
@@ -51,22 +52,25 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
 
     protected final ResourceAccessor resourceAccessor
 
-	DatabaseChangeLogDelegate(DatabaseChangeLog databaseChangeLog, ResourceAccessor resourceAccessor,
+    static final String v4_30 = '4.30.0'
+    static final String v4_16 = '4.16.0'
+
+    DatabaseChangeLogDelegate(DatabaseChangeLog databaseChangeLog, ResourceAccessor resourceAccessor,
                               Map<String, Object> params = [:]) {
-		super( databaseChangeLog, dbChangeLogTagName )
+        super( databaseChangeLog, dbChangeLogTagName )
         this.resourceAccessor = resourceAccessor
-		// It doesn't make sense to expand expressions, since we haven't loaded properties yet.
-		params.each { key, value ->
-			// The contextFilter attribute needs a little work.  The value needs to be converted
+        // It doesn't make sense to expand expressions, since we haven't loaded properties yet.
+        params.each { key, value ->
+            // The contextFilter attribute needs a little work.  The value needs to be converted
             // into an object, and for now, we'll support the old "context" attribute.
-			if ( key.equals("context") || key.equals("contextFilter")) {
+            if ( key.equals("context") || key.equals("contextFilter")) {
                 value = new ContextExpression(value as String) {}
                 // LB >= 4.16 uses "contextFilter", so convert the pre-4.16 key.
                 key = "contextFilter"
-			}
+            }
             databaseChangeLog[key] = value // TODO closure handling
-		}
-	}
+        }
+    }
 
     /** Add a <a href="https://docs.liquibase.com/concepts/changelogs/changeset.html">Changeset</a>
      to the change log.<br>
@@ -139,21 +143,23 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
      <dd>treat changeset as if it does not exist. Default: false. since: v3.6</dd>
      </dl>
      @param changes closure containing, the refactoring changes the change set should make.
-     */
+     */    // TODO annotate mandatory params
     void changeSet(String id, String author = null, Boolean runOnChange = null,
-                   String contextFilter = null, Boolean runAlways = null, String labels = null,
+                   @Since(value=v4_16, oldName = 'context') String contextFilter = null,
+                   Boolean runAlways = null, String labels = null,
                    String dbms = null, String logicalFilePath = null,
                    ValidationFailOption onValidationFail = null,
                    Boolean runInTransaction = null, String runOrder = null, Boolean failOnError = null,
                    ObjectQuotingStrategy objectQuotingStrategy = null, String runWith = null,
-                   String created = null, String runWithSpoolFile = null, Boolean ignore = null,
+                   String created = null,
+                   @Since('4.21.0') String runWithSpoolFile = null,
+                   Boolean ignore = null,
                    @DelegatesTo(value=ChangeSetDelegate, strategy=DELEGATE_ONLY) Closure changes) {
         changeSet( [:], id, author, runOnChange, contextFilter, runAlways, labels, dbms,
                     logicalFilePath, onValidationFail, runInTransaction, runOrder, failOnError ,
                     objectQuotingStrategy, runWith, created, runWithSpoolFile, ignore, changes)
     }
-    // TODO annotate mandatory params
-    // TODO alias annotation for deprecated names
+
     /** {@link #changeSet} */
     void changeSet(Map<String, Object> namedArgs, String id, String author = null,
                    Boolean runOnChange = null, String contextFilter = null,
@@ -169,7 +175,7 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
             .call(Arg.dbms, dbms)
             .call('runAlways', runAlways)
             .call('runOnChange', runOnChange)
-            .call(Arg.context, contextFilter)
+            .call(Arg.contextFilter, contextFilter)
             .call(Arg.labels, labels)
             .call('runInTransaction', runInTransaction)
             .call('failOnError', failOnError)
@@ -185,59 +191,57 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
     }
 
     /** {@link #changeSet} */
-	void changeSet(Map<String, Object> params,
+    void changeSet(Map<String, Object> params,
                    @DelegatesTo(value = ChangeSetDelegate, strategy = DELEGATE_ONLY)  Closure changes) {
-		// Most of the time, we just pass any parameters through to a newly created Liquibase
+        // Most of the time, we just pass any parameters through to a newly created Liquibase
         // object, but we need to do things a little differently for a ChangeSet because the
         // Liquibase object does not have setters for its properties. We'll need to figure it all
         // out for the constructor.  We want to warn people if they try to pass in something that is
         // not supported because we don't want to silently ignore things, so first get a list of
         // unsupported keys.
-		if (params.containsKey('alwaysRun')) {
-			throw new ChangeLogParseException("Error: ChangeSet '${params.id}': the alwaysRun attribute of a changeSet has been removed.  Please use 'runAlways' instead.")
-		}
-        // TODO use methodDefs
-		def unsupportedKeys = params.keySet() - [
-				'id',
-				'author',
-				Arg.dbms,
-				'runAlways',
-				'runOnChange',
-				Arg.context,
-				'contextFilter',
-				Arg.labels,
-				'runInTransaction',
-				'failOnError',
-				'onValidationFail',
-				'objectQuotingStrategy',
-				Arg.logicalFilePath,
-				'filePath',
-				'created',
-				'runOrder',
-				Arg.ignore,
-                Arg.runWith,
-                Arg.runWithSpoolFile
-		]
-		if (unsupportedKeys.size() > 0) {
-			throw new ChangeLogParseException("ChangeSet '${params.id}': ${unsupportedKeys.toArray()[0]} is not a supported ChangeSet attribute")
-		}
-
+        if (params.containsKey('alwaysRun')) {
+            throw new ChangeLogParseException("Error: ChangeSet '${params.id}': the alwaysRun attribute of a changeSet has been removed.  Please use 'runAlways' instead.")
+        }
+        // TODO use validateArgs
+        def unsupportedKeys = params.keySet() - [
+                'id',
+                'author',
+                Arg.dbms,
+                'runAlways',
+                'runOnChange',
+                Arg.contextFilter,
+                'context',
+                Arg.labels,
+                'runInTransaction',
+                'failOnError',
+                'onValidationFail',
+                'objectQuotingStrategy',
+                Arg.logicalFilePath,
+                'filePath', // TODO Do we need to support it?????
+                'created',
+                'runOrder',
+                Arg.ignore,
+            Arg.runWith,
+            Arg.runWithSpoolFile
+        ]
+        if (unsupportedKeys.size() > 0) {
+            throw new ChangeLogParseException("ChangeSet '${params.id}': ${unsupportedKeys.toArray()[0]} is not a supported ChangeSet attribute")
+        }
+        // TODO Using ParsedNode + changeSet.load would remove duplicated code and version dependency
         ObjectQuotingStrategy objectQuotingStrategy = null
-		if ( params.containsKey("objectQuotingStrategy") ) {
-			try {
-				objectQuotingStrategy = params.objectQuotingStrategy as ObjectQuotingStrategy
-			} catch ( IllegalArgumentException ignored) {
-				throw new ChangeLogParseException("ChangeSet '${params.id}': ${params.objectQuotingStrategy} is not a supported ChangeSet ObjectQuotingStrategy")
-			}
-		}
+        if ( params.containsKey("objectQuotingStrategy") ) {
+            try {
+                objectQuotingStrategy = params.objectQuotingStrategy as ObjectQuotingStrategy
+            } catch ( IllegalArgumentException ignored) {
+                throw new ChangeLogParseException("ChangeSet '${params.id}': ${params.objectQuotingStrategy} is not a supported ChangeSet ObjectQuotingStrategy")
+            }
+        }
 
-		String filePath = databaseChangeLog.filePath // default
-		if ( params.containsKey('filePath') ) {
-			filePath = params.filePath
-		}
-		if ( params.containsKey(Arg.logicalFilePath) ) {
-			filePath = params.logicalFilePath
-		}
+        String filePath = databaseChangeLog.filePath // default
+        if ( params.containsKey('filePath') ) {
+            filePath = params.filePath
+        }
+
         // Liquibase 4.16 deprecated "context" in favor of "contextFilter", but it still supports
         // both.  A null here is fine.
         def contextFilter = params.contextFilter? params.contextFilter : params.context
@@ -246,51 +250,53 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
                 DelegateUtil.expandExpressions(params.id, databaseChangeLog),
                 DelegateUtil.expandExpressions(params.author, databaseChangeLog),
                 DelegateUtil.parseTruth(params.runAlways, false),
-                DelegateUtil.parseTruth(params.runOnChange, false),
+                parseTruth(params.runOnChange, false),
                 filePath,
                 DelegateUtil.expandExpressions(contextFilter, databaseChangeLog),
                 DelegateUtil.expandExpressions(params.dbms, databaseChangeLog),
-                //DelegateUtil.expandExpressions(params.runWith, databaseChangeLog),
-                //DelegateUtil.expandExpressions(params.runWithSpoolFile, databaseChangeLog),
                 DelegateUtil.parseTruth(params.runInTransaction, true),
                 objectQuotingStrategy,
                 databaseChangeLog)
 
         changeSet.changeLogParameters = databaseChangeLog.changeLogParameters
-
+            // 4 backward compatibility of earlier Liquibase
         if(params.runWith && changeSet.hasProperty(Arg.runWith))
             changeSet.runWith = expandExpressions(params.runWith, databaseChangeLog)
         if(params.runWithSpoolFile && changeSet.hasProperty(Arg.runWithSpoolFile))
             changeSet.runWithSpoolFile = expandExpressions(params.runWithSpoolFile, databaseChangeLog)
 
-		if ( params.containsKey('failOnError') ) {
-			changeSet.failOnError = DelegateUtil.parseTruth(params.failOnError, false)
-		}
+        if ( params.containsKey('failOnError') ) {
+            changeSet.failOnError = parseTruth(params.failOnError, false)
+        }
 
-		if ( params.onValidationFail ) {
-			changeSet.onValidationFail = params.onValidationFail as ChangeSet.ValidationFailOption
-		}
+        if ( params.onValidationFail ) {
+            changeSet.onValidationFail = params.onValidationFail as ChangeSet.ValidationFailOption
+        }
 
-		if ( params.labels ) {
-			changeSet.labels = new Labels(params.labels as String)
-		}
+        if ( params.labels ) {
+            changeSet.labels = new Labels(params.labels as String)
+        }
 
-		if ( params.created ) {
-			changeSet.created = params.created
-		}
+        if ( params.created ) {
+            changeSet.created = params.created
+        }
 
-		if ( params.runOrder ) {
-			changeSet.runOrder = params.runOrder
-		}
+        if ( params.runOrder ) {
+            changeSet.runOrder = params.runOrder
+        }
 
-		if ( params.ignore ) {
-			changeSet.ignore = DelegateUtil.parseTruth(params.ignore, false)
-		}
+        if ( params.ignore ) {
+            changeSet.ignore = parseTruth(params.ignore, false)
+        }
 
-		new ChangeSetDelegate(changeSet)(changes)
+        if ( params.logicalFilePath ) {
+            changeSet.logicalFilePath = params.logicalFilePath
+        }
 
-		databaseChangeLog.addChangeSet(changeSet)
-	}
+        new ChangeSetDelegate(changeSet)(changes)
+
+        databaseChangeLog.addChangeSet(changeSet)
+    }
 
     /** <a href="https://docs.liquibase.com/change-types/include.html">Include</a> a file with change sets.
      <br>Params:
@@ -309,57 +315,61 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
         <dd>If true changesets in the included file treated as if it does not exist. The file still has to exist if @errorIfMissing true. Since v3.7.0. Default: false.</dd>
      </dl>
      */
-	void include(String file, Boolean relativeToChangelogFile = null,
-                 String contextFilter = null, String labels = null,
-                 Boolean errorIfMissing = null, Boolean ignore = null){
-        include [:], file, relativeToChangelogFile, contextFilter, labels, errorIfMissing, ignore
+    void include(String file, Boolean relativeToChangelogFile = null,
+                @Since(value=v4_16,oldName='context') String contextFilter = null,
+                String labels = null, Boolean errorIfMissing = null,
+                @Since(v4_30) String logicalFilePath = null,
+                Boolean ignore = null){
+        include [:], file, relativeToChangelogFile, contextFilter, labels, errorIfMissing,
+                          logicalFilePath, ignore
     }
 
     /** {@link #include} */
-	void include(Map<String, Object> namedArgs, String file, Boolean relativeToChangelogFile = null,
+    void include(Map<String, Object> namedArgs, String file, Boolean relativeToChangelogFile = null,
                  String contextFilter = null, String labels = null,
-                 Boolean errorIfMissing = null, Boolean ignore = null) {
+                 Boolean errorIfMissing = null, String logicalFilePath = null,
+                 Boolean ignore = null) {
         include chkMap(Tag.include, namedArgs) (Arg.file, file)
-				.call(Arg.relativeToChangelogFile, relativeToChangelogFile)
-            .call(Arg.contextFilter, contextFilter)(Arg.labels, labels)(Arg.ignore, ignore)
-				.call(Arg.errorIfMissing, errorIfMissing)
-            .asMap
+                .call(Arg.relativeToChangelogFile, relativeToChangelogFile)
+                .call(Arg.contextFilter, contextFilter)(Arg.labels, labels)
+                .call(Arg.errorIfMissing, errorIfMissing)
+                .call(Arg.logicalFilePath, logicalFilePath)(Arg.ignore, ignore)
+                .asMap
     }
 
+    @TypeChecked(SKIP)
     /** {@link #include} */
     void include(Map params) {
-		// validate parameters.\
-		def unsupportedKeys = params.keySet() - [
-                Arg.file,
-                Arg.relativeToChangelogFile,
-                Arg.errorIfMissing,
-                Arg.context,
-                Arg.contextFilter,
-                Arg.labels,
-                Arg.ignore]
-		if ( unsupportedKeys.size() > 0 ) {
-			throw new ChangeLogParseException("DatabaseChangeLog: '${unsupportedKeys.toArray()[0]}' is not a supported attribute of the 'include' element.")
-		}
+        validateArgs(Tag.include, params)
 
-		def relativeToChangelogFile = parseTruth(params.relativeToChangelogFile, false)
-		def errorIfMissing = parseTruth(params.errorIfMissing, true)
+        def relativeToChangelogFile = parseTruth(params.relativeToChangelogFile, false)
+        def errorIfMissing = parseTruth(params.errorIfMissing, true)
 
-	   	String fileName = databaseChangeLog
-			    .changeLogParameters
-			    .expandExpressions(params.file.toString(), databaseChangeLog)
+        String fileName = expandExpressions(params.file?.toString(), databaseChangeLog)
         String context = params.contextFilter? params.contextFilter : params.context
-		def includeContexts = new ContextExpression(context)
-		def labels = new Labels(params.labels.toString())
-		boolean ignore = parseTruth(params.ignore, false)
+        def includeContexts = new ContextExpression(context)
+        def labels = new Labels(params.labels?.toString())
+        boolean ignore = parseTruth(params.ignore, false)
 
         // TODO not 3.10.3 compatible
         // The Resource Accessor we need to use depends on whether we are including a relative file
         // or an absolute file, and which version of Liquibase we're using.  For now, we'll assume
         // that we have a relative include, which uses the resource accessor we've been given.
-        databaseChangeLog.include(fileName, relativeToChangelogFile, errorIfMissing,
-                resourceAccessor, includeContexts, labels, ignore, DatabaseChangeLog.OnUnknownFileFormat.FAIL)
-
-	}
+        if ( lbVersionAtLeast(v4_30) ) {
+            // Liquibase 4.30+, include the logicalFilePath.
+            databaseChangeLog.include(fileName, relativeToChangelogFile, errorIfMissing,
+                    resourceAccessor, includeContexts, labels, ignore, params.logicalFilePath,
+                    DatabaseChangeLog.OnUnknownFileFormat.FAIL)
+        } else {
+            // Pre-4.30, exclude logicalFilePath
+            if(params.logicalFilePath) { // TODO should be in validate Args
+                logTagPropertyNotYetSupportedWarning Tag.include, Arg.logicalFilePath, v4_30, LiquibaseUtil.getBuildVersion()
+            }
+            databaseChangeLog.include(fileName, relativeToChangelogFile, errorIfMissing,
+                    resourceAccessor, includeContexts, labels, ignore,
+                    DatabaseChangeLog.OnUnknownFileFormat.FAIL)
+        }
+    }
 
     /** <a href="https://docs.liquibase.com/change-types/includeall.html">Include all</a> files from
      the folder defined by `path`
@@ -403,17 +413,19 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
      </dl>
      */
     void includeAll(String path, Boolean relativeToChangelogFile=null,
-                    String contextFilter=null, String labels=null,
-                    String endsWithFilter=null, String filter=null,
+                    @Since(value=v4_16,oldName='context') String contextFilter=null,
+                    String labels=null, String endsWithFilter=null, String filter=null,
                     Integer maxDepth=null, Integer minDepth=null,
                     String resourceComparator=null,
-                    Boolean errorIfMissingOrEmpty=null, Boolean ignore = null) {
+                    Boolean errorIfMissingOrEmpty=null,
+                    @Since(v4_30) String logicalFilePath = null,
+                    Boolean ignore = null) {
         includeAll [:], path, relativeToChangelogFile,
                     contextFilter, labels,
                     endsWithFilter, filter,
                     maxDepth, minDepth,
                     resourceComparator,
-                    errorIfMissingOrEmpty, ignore
+                    errorIfMissingOrEmpty, logicalFilePath, ignore
     }
 
     /** {@link #includeAll} */
@@ -422,20 +434,23 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
                     String endsWithFilter=null, String filter=null,
                     Integer maxDepth=null, Integer minDepth=null,
                     String resourceComparator=null,
-                    Boolean errorIfMissingOrEmpty=null, Boolean ignore = null) {
+                    Boolean errorIfMissingOrEmpty=null,
+                    String logicalFilePath = null,
+                    Boolean ignore = null) {
         includeAll argsAsMap(Tag.includeAll, namedArgs, path, relativeToChangelogFile,
                     contextFilter, labels,
                     endsWithFilter, filter,
                     maxDepth, minDepth,
                     resourceComparator,
-                    errorIfMissingOrEmpty, ignore)
+                    errorIfMissingOrEmpty, logicalFilePath, ignore)
     }
 
     @TypeChecked(SKIP)
     /** {@link #includeAll} */
-	void includeAll(Map params) {
-		// validate parameters.
-		def unsupportedKeys = params.keySet() - [
+    void includeAll(Map params) {
+        // validate parameters.
+        validateArgs(Tag.includeAll, params)
+/*       def unsupportedKeys = params.keySet() - [
                 'path',
                 'relativeToChangelogFile',
                 'errorIfMissingOrEmpty',
@@ -450,12 +465,12 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
                 'maxDepth',
                 'endsWithFilter'
         ]
-		if (unsupportedKeys.size() > 0) {
-			throw new ChangeLogParseException("DatabaseChangeLog:  '${unsupportedKeys.toArray()[0]}' is not a supported attribute of the 'includeAll' element.")
-		}
-
+        if (unsupportedKeys.size() > 0) {
+            throw new ChangeLogParseException("DatabaseChangeLog:  '${unsupportedKeys.toArray()[0]}' is not a supported attribute of the 'includeAll' element.")
+        }
+*/
         def includeAllParams = createIncludeAllParams(params)
-        if ( DelegateUtil.lbVersionAtLeast("4.30.0") ) {
+        if ( lbVersionAtLeast(v4_30) ) {
             // Liquibase 4.30+, include the logicalFilePath.
             databaseChangeLog.includeAll(includeAllParams.path,
                     includeAllParams.relativeToChangelogFile,
@@ -473,6 +488,9 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
                     null)
         } else {
             // Pre-4.30, exclude logicalFilePath
+            if(params.logicalFilePath) { // TODO should be in validateArgs
+                logTagPropertyNotYetSupportedWarning Tag.includeAll, Arg.logicalFilePath, v4_30, LiquibaseUtil.getBuildVersion()
+            }
             databaseChangeLog.includeAll(includeAllParams.path,
                     includeAllParams.relativeToChangelogFile,
                     includeAllParams.filter,
@@ -541,7 +559,6 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
                 'splitStatements',
                 'stripComments',
         ]
-
 
         def unsupportedKeys = params.keySet() - includeAllKeys - changeSetKeys - sqlFileKeys - [
                 'idPrefix',
@@ -627,8 +644,8 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
      <dd>Controls how preconditions are evaluated with the update-sql command for XML, YAML, and JSON changelogs. Since 1.9.5</dd>
       </dl>
      */
-	void preConditions( FailOption onFail = null, ErrorOption onError = null,
-                        String onFailMessage = null, String onErrorMessage = null,
+    void preConditions(FailOption onFail = null, ErrorOption onError = null,
+                       String onFailMessage = null, String onErrorMessage = null,
                        OnSqlOutputOption onSqlOutput = null,
                        @DelegatesTo(value= PreconditionDelegate, strategy=DELEGATE_ONLY) Closure preconditions) {
         preConditions [:], onFail, onError, onFailMessage, onErrorMessage, onSqlOutput, preconditions
@@ -641,8 +658,8 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
                        OnSqlOutputOption onSqlOutput = null,
                        @DelegatesTo(value= PreconditionDelegate, strategy=DELEGATE_ONLY) Closure preconditions) {
         argsAsMap(Tag.preConditions, namedArgs, onFail, onError, onFailMessage, onErrorMessage, onSqlOutput, preconditions)
-		databaseChangeLog.preconditions = buildPreconditionContainer(databaseChangeLog, namedArgs, preconditions)
-	}
+        databaseChangeLog.preconditions = buildPreconditionContainer(databaseChangeLog, namedArgs, preconditions)
+    }
 
     /**
      Define a property for substitution in your changelog.
@@ -736,9 +753,9 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
     }
 
     /** {@link #property} */
-	void property(Map<String, Object> params) {
-		// Start by validating input
-		def unsupportedKeys = params.keySet() - [
+    void property(Map<String, Object> params) {
+        // Start by validating input
+        def unsupportedKeys = params.keySet() - [
                 Arg.name,
                 Arg.value,
                 Arg.context,
@@ -750,25 +767,25 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
                 Arg.relativeToChangelogFile,
                 Arg.errorIfMissing,
         ]
-		if (unsupportedKeys.size() > 0) {
-			throw new ChangeLogParseException("DatabaseChangeLog: ${unsupportedKeys.toArray()[0]} is not a supported property attribute")
-		}
+        if (unsupportedKeys.size() > 0) {
+            throw new ChangeLogParseException("DatabaseChangeLog: ${unsupportedKeys.toArray()[0]} is not a supported property attribute")
+        }
 
         String contextFilter = params.contextFilter? params.contextFilter : params.context
         def context = new ContextExpression(contextFilter)
 
-		Labels labels = new Labels(params.labels as String)
+        Labels labels = new Labels(params.labels as String)
 
-		String dbms = expandExpressions(params.dbms, databaseChangeLog)
-		// The default for global was true prior to Liquibase 3.4, and the other parsers still use
+        String dbms = expandExpressions(params.dbms, databaseChangeLog)
+        // The default for global was true prior to Liquibase 3.4, and the other parsers still use
         // true as the default.
-		def global = DelegateUtil.parseTruth(params.global, true)
+        def global = DelegateUtil.parseTruth(params.global, true)
 
-		def changeLogParameters = databaseChangeLog.changeLogParameters
+        def changeLogParameters = databaseChangeLog.changeLogParameters
 
         if (null == params.file) {
-			changeLogParameters.set(params.name as String, params.value as String, context, labels, dbms, global, databaseChangeLog)
-		} else {
+            changeLogParameters.set(params.name as String, params.value as String, context, labels, dbms, global, databaseChangeLog)
+        } else {
             String file = expandExpressions( params.file, databaseChangeLog )
             if(!file) {
                 throw changeLogParseException(nonEmptyParameterRequiredFor(Tag.property, Arg.file))
@@ -783,8 +800,8 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
             def errorIfMissing = parseTruth(params[Arg.errorIfMissing], true)
             def props = new Properties()
 
-			def stream = resourceAccessor.openStream(relativeTo, file)
-			if ( stream ) {
+            def stream = resourceAccessor.openStream(relativeTo, file)
+            if ( stream ) {
                 props.load(stream)
                 props.each {k, v ->
                     changeLogParameters.set(k.toString(), v.toString(), context, labels, dbms, global, databaseChangeLog)
@@ -795,8 +812,8 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
                 }
                 logWarning(FileUtil.getFileNotFoundMessage(file))
             }
-		}
-	}
+        }
+    }
 
     /**
      * Process nested removeChangeSetProperty elements in a changelog.
@@ -834,14 +851,14 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
         databaseChangeLog.changeVisitors.add(changeVisitor)
     }
 
-	protected def propertyMissing(String name) {
-		def changeLogParameters = databaseChangeLog.changeLogParameters
-		if (changeLogParameters.hasValue(name, databaseChangeLog)) { // TODO: Test?
-			return changeLogParameters.getValue(name, databaseChangeLog)
-		} else {
+    protected def propertyMissing(String name) {
+        def changeLogParameters = databaseChangeLog.changeLogParameters
+        if (changeLogParameters.hasValue(name, databaseChangeLog)) { // TODO: Test?
+            return changeLogParameters.getValue(name, databaseChangeLog)
+        } else {
             methodMissing( name, objArr())
-		}
-	}
+        }
+    }
 
     /**
      * Helper method that "fixes" incoming parameters to be used with includeAll and includeAllSql
@@ -865,8 +882,8 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
         def context = params.contextFilter? params.contextFilter : params.context
         includeAllParams.includeContexts = new ContextExpression(context)
         includeAllParams.ignore = parseTruth(params.ignore, false)
-		  includeAllParams.logicalFilePath = params.logicalFilePath
-		  includeAllParams.labels = new Labels(params.labels)
+        includeAllParams.logicalFilePath = params.logicalFilePath
+        includeAllParams.labels = new Labels(params.labels)
         includeAllParams.minDepth = params.containsKey("minDepth")? params.minDepth : 0
         includeAllParams.maxDepth = params.containsKey("maxDepth")? params.maxDepth : Integer.MAX_VALUE // recurse by default
         includeAllParams.endsWithFilter = params.endsWithFilter? params.endsWithFilter: "" // LB doesn't like null
@@ -926,10 +943,10 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
      * @return a default Comparator that sorts by path, which is the default in Liquibase.
      */
     @TypeChecked(SKIP)
-	private static Comparator<String> getStandardChangeLogComparator() {
+    private static Comparator<String> getStandardChangeLogComparator() {
         // Liquibase won't let us send a null comparator, but doesn't expose the default to us.  So
         // we'll just return what Liquibase uses.  It might be worth DatabaseChangeLog from time
         // to time to make sure they don't change this out from under us.
         Comparator.comparing(o -> o.replace("WEB-INF/classes/", "")) as Comparator<String>
-	}
+    }
 }

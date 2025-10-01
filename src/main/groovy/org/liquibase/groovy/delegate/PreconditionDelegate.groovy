@@ -89,7 +89,7 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
             setProps precondition, argsAsMap(name, m, args)
         }
          else {
-            logWarning("Unable to handle arguments ${argsToString(args)} for precondition '$name'")
+            logWarning("Unable to handle arguments ${argsToString(args as List)} for precondition '$name'")
         }
 
         preconditions << precondition

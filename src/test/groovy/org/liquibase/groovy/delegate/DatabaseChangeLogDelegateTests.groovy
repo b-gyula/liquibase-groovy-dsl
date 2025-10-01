@@ -327,7 +327,7 @@ databaseChangeLog()
             ignore: true,
             runWith: 'my_executor',
             runWithSpoolFile: 'my.log',
-            filePath: 'file_path',
+            logicalFilePath: 'logical_file_path',
             comments: 'comment'
             ]
 
@@ -338,7 +338,7 @@ databaseChangeLog()
                     changeSet(id, author,
                             'y',
                             contextFilter, alwaysRun, labels,
-                            dbmsSet.first(), filePath,
+                            dbmsSet.first(), logicalFilePath,
                             'MARK_RAN', 0,
                             runOrder, failOnError,
                             'QUOTE_ALL_OBJECTS', runWith,
@@ -359,7 +359,7 @@ databaseChangeLog()
                 changeSet(id, author,
                           runOnChange,
                           contextFilter, alwaysRun, labels,
-                          dbmsSet.first(), filePath,
+                          dbmsSet.first(), logicalFilePath,
                           onValidationFail, runInTransaction,
                           runOrder, failOnError,
                           objectQuotingStrategy, runWith,
@@ -492,7 +492,7 @@ databaseChangeLog()
                       failOnError: true,
                       onValidationFail: "MARK_RAN",
                       invalidAttribute: 'invalid') {
-               dropTable(tableName: 'monkey')
+                dropTable(tableName: 'monkey')
             }
         }
     }
@@ -514,7 +514,7 @@ databaseChangeLog()
                       failOnError: true,
                       onValidationFail: "MARK_RAN",
                       objectQuotingStrategy: "MONKEY_QUOTING") {
-               dropTable(tableName: 'monkey')
+                dropTable(tableName: 'monkey')
             }
         }
     }
@@ -937,7 +937,8 @@ emotion=angry
     void parseDatabaseChangeLog1stLevelArgSetTwiceErrors() {
         def chLog = new DatabaseChangeLogDelegate(null, resourceAccessor)
         use(DelegateeCategory) {
-            ["preConditions( OnFail.HALT, onFail: OnFail.HALT){}": chLog.attributeSetTwice(Tag.preConditions, 'onFail'),
+            [ "preConditions( HALT, onFail: HALT){}": chLog.attributeSetTwice(Tag.preConditions, 'onFail'),
+              "preConditions( HALT, OnError.HALT, onError: 'HALT'){}": chLog.attributeSetTwice(Tag.preConditions, 'onError'),
               "preConditions( 'HALT', onFail: 'HALT'){}": chLog.attributeSetTwice(Tag.preConditions, 'onFail'),
               "property 'a', 'v', name: 'b'": chLog.attributeSetTwice(Tag.property, Arg.name),
               "property 'a', file: 'b'": chLog.attributeSetTwice(Tag.property, Arg.file),
@@ -972,10 +973,10 @@ emotion=angry
             "preConditions 'a'"    : chLog.missingClosure(Tag.preConditions),
 
             'include'          : chLog.invalidArgs(Tag.include, null),
-            // NPE
-            // 'include () {}' : chLog.invalidArgs(Tag.include, {}, {}),
+            //'include ()' : chLog.invalidArgs(Tag.include, {}, {}),
+            //'include () {}' : chLog.invalidArgs(Tag.include, {}, {}),
             // 'include () {} {}' : chLog.invalidArgs(Tag.include, {}, {}),
-            // 'include (1) {}'   : chLog.invalidArgs(Tag.include, 1, {}),
+            //'include (1) {}'   : chLog.invalidArgs(Tag.include, 1, {}),
             // 'include {}{}'     : chLog.invalidArgs(Tag.include, {}, {}),
 
             //"property 'a'", changeLog (invalidArgs(property,'a')),

@@ -28,8 +28,9 @@ class MissingClosure extends ParseErrorWithFileNLine {
 
 @CompileStatic
 class ArgumentSetTwice extends ParseErrorWithFileNLine {
-    ArgumentSetTwice(String tagName, String argName, String prefix = null) {
-        super("Cannot set argument '$argName' twice for '$tagName'! Set either positional or named argument only!", prefix)
+    ArgumentSetTwice(String tagName, String argName, String prefix = null, String altName = null) {
+        super(altName ? "Cannot set argument '$argName' twice for '$tagName' with '$altName'! Use '$argName' only!"
+           :"Cannot set argument '$argName' twice for '$tagName'! Set either positional or named argument only!", prefix)
     }
 }
 
@@ -40,13 +41,17 @@ class UnrecognizedElement extends ParseErrorWithFileNLine {
     }
 }
 
+/** Throw when parameters are known e.g. databaseChangeLog/include */
 @CompileStatic
 class InvalidArguments extends ParseErrorWithFileNLine {
     InvalidArguments(String tagName, String fnDef, String prefix = null, Object[] args) {
+        this(tagName, fnDef, args as List, prefix )
+    }
+    InvalidArguments(String tagName, String fnDef, Iterable args, String prefix = null) {
         super("'$tagName' element got invalid arguments ${argsToString(args)}. Valid arguments are: $fnDef", prefix )
     }
 
-    static String argsToString(Object[] args){
+    static String argsToString(Iterable args){
         if(null == args ) {
             return '[]'
         }
@@ -62,6 +67,7 @@ class InvalidArguments extends ParseErrorWithFileNLine {
     }
 }
 
+/** Throw when unknown parameter passed through to the setProp for a change */
 @CompileStatic
 class InvalidAttribute extends ParseErrorWithFileNLine {
     InvalidAttribute(String tagName, String attrib, String prefix, String validArgs, String parentName = '',
