@@ -26,11 +26,8 @@ import liquibase.resource.DirectoryResourceAccessor
 import org.junit.Before
 import org.junit.Test
 
-import static org.junit.Assert.assertEquals
-import static org.junit.Assert.assertFalse
-import static org.junit.Assert.assertNotNull
-import static org.junit.Assert.assertNull
-import static org.junit.Assert.assertTrue
+import static org.junit.Assert.*
+import static DelegateUtil.callOn
 
 /**
  * One of several test classes for the {@link DatabaseChangeLogDelegate}.  The number of tests for
@@ -1143,8 +1140,8 @@ databaseChangeLog {
     private def buildChangeLog(Closure closure) {
         def changelog = new DatabaseChangeLog(MOCK_CHANGELOG)
         changelog.changeLogParameters = new ChangeLogParameters()
-        new DatabaseChangeLogDelegate(changelog, resourceAccessor)
-            .call(closure)
+       callOn(new DatabaseChangeLogDelegate(changelog, resourceAccessor)
+            ,closure)
         return changelog
     }
 

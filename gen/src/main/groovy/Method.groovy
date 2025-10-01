@@ -126,8 +126,8 @@ class Method extends NameAndDesc<Method> {
 		//String since
 		static final List<String> YES = null
 		static final List<String> NO = []
-		static final String StringClosure = 'Closure<String>'
-		static final String ClosureType = 'Closure'
+		public static final String StringClosure = 'Closure<String>'
+		public static final String ClosureType = 'Closure'
 
 		/** Always required false exclusive */
 		boolean getRequired() { requiredExcept == null}

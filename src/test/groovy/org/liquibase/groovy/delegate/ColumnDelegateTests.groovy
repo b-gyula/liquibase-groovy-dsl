@@ -365,7 +365,7 @@ class ColumnDelegateTests { // TODO add positional cases
         assertEquals 'defaultDatabaseValue', column.defaultValueComputed.value
         assertEquals 'defaultSequence', column.defaultValueSequenceNext.value
         assertEquals 'defaultValueConstraint', column.defaultValueConstraintName
-        assertTrue column.autoIncrement
+        assertTrue column.isAutoIncrement()
         assertEquals 3G, column.startWith
         assertEquals 4G, column.incrementBy
         assertTrue column.defaultOnNull
@@ -454,7 +454,7 @@ class ColumnDelegateTests { // TODO add positional cases
         assertEquals 'defaultDatabaseValue', column.defaultValueComputed.value
         assertEquals 'defaultSequence', column.defaultValueSequenceNext.value
         assertEquals 'defaultValueConstraint', column.defaultValueConstraintName
-        assertTrue column.autoIncrement
+        assertTrue column.isAutoIncrement() // Needed for groovy 4
         assertEquals 3G, column.startWith
         assertEquals 4G, column.incrementBy
         assertTrue column.defaultOnNull

@@ -13,8 +13,9 @@ classes respectively.
 
 The order of the parameters is taken from the XSD, but
 - required parameters are moved in front of the parameter list
-- the closure parameter (if any) for children is always last
+- the closure parameter (if any) for children is always the last
 
-For tags having mutually exclusive parameters multiple method definitions with different parameters are generated. e.g.:
-- `dropColumn` : `columNames` attribute / `columns`  closure with children
+Multiple method definitions with different parameters are generated for elements having mutually
+exclusive parameters. e.g.:
+- `dropColumn` : `columNames` attribute / `columns` closure with children
 - `createProcedure`:  `path` / `procedureText` closure

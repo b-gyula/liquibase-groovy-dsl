@@ -201,11 +201,11 @@ class DelegateUtilTest {
             // The one and only argument is missing
             verifyException 'invalid arg', new InvalidArguments(method, fnDef, prefix),
                     false, [arg1]
-            def args = objArr('arg1', 1, 2)
+            Object[] args = objArr('arg1', 1, 2)
             verifyException 'invalid arg', new InvalidArguments(method, fnDef, prefix, args),
                     false, [arg1, arg2], args
 
-            args += {}
+            args += ({}  as Object)
             verifyException 'invalid arg', new InvalidArguments(method, fnDef, prefix, args),
                     true, [arg1, arg2, cl], args
         }

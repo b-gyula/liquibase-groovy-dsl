@@ -14,6 +14,7 @@
 
 package org.liquibase.groovy.delegate
 
+import groovy.transform.PackageScope
 import groovy.transform.TypeChecked
 import groovy.transform.TypeCheckingMode
 import liquibase.changelog.DatabaseChangeLog
@@ -34,7 +35,9 @@ import liquibase.util.PatchedObjectUtil
 
 import static groovy.lang.Closure.DELEGATE_ONLY
 import static liquibase.parser.ext.GroovyLiquibaseChangeLogParser.dbChangeLogTagName
+import static liquibase.parser.ext.GroovyLiquibaseChangeLogParser.isMap
 import static liquibase.parser.groovy.exception.InvalidArguments.argsToString
+import static DelegateUtil.*
 
 @groovy.transform.CompileStatic
 /** Delegate for the preConditions element used both in changeSet and databaseChangeLog */
@@ -56,7 +59,7 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
     }
 
     /** Called from all known */
-    protected void addPrecondition(NullChecker chkr) {
+    protected void addPrecondition(NullChecker<Tag> chkr) {
         addPrecondition chkr.elem.name(), chkr.asMap
     }
 
@@ -83,22 +86,21 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
         }
 
         MethodDef m = methodDefs[name]
-        if ( args.length == 1 && args[0] instanceof Map<String, Object> ) {
+        if ( args.length == 1 && isMap(args[0].class )) {
             setProps(precondition, args[0] as Map<String, Object>)
-        }else if(m) { // There is a dedicated method
+        } else if(m) { // There is a dedicated method
             setProps precondition, argsAsMap(name, m, args)
-        }
-         else {
+        } else {
             logWarning("Unable to handle arguments ${argsToString(args as List)} for precondition '$name'")
         }
 
         preconditions << precondition
     }
 
-    UnrecognizedElement unrecognizedElement(String name ) {
+    protected UnrecognizedElement unrecognizedElement(String name ) {
         Collection<String> knownElements = PreconditionFactory.instance.preconditions.keySet()
         new UnrecognizedElement(name, [], changeId,
-           "'${name}' is an unknown precondition. Known elements are:" + knownElements.toListString())
+           "'${name}' is an unknown precondition. Known preconditions are:" + knownElements.toListString())
     }
 
     /** Executes an SQL statement and checks the returned value. The SQL must return a single row with a single value.
@@ -149,7 +151,7 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
     def customPrecondition(Map<String, Object> params = [:],
                            @DelegatesTo(value=KeyValueDelegate, strategy = DELEGATE_ONLY) Closure closure) {
         def delegate = new KeyValueDelegate('customPrecondition', changeId)
-        delegate.call(closure)
+        delegate.callOn(closure)
 
         def precondition = new CustomPreconditionWrapper()
         setProps(precondition, params)
@@ -190,6 +192,7 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
      * @return the PreconditionContainer it builds.
      */
     @TypeChecked(TypeCheckingMode.SKIP)
+    @PackageScope
     static PreconditionContainer buildPreconditionContainer(DatabaseChangeLog databaseChangeLog,
                                                             Map<String, Object> params,
                         @DelegatesTo(value= PreconditionDelegate, strategy=DELEGATE_ONLY) Closure closure,
@@ -198,9 +201,9 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
         // TODO use setProps(preconditions, params)
         // Process parameters.  3 of them need a special case.
         params.each {key, value ->
-            def paramValue = DelegateUtil.expandExpressions(value, databaseChangeLog)
+            def paramValue = expandExpressions(value, databaseChangeLog)
             if ( key == "onFail" ) {
-                preconditions.onFail = FailOption."${paramValue}"
+                preconditions.onFail = FailOption."${paramValue}" // Does not compile statically
             } else if ( key == "onError" ) {
                 preconditions.onError = ErrorOption."${paramValue}" // TODO limit according to changeset or databaseChangeLog
             } else if ( key == "onUpdateSql" || key == "onUpdateSql" ) {
@@ -222,7 +225,7 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
     private <T extends PreconditionLogic> T nestedPrecondition(T nestedPrecondition,
            @DelegatesTo(strategy=DELEGATE_ONLY) Closure preConditions,
            PreconditionDelegate delegate = new PreconditionDelegate(databaseChangeLog, changeId)) {
-        delegate.call(preConditions)
+        delegate.callOn(preConditions)
 
         delegate.preconditions.each { precondition ->
             nestedPrecondition.addNestedPrecondition(precondition)

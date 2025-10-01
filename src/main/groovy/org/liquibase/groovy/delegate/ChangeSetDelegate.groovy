@@ -36,7 +36,7 @@ import liquibase.serializer.LiquibaseSerializable
 
 import static PreconditionDelegate.buildPreconditionContainer
 import static groovy.lang.Closure.DELEGATE_ONLY
-import static org.liquibase.groovy.delegate.DelegateUtil.cast
+import static org.liquibase.groovy.delegate.DelegateUtil.*
 
 /**
  * This class is the closure delegate for a ChangeSet.  It processes all the refactoring changes for
@@ -155,7 +155,7 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
      * @param changes the closure to evaluate.
      */
     void rollback(@DelegatesTo(value = ChangeSetDelegate, strategy = DELEGATE_ONLY) Closure changes) {
-        def x = new ChangeSetDelegate(changeSet, true)(changes)
+        def x = callOn( new ChangeSetDelegate(changeSet, true), changes)
         def sql = expandExpressions(x)
         if ( sql ) {
             changeSet.addRollBackSQL(sql as String)
@@ -234,7 +234,7 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
                    @DelegatesTo(value = ModifySqlDelegate, strategy = DELEGATE_ONLY) Closure closure) {
         if ( closure ) {
             def delegate = new ModifySqlDelegate(params, changeSet)
-            delegate.call(closure)
+            callOn(delegate, closure)
 
             // No need to expand expressions, the ModifySqlDelegate will do it.
             delegate.sqlVisitors.each {
@@ -295,7 +295,6 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
         return null
     }
 
-
     /** Helper method called from the generated methods. Calling (Tag, Map) version is more efficient
      Helps to find missing method definitions
      */
@@ -306,6 +305,7 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
             return addChange(args.elem, args.asMap)
         }
     }
+
     /** Helper method called from the generated methods. Calling (Tag, Map) version is more efficient
       Helps to find missing method definitions
      */
@@ -377,7 +377,7 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
 
         if ( closure ) {
             def delegate = new KeyValueDelegate('customChange', changeSet.id)
-            delegate.call(closure)
+            callOn(delegate, closure)
             delegate.map.each { key, value ->
                 // expandExpressions because the delegate won't
                 change.setParam(key, expandExpressions(value) as String)
@@ -569,18 +569,15 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
         return change as T
     }
 
-    static final Map<String, Class<Delegate>> _closureDelegate = [:]
-
-    static Class<Delegate> closureDelegate(String tagName) {
-        _closureDelegate.computeIfAbsent(tagName, Delegatee::delegateClass4tag)
-    }
-
-    /** Create a Delegate belonging to the give change(name), then call the closure on it. */
-    @PackageScope def callOnDelegate(Change change, @DelegatesTo(strategy = DELEGATE_ONLY) Closure closure) {
+    /** Create a Delegate belonging to the given change(name), then call the closure on it. */
+    @PackageScope def callOnDelegate(Change change,
+                                     @DelegatesTo(strategy = DELEGATE_ONLY) Closure closure,
+                                     clArgs = null) {
         Class<ChangeDelegate> delegateClass = closureDelegate(change.serializedObjectName)
-        def delegate = delegateClass.newInstance(this, ColumnDelegate.isAssignableFrom(delegateClass) ?
-                                                    change as ChangeWithColumns : change)
-        delegate.call(closure)
+        def delegate = delegateClass.newInstance(this,
+                    ColumnDelegate.isAssignableFrom(delegateClass) ?
+                                              change as ChangeWithColumns : change)
+        callOn(delegate, closure, clArgs)
         //delegate
     }
 

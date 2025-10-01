@@ -431,7 +431,7 @@ class ConstraintDelegateTests {
         changelog.changeLogParameters = new ChangeLogParameters()
 
         def delegate = new ConstraintDelegate( changelog,'test-change-set', 'test-change' )
-        delegate.call(closure)
+        delegate.callOn(closure)
 
         delegate.constraint
     }

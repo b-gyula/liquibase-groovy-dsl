@@ -107,12 +107,12 @@ class ChangeSetTests {
      * @param closure the closure containing changes to parse.
      * @param args parameters
      * @return the changeSet, with parsed changes from the closure added.
-     */
+     */ //@TypeChecked(TypeCheckingMode.SKIP)
     static ChangeSet buildChanges(args = null,
             @DelegatesTo(value=ChangeSetDelegate, strategy=DELEGATE_ONLY) Closure closure) {
         ChangeSet changeSet = createChangeSet()
         new ChangeSetDelegate(changeSet)
-            .call(closure, args)
+           .callOn( closure, args)
         changeSet
     }
 
@@ -146,7 +146,8 @@ class ChangeSetTests {
      * @param closure used to create the change
      * @param cls Class of the expected change
      */
-    static <T extends Change> T verify( Map<String, Object> expectedProps, Class<T> cls, Closure closure) {
+    static <T extends Change> T verify( Map<String, Object> expectedProps, Class<T> cls,
+                                        @DelegatesTo(strategy = DELEGATE_FIRST) Closure closure) {
         ChangeSet changeSet = buildChanges( expectedProps, closure )
         assertEquals 0, changeSet.rollback.changes.size()
         assert 1 == changeSet.changes.size()
@@ -156,9 +157,11 @@ class ChangeSetTests {
     }
 
     static Change buildChange(ChangeSetDelegate.Tag t, Map args=[:],
-                              @DelegatesTo(strategy = DELEGATE_ONLY) Closure closure) {
-        buildBaseChangeSetDelegate()
-           .addChangeWithChild(t, args, closure)
+                              @DelegatesTo(strategy = DELEGATE_ONLY) Closure closure, clParams = null) {
+        ChangeSetDelegate cd = buildBaseChangeSetDelegate()
+        Change c = cd.addChange(t, args)
+        cd.callOnDelegate(c, closure, clParams)
+        c
     }
 }
 

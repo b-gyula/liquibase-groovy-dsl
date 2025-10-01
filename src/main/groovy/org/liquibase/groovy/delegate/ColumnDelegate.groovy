@@ -26,8 +26,8 @@ import liquibase.statement.DatabaseFunction
 import liquibase.statement.SequenceCurrentValueFunction
 import liquibase.statement.SequenceNextValueFunction
 
-import static groovy.lang.Closure.DELEGATE_FIRST
 import static groovy.lang.Closure.DELEGATE_ONLY
+import static DelegateUtil.callOn
 
 /**
  * This class is a delegate for nested columns found frequently in the DSL, such as inside the
@@ -77,7 +77,7 @@ abstract class ColumnDelegate<T extends ColumnConfig> extends ChangeDelegate {
         column
     }
 
-    Map<String, Object> argsToMap(Object... args) {
+    protected Map<String, Object> argsToMap(Object... args) {
         MethodDef method = methodDefs['column']
         argsAsMap 'column', method, args
     }
@@ -100,7 +100,7 @@ abstract class ColumnDelegateHasConstraint<T extends ColumnConfig> extends Colum
         // Process nested closure (constraints)
         if ( constraints ) {
             ConstraintDelegate constraintDelegate = new ConstraintDelegate(databaseChangeLog, changeId, parent)
-            constraintDelegate.call(constraints)
+            constraintDelegate.callOn(constraints)
             col.constraints = constraintDelegate.constraint
         }
     }
@@ -687,16 +687,14 @@ trait WhereDelegate {
 /**
      * Process the whereParams clause for the closure and add the parameters to the change.  If the
      * change doesn't support whereParams, we'll get a ChangeLogParseException.
-     * @param closure the nested closure with the parameters themselves.
+     * @param params the nested closure with the parameters themselves.
      */
-    def whereParams(@DelegatesTo (value = WhereParamsDelegate, strategy = DELEGATE_ONLY) Closure closure) {
+    def whereParams(@DelegatesTo (value = WhereParamsDelegate, strategy = DELEGATE_ONLY) Closure params) {
         def whereParamsDelegate = new WhereParamsDelegate(databaseChangeLog: databaseChangeLog,
                 changeSetId: changeId,
                 changeName: (change as LiquibaseSerializable).serializedObjectName,
                 change: change)
-        closure.delegate = whereParamsDelegate
-        closure.resolveStrategy = DELEGATE_FIRST
-        closure.call()
+        callOn(whereParamsDelegate, params)
     }
 
 /**

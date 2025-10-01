@@ -8,7 +8,6 @@ import liquibase.resource.DirectoryResourceAccessor
 import liquibase.resource.Resource
 import liquibase.resource.ResourceAccessor
 import static org.junit.Assert.assertEquals
-import spock.lang.Ignore
 
 import java.nio.file.Files
 import java.nio.file.Path
@@ -50,7 +49,6 @@ f'''/
 		StringWriter out = new StringWriter()
 		ParsedNode node = new ParsedNode(null, parent)
 		serialize(node.setValue((Object)input), new IndentPrinter(out), tagInfo(dbChangeLogTagName))
-		System.println(out)
 		String expected = "changeSet {\n$exp\n}\n"
 		expect:
 		out.toString() == expected
@@ -73,7 +71,7 @@ f'''/
 		ResourceAccessor ra = new FolderResourceAccessor(commonTestChangelogRoot)
 		//ResourceAccessor ra = new DirectoryResourceAccessor(Path.of('src/test/resource'))
 
-		run(fileName, ra)
+		convert(fileName, ra)
 		then:
 		noExceptionThrown()
 	}
@@ -89,7 +87,7 @@ f'''/
 
 		//ResourceAccessor ra = new FolderResourceAccessor(commonTestChangelogRoot)
 		ResourceAccessor ra = new DirectoryResourceAccessor(Path.of('.'))
-		run(fileName, ra)
+		convert(fileName, ra)
 		// Parse XML
 		DatabaseChangeLog xmlLog = parseToChangeLog(fileName, ra)
 

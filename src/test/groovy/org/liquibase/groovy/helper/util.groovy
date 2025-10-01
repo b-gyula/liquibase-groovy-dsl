@@ -1,7 +1,6 @@
 package org.liquibase.groovy.helper
 
 import groovy.transform.TupleConstructor
-import liquibase.change.Change
 import liquibase.changelog.ChangeLogParameters
 import liquibase.changelog.ChangeSet
 import liquibase.changelog.DatabaseChangeLog
@@ -10,6 +9,7 @@ import liquibase.parser.ext.GroovyLiquibaseChangeLogParser
 import liquibase.parser.groovy.exception.*
 import liquibase.precondition.Precondition
 import liquibase.precondition.core.PreconditionContainer
+import org.apache.groovy.util.BeanUtils
 import org.liquibase.groovy.delegate.ChangeSetDelegate
 import org.liquibase.groovy.delegate.DatabaseChangeLogDelegate
 import org.liquibase.groovy.delegate.Delegatee
@@ -24,6 +24,7 @@ import static groovy.lang.Closure.DELEGATE_ONLY
 import static org.junit.Assert.assertEquals
 import static liquibase.parser.ext.GroovyLiquibaseChangeLogParser.*
 import static org.junit.Assert.assertNotNull
+import static org.liquibase.groovy.delegate.DelegateUtil.callOn
 
 @groovy.transform.CompileStatic
 class util {
@@ -106,15 +107,33 @@ class util {
      */
     static void assertPropsSet(Map expected, actual) {
         assertNotNull actual
-        assertMapEquals expected as Map<String, Object>, actual.properties
+        assertMapEquals expected as Map<String, Object>, actual
     }
 
     /** Validate if all keys in {@code expected} are also in {@code actual} and the values are matching
         If the type do not match compare their String representation
       */
-    static void assertMapEquals(Map<String, Object> expected, Map<String, Object> actual) {
+    static void assertMapEquals(Map<String, Object> expected, actual) {
         expected.each { key, exp ->
-            def act = actual[key]
+            def act
+            try { 
+                act = actual[key]
+            } catch (MissingPropertyException e) { // Nasty fallback in groovy 4
+                MetaMethod m = actual.metaClass.pickMethod('is'+ BeanUtils.capitalize(key),null)
+                if(m){
+                    act = m.invoke(actual, GString.EMPTY_OBJECT_ARRAY)
+                }
+//                def mmethods = actual.metaClass.metaMethods
+//                def methods = actual.metaClass.methods
+//                def props = actual.properties
+//                def mprops = actual.metaPropertyValues
+//                def mmprops = actual.metaClass.properties
+//                MetaProperty q = actual.metaClass.getMetaProperty(key)
+//
+//                //def b = actual['is'+ BeanUtils.capitalize(key)]
+//                println(e)
+
+            }
             // Use String representation if different types
             if(null != act && exp != null && exp.class != act.class) {
                 act = act as String // Convert actual
@@ -179,9 +198,9 @@ class util {
          * @param closure the closure containing changes to parse.
          * @return the changeSet, with parsed changes from the closure added.
          */
-        DatabaseChangeLog buildChangeLog(
+        DatabaseChangeLog buildChangeLog(clParams = null,
                 @DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_ONLY) Closure closure) {
-            return buildChangeLog(null, closure)
+            return buildChangeLog(null, clParams, closure)
         }
 
         /**
@@ -190,7 +209,7 @@ class util {
          * @param closure the closure containing changes to parse.
          * @return the changeSet, with parsed changes from the closure added.
          */
-        DatabaseChangeLog buildChangeLog(ChangeLogParameters parameters,
+        DatabaseChangeLog buildChangeLog(ChangeLogParameters parameters, clParams = null,
            @DelegatesTo(value = DatabaseChangeLogDelegate, strategy=DELEGATE_ONLY) Closure closure) {
             def changelog = new DatabaseChangeLog(MOCK_CHANGELOG)
             if ( parameters == null ) {
@@ -198,8 +217,8 @@ class util {
             } else {
                 changelog.changeLogParameters = parameters
             }
-            new DatabaseChangeLogDelegate(changelog, resourceAccessor)
-                    .call(closure)
+            callOn(new DatabaseChangeLogDelegate(changelog, resourceAccessor)
+                 ,closure, clParams)
             return changelog
         }
     }
@@ -243,7 +262,7 @@ class util {
         changelog.changeLogParameters = new ChangeLogParameters()
         ChangeSet changeSet = new ChangeSet(changelog)
         changelog.addChangeSet(changeSet)
-        new ChangeSetDelegate(changeSet  )
+        new ChangeSetDelegate(changeSet )
     }
 }
 

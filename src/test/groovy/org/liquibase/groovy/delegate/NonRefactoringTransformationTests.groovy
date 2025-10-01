@@ -305,7 +305,7 @@ class NonRefactoringTransformationTests extends ChangeSetTests {
         assertNull changes[0].schemaName
         assertNull changes[0].tableName
         assertNull changes[0].file
-        assertNull changes[0].relativeToChangelogFile
+        assertNull changes[0].isRelativeToChangelogFile() // Needed for groovy 4
         assertNull changes[0].encoding
         assertEquals ",", changes[0].separator
         assertEquals '"', changes[0].quotchar

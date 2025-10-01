@@ -98,7 +98,7 @@ class ChangeSetSpec extends Specification {
         ch.path == null
         where:
         type         | cl
-        'named'      | { createView(expPropsCreateView) {sqlSelect} }
+        'named'      | { createView expPropsCreateView, {sqlSelect} }
         'positional' | { createView(viewName, it.replaceIfExists, it.fullDefinition, it.remarks,  schemaName, catalogName) {sqlSelect} }
         'mixed'      | { createView(viewName, it.replaceIfExists, it.fullDefinition, catalogName: catalogName, it.remarks, schemaName) {sqlSelect} }
     }
@@ -175,7 +175,7 @@ class ChangeSetSpec extends Specification {
     }
 
     static final expPropsDropView = expPropsViewSchemaCatalogName + [
-            ifExists: true
+        ifExists: true
     ]
 
     void "dropView with '#type' arguments"() {
@@ -202,8 +202,9 @@ class ChangeSetSpec extends Specification {
         'positional' | { mergeColumns columnName, it.joinString, column2Name, it.finalColumnName, it.finalColumnType, tableName, schemaName, catalogName }
         'mixed'      | { mergeColumns columnName, it.joinString, column2Name, it.finalColumnName, it.finalColumnType, tableName, catalogName: catalogName, schemaName }
     }
+
     static final expPropsModifyDataType = expPropsColumnTableSchemaCatalogName + [
-            newDataType: dataType
+        newDataType: dataType
     ]
 
     void "modifyDataType with '#type' arguments"() {
@@ -598,10 +599,9 @@ class ChangeSetSpec extends Specification {
     }
 
     static final expPropsDropNotNullConstraint = expPropsColumnTableSchemaCatalogName + [
-            columnDataType: dataType,
-            constraintName: constraintName
+        columnDataType: dataType,
+        constraintName: constraintName
     ]
-
 
     void "dropNotNullConstraint with '#type' arguments"() {
         verify(expPropsDropNotNullConstraint, DropNotNullConstraintChange, cl)
@@ -656,6 +656,7 @@ class ChangeSetSpec extends Specification {
         constraintName: constraintName,
         uniqueColumns: columnNames
     ]
+
     void "dropUniqueConstraint with '#type' arguments"() {
         verify(expPropsDropUniqueConstraint, DropUniqueConstraintChange, cl)
 
@@ -847,7 +848,7 @@ class ChangeSetSpec extends Specification {
 
         where:
         type         | cl
-        'named'      | { createProcedure(expPropsCreateProcedurePath) }
+        'named'      | { createProcedure expPropsCreateProcedurePath }
         'positional' | { createProcedure(it.path, procedureName, true, it.replaceIfExists, it.dbms, utf8, schemaName, catalogName) }
         'mixed'      | { createProcedure(it.path, procedureName, it.relativeToChangelogFile, it.replaceIfExists, it.dbms, catalogName: catalogName, utf8, schemaName) }
     }
@@ -860,7 +861,7 @@ class ChangeSetSpec extends Specification {
         ch.path == null
         where:
         type         | cl
-        'named'      | { createProcedure(expPropsCreateProcedure) {sqlSelect} }
+        'named'      | { createProcedure expPropsCreateProcedure, {sqlSelect} }
         'positional' | { createProcedure(procedureName, it.replaceIfExists, it.dbms, schemaName, catalogName) {sqlSelect} }
         'mixed'      | { createProcedure(procedureName, it.replaceIfExists, it.dbms, catalogName: catalogName, schemaName) {sqlSelect} }
     }
@@ -875,9 +876,9 @@ class ChangeSetSpec extends Specification {
 //        MissingClosure  | {sql dbms: 'd'}
 //    }
 
-
     static final String target = 'STDOUT'
     static final String outMsg = 'some helpful message'
+
     static final expPropsOutput = [
        message: outMsg,
        target : target
@@ -889,11 +890,11 @@ class ChangeSetSpec extends Specification {
 
         where:
         type         | cl
-    //    'child'      | { output {outMsg} } //TODO DOES NOT WORK!
-        'named'      | { output(expPropsOutput)}
-        'positional' | { output(outMsg, target)}
-        'mixed'      | { output(target: target, outMsg)}
-        'mixed+child'| { output target: target, {outMsg} }
+//        'child'      | { output {outMsg} } //TODO DOES NOT WORK!
+        'named'      | { output it }
+        'positional' | { output it.message, it.target}
+        'mixed'      | { output target: it.target, it.message}
+        'mixed+child'| { output target: it.target, {outMsg} }
 
     }
     // TODO check all known changes have a method in the methoddDefs

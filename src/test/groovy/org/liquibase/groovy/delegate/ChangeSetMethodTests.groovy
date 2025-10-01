@@ -65,8 +65,7 @@ class ChangeSetMethodTests extends ChangeSetTests {
         changeSet = createChangeSet()
         def goodChecksum = changeSet.generateCheckSum().toString()
         assertFalse "Arbitrary checksum should not be valid before being added", changeSet.isCheckSumValid(liquibaseChecksum)
-        new ChangeSetDelegate(changeSet)
-                .call {
+        new ChangeSetDelegate(changeSet).callOn {
             validCheckSum goodChecksum
         }
         assertTrue "Arbitrary checksum should be valid after being added", changeSet.isCheckSumValid(liquibaseChecksum)

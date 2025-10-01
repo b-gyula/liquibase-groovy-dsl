@@ -1,5 +1,8 @@
 package org.liquibase.groovy.helper
 
+import groovy.transform.CompileStatic
+
+@CompileStatic
 interface constants {
     String tableName = 'monkey'
     String columnName = 'emotion'
@@ -32,4 +35,6 @@ interface constants {
     String NUMERIC = 'NUMERIC'
     String fail = 'fail'
     String err = 'err'
+    String strComment = 'comment'
+    String tlberglund = 'tlberglund'
 }

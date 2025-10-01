@@ -52,9 +52,6 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
 
     protected final ResourceAccessor resourceAccessor
 
-    static final String v4_30 = '4.30.0'
-    static final String v4_16 = '4.16.0'
-
     DatabaseChangeLogDelegate(DatabaseChangeLog databaseChangeLog, ResourceAccessor resourceAccessor,
                               Map<String, Object> params = [:]) {
         super( databaseChangeLog, dbChangeLogTagName )
@@ -293,7 +290,7 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
             changeSet.logicalFilePath = params.logicalFilePath
         }
 
-        new ChangeSetDelegate(changeSet)(changes)
+        callOn(new ChangeSetDelegate(changeSet), changes)
 
         databaseChangeLog.addChangeSet(changeSet)
     }

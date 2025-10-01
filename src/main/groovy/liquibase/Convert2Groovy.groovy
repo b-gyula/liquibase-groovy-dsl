@@ -21,9 +21,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 
 import static liquibase.parser.ext.GroovyLiquibaseChangeLogParser.getMethods
-import static liquibase.util.PatchedObjectUtil.convert
-import static org.liquibase.groovy.delegate.Delegatee.methodDefs
-import static org.liquibase.groovy.delegate.Delegatee.methodDefs4Tag
+import static org.liquibase.groovy.delegate.DelegateUtil.*
 
 @CompileStatic
 @groovy.util.logging.Log
@@ -43,7 +41,7 @@ class Convert2Groovy {
 				outFile = outputFile(args[1])
 			}
 
-			if(run(fileName, new FileSystemResourceAccessor('.'), outFile)) {
+			if(convert(fileName, new FileSystemResourceAccessor('.'), outFile)) {
 				exit(0,)
 			}
 			else {
@@ -59,7 +57,7 @@ class Convert2Groovy {
 		fileName[0..dot] + 'groovy'
 	}
 
-	static File run(String fileName, ResourceAccessor ra, File outFile = null) {
+	static File convert(String fileName, ResourceAccessor ra, File outFile = null) {
 		ParsedNode node = parse(fileName, ra)
 		if (node) {
 			processIncludes node, ra, Path.of(fileName)
@@ -310,7 +308,7 @@ import liquibase.GroovyScript
 				String oFileName = fileNode.getValue(String)
 				String fileName = mkRelative thisFile, oFileName, it
 				if(fileName.endsWith('.xml')) {
-					File outFile = run( fileName, ra)
+					File outFile = convert( fileName, ra)
 					fileNode.setValue(changeExtension(oFileName))
 				}
 			} else if ('includeAll' == it.name) {
@@ -321,7 +319,7 @@ import liquibase.GroovyScript
 				opts.maxDepth = it.getChildValue(null, 'maxDepth', Integer.MAX_VALUE)
 				opts.setTrimmedEndsWithFilter('.xml')
 				ra.search(pathName,opts).each {
-					run( it.path, ra)
+					convert( it.path, ra)
 				}
 			}
 		}

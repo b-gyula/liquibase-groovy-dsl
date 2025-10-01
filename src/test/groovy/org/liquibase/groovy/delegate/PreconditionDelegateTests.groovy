@@ -49,12 +49,10 @@ class PreconditionDelegateTests extends Specification {
         mysql == (preconditions[0] as DBMSPrecondition).type
 
         where:
-        type        | cl
-        'named'     | { dbms(type: mysql) }
-        'positional'| { dbms( mysql ) }
+        type         | cl
+        'named'      | { dbms(type: mysql) }
+        'positional' | { dbms(mysql) }
     }
-
-    static final String tlberglund = 'tlberglund'
 
     /** Try creating a runningAs precondition. */
     void "runningAs '#type' arguments"() {
@@ -85,6 +83,7 @@ class PreconditionDelegateTests extends Specification {
             property: 'prop'
             ,value: 'val'
     ]
+
     /** Try creating a dbms precondition  */
     void "changeLogPropertyDefined '#type' arguments"() {
         verify(expChangeLogPropertyDefined, cl, ChangeLogPropertyDefinedPrecondition)
@@ -110,10 +109,8 @@ class PreconditionDelegateTests extends Specification {
         type         | cl
         'named'      | { changeSetExecuted(id: it.id, author: it.author, changeLogFile: it.changeLogFile)}
         'mixed'      | { changeSetExecuted( it.id, changeLogFile: it.changeLogFile, it.author)}
-        'positional' | { changeSetExecuted( it.id, tlberglund, changeLogXML) }
+        'positional' | { changeSetExecuted( it.id, tlberglund, it.changeLogFile) }
     }
-
-
 
     /** Try creating a columnExists precondition.  */
     void "columnExists '#type' arguments"() {
@@ -211,7 +208,7 @@ class PreconditionDelegateTests extends Specification {
 
         where:
         type         | cl
-        'named'      | { rowCount(expRowCount)}
+        'named'      | { rowCount it}
         'positional' | { rowCount( it.expectedRows, tableName, schemaName, catalogName) }
         'mixed'      | { rowCount( catalogName: catalogName, '1', tableName, schemaName)} // int as string
     }
@@ -226,7 +223,7 @@ class PreconditionDelegateTests extends Specification {
 
         where:
         type         | cl
-        'named'      | { sequenceExists(expSequenceExists)}
+        'named'      | { sequenceExists( it )}
         'positional' | { sequenceExists( it.sequenceName, schemaName, catalogName) }
         'mixed'      | { sequenceExists( catalogName: catalogName, it.sequenceName, schemaName)}
     }
@@ -241,7 +238,7 @@ class PreconditionDelegateTests extends Specification {
 
         where:
         type         | cl
-        'named'      | { primaryKeyExists(expPrimaryKeyExists)}
+        'named'      | { primaryKeyExists( it )}
         'positional' | { primaryKeyExists( it.primaryKeyName, tableName, schemaName, catalogName) }
         'mixed'      | { primaryKeyExists( catalogName: catalogName, it.primaryKeyName, tableName , schemaName)}
     }
@@ -257,7 +254,7 @@ class PreconditionDelegateTests extends Specification {
 
         where:
         type         | cl
-        'named'      | { uniqueConstraintExists(expUniqueConstraintExists)}
+        'named'      | { uniqueConstraintExists( it )}
         'positional' | { uniqueConstraintExists( tableName, it.constraintName, columnNames, schemaName, catalogName) }
         'mixed'      | { uniqueConstraintExists( tableName, catalogName: catalogName, it.constraintName, columnNames, schemaName)}
     }
@@ -354,7 +351,7 @@ class PreconditionDelegateTests extends Specification {
 
         where:
         type         | cl
-        'named'      | { sqlCheck(expSqlCheck)}
+        'named'      | { sqlCheck( it )}
         'positional' | { sqlCheck( 'res', sqlSelect) }
         'child'      | { sqlCheck( expectedResult: 'res', {sqlSelect})}
         'mixed'      | { sqlCheck( expectedResult: 'res', sqlSelect)}
@@ -471,7 +468,7 @@ class PreconditionDelegateTests extends Specification {
      * @param cls Class of the expected precondition
      */
     static verify(Map expectedProps, closure, Class cls) {
-        List<Precondition> preconditions = buildPreconditions( expectedProps, closure )
+        List<Precondition> preconditions = buildPreconditions( closure, expectedProps )
         assert 1 == preconditions.size()
         assertPropsSet expectedProps, cls.cast(preconditions[0] )
     }
@@ -482,12 +479,13 @@ class PreconditionDelegateTests extends Specification {
      * @param closure the closure to call
      * @return the preconditions that were created.
      */
-    static List<Precondition> buildPreconditions( Map args = null,
-            @DelegatesTo(value = PreconditionDelegate, strategy=DELEGATE_FIRST) Closure closure) {
+    static List<Precondition> buildPreconditions(
+       @DelegatesTo(value = PreconditionDelegate, strategy=DELEGATE_FIRST) Closure closure,
+        clArgs = null) {
         def changelog = new DatabaseChangeLog()
         changelog.changeLogParameters = new ChangeLogParameters()
         def delegate = new PreconditionDelegate(changelog,'')
-        delegate.call(closure, args)
+        delegate.callOn( closure, clArgs)
         delegate.preconditions
     }
 

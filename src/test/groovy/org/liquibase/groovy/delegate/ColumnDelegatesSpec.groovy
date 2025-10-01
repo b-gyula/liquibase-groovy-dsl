@@ -34,23 +34,22 @@ class ColumnDelegatesSpec extends Specification {
             defaultValueComputed: new DatabaseFunction("defaultDatabaseValue"),
             header: 'h',
             index: 1,
-
     ]
 
     def "loadData with #type arguments" () {
-        LoadDataChange ch = buildChange loadData,  cl
+        LoadDataChange ch = buildChange loadData, [:], cl, expPropsLoadData
         expect:
         verify expPropsLoadData, ch.columns, LoadDataColumnConfig
         where:
         type         | cl
         'named'      | { column expPropsLoadData }
         'positional' | {
-        expPropsLoadData.with {
-            column columnName, loadDataColumnType, defaultValue,
-                    defaultValueNumeric, defaultValueDate, defaultValueBoolean,
-                    defaultValueComputed, header, index
-        }
-    }
+                    it.with {
+                        column columnName, it.type, defaultValue,
+                                defaultValueNumeric, defaultValueDate, defaultValueBoolean,
+                                defaultValueComputed, header, index
+                    }
+                }
     }
 
 
@@ -68,20 +67,20 @@ class ColumnDelegatesSpec extends Specification {
     ]
 
     def "loadUpdateData with #type arguments" () {
-        LoadDataChange ch = buildChange loadUpdateData, cl
+        LoadDataChange ch = buildChange loadUpdateData, [:], cl, expPropsLoadUpdateData
         expect:
         verify expPropsLoadUpdateData, ch.columns, LoadDataColumnConfig
         where:
         type         | cl
-        'mixed'      | { expPropsLoadUpdateData.with {
-            column columnName, loadDataColumnType, defaultValue,
+        'mixed'      | { it.with {
+            column columnName, it.type, defaultValue,
                     defaultValueNumeric, defaultValueDate, defaultValueBoolean,
                     defaultValueComputed, header, allowUpdate: allowUpdate, index
         }
         }
-        'named'      | { column expPropsLoadUpdateData }
-        'positional' | { expPropsLoadUpdateData.with {
-                column columnName, loadDataColumnType, defaultValue,
+        'named'      | { column it }
+        'positional' | { it.with {
+                column columnName, it.type, defaultValue,
                         defaultValueNumeric, defaultValueDate, defaultValueBoolean,
                         defaultValueComputed, header, index, allowUpdate
             }

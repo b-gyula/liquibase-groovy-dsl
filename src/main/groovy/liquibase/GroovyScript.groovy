@@ -21,6 +21,7 @@ import org.liquibase.groovy.delegate.*
 
 import static liquibase.parser.ext.GroovyLiquibaseChangeLogParser.*
 import static groovy.lang.Closure.DELEGATE_ONLY
+import static org.liquibase.groovy.delegate.DelegateUtil.argsToMap
 import static org.liquibase.groovy.delegate.DelegateUtil.objArr
 
 @groovy.transform.TypeChecked
@@ -48,10 +49,10 @@ abstract class GroovyScript extends Script {
                            ,ObjectQuotingStrategy objectQuotingStrategy = null
                            ,@DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_ONLY) Closure changes) {
         // It is required to accept all versions containing named parameter. Must remain for backward compatibility!!!
-        namedArgs = argsToMap( namedArgs, logicalFilePath, contextFilter, objectQuotingStrategy, changes)
+        namedArgs = argsAsMap( namedArgs, logicalFilePath, contextFilter, objectQuotingStrategy, changes)
         new DatabaseChangeLogDelegate(getProperty('changeLog') as DatabaseChangeLog,
                                      getProperty('resourceAccessor') as ResourceAccessor, namedArgs)
-            .call( changes)
+        .callOn(changes)
     }
 
     /** Root element of the <a href='https://docs.liquibase.com/concepts/changelogs/home.html'>changelog</a>
@@ -93,15 +94,15 @@ abstract class GroovyScript extends Script {
         Object[] args = params as Object[]
 
         // Put the parameters into the map, it must handle all types anyways
-        Map map = argsToMap( args)
+        Map map = argsAsMap( args)
         Closure cl = args.last() as Closure
         databaseChangeLog( map, cl )
         null
     }
 
-    protected static Map argsToMap(Object... args) {
-        Delegatee.argsToMap(null, dbChangeLogTagName, true,
+    protected Map argsAsMap(Object... args) {
+        argsToMap(null, dbChangeLogTagName, true,
         "(String logicalFilePath, String contextFilter, ObjectQuotingStrategy objectQuotingStrategy) {}",
-                ['logicalFilePath', 'contextFilter', 'objectQuotingStrategy', 'cl'], args)
+                ['logicalFilePath', 'contextFilter', 'objectQuotingStrategy', 'changes'], args)
     }
 }

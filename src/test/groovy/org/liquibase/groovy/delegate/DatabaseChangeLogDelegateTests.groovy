@@ -309,7 +309,7 @@ databaseChangeLog()
         assertEquals 'myValue', param.value
     }
 
-    static Map changeSetExpectedArgs = [
+    static final Map changeSetExpectedArgs = [
             id: 'monkey-change',
             author: 'stevesaliman',
             dbmsSet: ['mysql'] as Set,
@@ -328,13 +328,13 @@ databaseChangeLog()
             runWith: 'my_executor',
             runWithSpoolFile: 'my.log',
             logicalFilePath: 'logical_file_path',
-            comments: 'comment'
+            comments: strComment
             ]
 
     @Test
     void changeSetFullPositionalStringConvert() {
         def changeLog =
-             buildChangeLog { changeSetExpectedArgs.with {
+             buildChangeLog changeSetExpectedArgs, { it.with {
                     changeSet(id, author,
                             'y',
                             contextFilter, alwaysRun, labels,
@@ -343,7 +343,7 @@ databaseChangeLog()
                             runOrder, failOnError,
                             'QUOTE_ALL_OBJECTS', runWith,
                             created, runWithSpoolFile, ignore) {
-                        comment(changeSetExpectedArgs.comments)
+                        comment 'comment'
                     }
                 }
             }
@@ -355,7 +355,7 @@ databaseChangeLog()
     @Test
     void changeSetFullPositional() {
         def changeLog =
-             buildChangeLog { changeSetExpectedArgs.with {
+             buildChangeLog changeSetExpectedArgs, { it.with {
                 changeSet(id, author,
                           runOnChange,
                           contextFilter, alwaysRun, labels,
@@ -364,7 +364,7 @@ databaseChangeLog()
                           runOrder, failOnError,
                           objectQuotingStrategy, runWith,
                           created, runWithSpoolFile, ignore) {
-                    comment(changeSetExpectedArgs.comments)
+                    comment('comment')
                 }
             }
         }
@@ -638,8 +638,8 @@ databaseChangeLog()
 
     @Test
     void propertyFullPositionalGlobal() {
-        def changeLog = buildChangeLog {
-            expectedPropertyArgs.with {
+        def changeLog = buildChangeLog expectedPropertyArgs, {
+            it.with {
                 property key, value, validContexts, labels, validDatabases.first()
             }
         }
@@ -734,8 +734,8 @@ emotion=angry
 
         String relFileName = makeRelativeTo(propertyFile, ROOT_CHANGELOG_PATH)
 
-        def changeLog = buildChangeLog {
-            expectedPropertyArgs.with {
+        def changeLog = buildChangeLog expectedPropertyArgs, {
+            it.with {
                 property relFileName, true, validContexts, labels, validDatabases.first( )
             }
         }
@@ -768,8 +768,8 @@ emotion=angry
 
         String propertyFileName = propertyFile.path.replaceAll("\\\\", "/")
 
-        def changeLog = buildChangeLog {
-            expectedPropertyArgs.with {
+        def changeLog = buildChangeLog expectedPropertyArgs, {
+            it.with {
                 property(propertyFileName, false, validContexts, labels, validDatabases.first(), false)
             }
         }
