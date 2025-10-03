@@ -22,8 +22,12 @@ import org.liquibase.groovy.delegate.*
 import static liquibase.parser.ext.GroovyLiquibaseChangeLogParser.*
 import static groovy.lang.Closure.DELEGATE_ONLY
 import static org.liquibase.groovy.delegate.DelegateUtil.argsToMap
+import static org.liquibase.groovy.delegate.DelegateUtil.callOn
 import static org.liquibase.groovy.delegate.DelegateUtil.objArr
 
+/** Base class for all scripts
+   Should inherit from Delegatee also but must extends Script
+ */
 @groovy.transform.TypeChecked
 abstract class GroovyScript extends Script {
 
@@ -44,15 +48,15 @@ abstract class GroovyScript extends Script {
      to the database. Default: {@code LEGACY}.</dd>
     </dl>
      */
-    void databaseChangeLog( Map<String, Object> namedArgs
+    void databaseChangeLog( Map ǃ
                            ,String logicalFilePath = null, String contextFilter = null // These are required for mixed parameter calls
                            ,ObjectQuotingStrategy objectQuotingStrategy = null
-                           ,@DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_ONLY) Closure changes) {
+                           ,@DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_ONLY) Closure changelog) {
         // It is required to accept all versions containing named parameter. Must remain for backward compatibility!!!
-        namedArgs = argsAsMap( namedArgs, logicalFilePath, contextFilter, objectQuotingStrategy, changes)
-        new DatabaseChangeLogDelegate(getProperty('changeLog') as DatabaseChangeLog,
-                                     getProperty('resourceAccessor') as ResourceAccessor, namedArgs)
-        .callOn(changes)
+        ǃ = argsAsMap( ǃ, logicalFilePath, contextFilter, objectQuotingStrategy, changelog)
+        callOn(new DatabaseChangeLogDelegate(getProperty('changeLog') as DatabaseChangeLog,
+                                     getProperty('resourceAccessor') as ResourceAccessor, ǃ)
+        ,changelog)
     }
 
     /** Root element of the <a href='https://docs.liquibase.com/concepts/changelogs/home.html'>changelog</a>
@@ -74,8 +78,8 @@ abstract class GroovyScript extends Script {
      */
     void databaseChangeLog(String logicalFilePath = null, String contextFilter = null,
                            ObjectQuotingStrategy objectQuotingStrategy = null,
-                           @DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_ONLY) Closure changes) {
-         databaseChangeLog [:], logicalFilePath, contextFilter, objectQuotingStrategy, changes
+                           @DelegatesTo(value = DatabaseChangeLogDelegate, strategy = DELEGATE_ONLY) Closure changelog) {
+         databaseChangeLog [:], logicalFilePath, contextFilter, objectQuotingStrategy, changelog
     }
 
     /** Possible method calls with forgotten parameters */

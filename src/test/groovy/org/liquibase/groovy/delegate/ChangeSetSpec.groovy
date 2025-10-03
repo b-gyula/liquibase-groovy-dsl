@@ -771,7 +771,7 @@ class ChangeSetSpec extends Specification {
         type         | cl
         'named'      | { dropIndex expPropsDropIndex }
         'positional' | { dropIndex indexName, tableName, schemaName, catalogName, it.associatedWith }
-        'mixed'      | { dropIndex indexName, tableName, schemaName, catalogName, associatedWith:it.associatedWith }
+        'mixed'      | { dropIndex indexName, tableName, associatedWith:it.associatedWith, schemaName, catalogName }
     }
 
     static final expPropsSql = [

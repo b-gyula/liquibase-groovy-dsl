@@ -18,11 +18,11 @@ jmh {
 	jvmArgsAppend = ['-Djava.util.logging.config.file=logging.properties']
 }
 
-java {
-	toolchain {
-		languageVersion = JavaLanguageVersion.of(11)
-	}
-}
+//java {
+//	toolchain {
+//		languageVersion = JavaLanguageVersion.of(11)
+//	}
+//}
 
 jar {
 	manifest {
@@ -62,7 +62,7 @@ dependencies {
 	compileOnly "org.liquibase:liquibase-core:${liquibaseVersion}"
 	implementation "org.liquibase:liquibase-core:${liquibaseVersion}"
     testImplementation "junit:junit:${junitVersion}"
-    testImplementation "org.spockframework:spock-core:2.3-groovy-${groovyVersion[0]}.0"
+    testImplementation "org.spockframework:spock-core:2.3-groovy-${groovyVersion.startsWith("3") ? '3' : '4'}.0"
     testImplementation 'org.junit.vintage:junit-vintage-engine'
     testRuntimeOnly "com.h2database:h2:${h2Version}"
     testRuntimeOnly "ch.qos.logback:logback-classic:${logbackVersion}"

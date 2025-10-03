@@ -46,13 +46,21 @@ documentation site
 - store multiple method definitions for elements having 2 exclusive parameters sets like
 `sql` / `createProcedure` / `dropColumn / createView`
 - Invalid argument check based on the new method declarations `DatabaseChangeLogDelegate` / ...
-- check reference of low level error messages like update / whereParams / param
+- check reference of low-level error messages like update / whereParams / param
 - Add possible values to enum conversion errors
-- Generate single map parameter version for preconditions
 - Create annotation & add to arguments & check runtime against the liquibase version
 - Once the https://github.com/liquibase/liquibase/pull/7275[PR for Parser hierarchy change] is
-  merged with the change few lines of code the converter can convert from YAML + JSON formats also
-- Display warning when an attribute is set not supported by the Liquibase version executing the script
+  merged with the change few lines of code, the converter can convert from YAML + JSON formats also
+- Display warning when an attribute set is not supported by the Liquibase version executing the script
+
+- Add duplicate validation + methods to `ConstraintDelegate` since `column` accepts children of `constrains` directly like:
+```groovy
+ createTable 'monkey', {
+   column 'colA', 'int', {
+      primaryKey true
+   }
+ }
+```
 
 === Ideas
 - publish a new version with the same version number as Liquibase matching the method definition if
@@ -61,12 +69,4 @@ any element definition change
 
 Syntax extensions::
 - `include/update` shall accept simple Map with name value pairs beside `column` calls
-- `column` shall accept children of `constrains` directly like:
-```groovy
- createTable 'monkey', {
-   column 'colA', 'int', {
-      primaryKey true
-   }
- }
-```
 - column` / `constraint` / `primaryKey` shall accept primaryKeyName as String also making primaryKeyName obsolete / optional
