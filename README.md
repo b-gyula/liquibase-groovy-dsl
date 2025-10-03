@@ -35,23 +35,59 @@ import liquibase.GroovyScript
 ```
 The file also needs to be is in the `src/main/` or similar folder where the IDE may treat it as part
 of the project's module, the liquibase-groovy-dsl jar is configured for.
-![edit helpers](doc/code-helpers.gif "Title")
+![edit helpers](doc/code-helpers.gif )
 
 **If the IDE does not show error during script editing, then no syntax error will occur later 
 when the script excuted**, which greatly improves productivity. (Opposed to previous versions, where 
 scripts were checked runtime only)
-![](doc/code-edit-anim.gif "Title")
+![](doc/code-edit-anim.gif )
 
 - known properties can be set with positional parameters. e.g. 
 ```groovy
    changeSet 'id1', 'authorname' {
    }
 ```
+**NOTE:** Although the IDE can show the parameter names automatically, using more than the first 
+few positional parameters is not suggested.
 Positional parameters can be mixed with named ones like:
 ```groovy
   changeSet 'id2', author:'authorname' {
   } 
 ```
+**NOTE:** 
+1. By the nature of the groovy method call logic, when parameter(s) defined with its name, that 
+  is passed as map to the method in front of the parameters. That's why there are always at least 2
+   method declarations for each element: [See](https://groovy-lang.org/objectorientation.html#_mixing_named_and_positional_parameters)
+   - One with the parameters and their type
+   - Another with the same list, but a `Map ǃ` parameter in front, which you should ignore
+   - If there are mandatory attributes, then for backward compatibility the single `Map` parameter 
+     version of the methods are also kept that is used when all parameters defined with their name 
+     like before
+```groovy
+tableExists( String tableName, String schemaName=null, String catalogName=null )
+tableExists( Map ǃ, String tableName, String schemaName=null, String catalogName=null )
+tableExists( Map params )
+```
+2. Optional attributes have a default value of `null`. There is no optional parameter in java, so 
+  groovy has to generate a separate method declaration for each optional parameter. That resulting ~
+  2 x <number of optional parameters> + 1 declarations, that can cover all possible cases _helping the
+  validation right while you are typing_.
+
+3. When mixing positional and named parameter definitions, extra care needs to be taken <br>
+  _not to try to define parameters positionally **after** the position of the first parameter's 
+  position defined with its name_!<br>
+  The parameter meant to be defined after this position will be used as value of the parameter 
+  defined by its name. It results _that parameter defined twice_ and an `ArgumentSetTwice` error will
+  occur during execution to avoid double definition. It's might sound complicated, but an example 
+  can help to simplify, so let's see one using the change with definition:<br>
+  `delete( String tableName, String schemaName=null, String catalogName=null)`<br>
+  With the use: `delete( 'table', schemaName:'schema', 'catalog')`<br>
+  The value "schema" and "catalog" are both treated as the value for parameter `schemaName`. 
+   1. It's value "schema" set with its name gets passed in the first special `Map ǃ` parameter 
+   2. and its position will be filled with the value "catalog".
+
+   All other positional parameters are also "shifted left", so even if the double value definition 
+   would not trigger error, all parameters would get the value of the next parameter on its right.
 
 - Liquibase `Enum` values can also be used not only as strings, as every script has imported statically:
 ```groovy

@@ -203,7 +203,7 @@ class CreateTableDelegate extends ColumnDelegateHasConstraint<ColumnConfig> {
                 remarks)
     }
 
-    void column(Map<String,Object> namedArgs,
+    void column(Map ǃ,
                 String name,
                 String type,
                 Boolean computed=null,
@@ -222,7 +222,7 @@ class CreateTableDelegate extends ColumnDelegateHasConstraint<ColumnConfig> {
                 String remarks=null,
                 @DelegatesTo(value = ConstraintDelegate, strategy = DELEGATE_ONLY)
                         Closure constraints) {
-        column argsToMap(namedArgs,
+        column argsToMap(ǃ,
                 name,
                 type,
                 computed,
@@ -241,7 +241,7 @@ class CreateTableDelegate extends ColumnDelegateHasConstraint<ColumnConfig> {
                 remarks), constraints
     }
 
-    void column(Map<String,Object> namedArgs,
+    void column(Map ǃ,
                 String name,
                 String type,
                 Boolean computed=null,
@@ -258,7 +258,7 @@ class CreateTableDelegate extends ColumnDelegateHasConstraint<ColumnConfig> {
                 BigInteger startWith=null,
                 BigInteger incrementBy=null,
                 String remarks=null){
-        column argsToMap(namedArgs,
+        column argsToMap(ǃ,
                 name,
                 type,
                 computed,
@@ -326,7 +326,7 @@ class LoadDataDelegate extends ColumnDelegate<LoadDataColumnConfig>{
                 allowUpdate )
     }
 
-    void column( Map<String,Object> namedArgs,
+    void column( Map ǃ,
                  String name,
                  String type=null,
                  String defaultValue=null,
@@ -337,7 +337,7 @@ class LoadDataDelegate extends ColumnDelegate<LoadDataColumnConfig>{
                  String header=null,
                  Integer index=null,
                  Boolean allowUpdate=null){
-        column argsToMap(namedArgs,
+        column argsToMap(ǃ,
                 name,
                 type,
                 defaultValue,
@@ -364,7 +364,7 @@ class AddColumnDelegate extends ColumnDelegateHasConstraint<AddColumnConfig> {
         super( changeSet, change, AddColumnConfig)
     }
 
-    void column(Map<String,Object> namedArgs,
+    void column(Map ǃ,
                 String name,
                 String type,
                 Boolean computed=null,
@@ -395,7 +395,7 @@ class AddColumnDelegate extends ColumnDelegateHasConstraint<AddColumnConfig> {
                 String beforeColumn=null,
                 Integer position=null,
                 @DelegatesTo(value = ConstraintDelegate, strategy = DELEGATE_ONLY) Closure constraints) {
-        column argsToMap(namedArgs,
+        column argsToMap(ǃ,
                 name,
                 type,
                 computed,
@@ -427,7 +427,7 @@ class AddColumnDelegate extends ColumnDelegateHasConstraint<AddColumnConfig> {
                 position), constraints
     }
 
-    void column(Map<String,Object> namedArgs,
+    void column(Map ǃ,
                 String name,
                 String type,
                 Boolean computed=null,
@@ -457,7 +457,7 @@ class AddColumnDelegate extends ColumnDelegateHasConstraint<AddColumnConfig> {
                 String afterColumn=null,
                 String beforeColumn=null,
                 Integer position=null) {
-        column argsToMap(namedArgs,
+        column argsToMap(ǃ,
                 name,
                 type,
                 computed,
@@ -618,7 +618,7 @@ class InsertDelegate extends ColumnDelegate<ColumnConfig> { // DataColumn in XSD
         super(changeSet, change)
     }
 
-    void column( Map<String,Object> namedArgs,
+    void column( Map ǃ,
                  String name,
                  String value=null,
                  Number valueNumeric=null,
@@ -630,7 +630,7 @@ class InsertDelegate extends ColumnDelegate<ColumnConfig> { // DataColumn in XSD
                  DatabaseFunction valueComputed=null,
                  SequenceNextValueFunction valueSequenceNext=null,
                  SequenceCurrentValueFunction valueSequenceCurrent=null) {
-        column argsToMap( namedArgs,
+        column argsToMap( ǃ,
                 name,
                 value,
                 valueNumeric,

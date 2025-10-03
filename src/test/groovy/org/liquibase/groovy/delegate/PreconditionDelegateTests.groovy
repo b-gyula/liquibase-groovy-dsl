@@ -17,7 +17,9 @@ package org.liquibase.groovy.delegate
 import liquibase.exception.ChangeLogParseException
 import liquibase.changelog.ChangeLogParameters
 import liquibase.changelog.DatabaseChangeLog
+import liquibase.parser.groovy.exception.InvalidArguments
 import liquibase.parser.groovy.exception.InvalidAttribute
+import liquibase.parser.groovy.exception.UnrecognizedElement
 import liquibase.precondition.Precondition
 import liquibase.precondition.core.*
 import liquibase.precondition.CustomPreconditionWrapper
@@ -445,20 +447,17 @@ class PreconditionDelegateTests extends Specification {
         }
     }
 
-    /** Try creating an invalid precondition  */
-    void invalidPrecondition() {
-        when: buildPreconditions {
-            linkExists(host: 'www.thewebsiteisdown.com')
-        }
-        then:  thrown(ChangeLogParseException)
-    }
-
-    /** Try creating a valid precondition, but with an invalid attribute.  */
-    void invalidPreconditionAttribute() {
-        when: buildPreconditions {
-            tableExists(name: 'monkey') // this is the wrong attribute on purpose
-        }
-        then: thrown(ChangeLogParseException)
+    void "precondition error #type" () {
+        when:
+        buildPreconditions closure
+        then:
+        thrown(expEx)
+        where:
+        type                   | closure                                           | expEx
+        'no arguments'    | { dbms }                                                | InvalidArguments
+        'invalid precondition' | { linkExists (host: 'www.thewebsiteisdown.com') } | UnrecognizedElement
+        'existing with wrong property'| { tableExists(name: 'monkey') }            | InvalidAttribute // This should be InvalidArguments
+        // TODO works outside 'missing arguments'    | { dbms() }                                       | InvalidArguments
     }
 
     /** Verify if the one and only precondition built using the {@code closure} has all the properties set

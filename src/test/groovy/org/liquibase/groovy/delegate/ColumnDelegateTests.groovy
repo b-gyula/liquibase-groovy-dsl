@@ -521,22 +521,16 @@ class ColumnDelegateTests { // TODO add positional cases
         assertEquals "angry", column.value
     }
 
-    /* TODO add
-    def delegate = buildColumnDelegate(new DeleteDataChange(), ColumnConfig.class) {
-        where "emotion=':emotion'"
-        whereParams{
-            param(name: 'emotion',
-                    value: 'angry',
-                    valueNumeric: 1,
-                    valueBoolean: false,
-                    valueDate: dateValue,
-                    valueComputed: 'databaseValue',
-                    valueSequenceNext: 'sequenceNext',
-                    valueSequenceCurrent: 'sequenceCurrent'
-            )
+    @Test(expected = UnrecognizedElement)
+    void invalidWhereParamsContent() {
+        def delegate = buildColumnDelegate(new DeleteDataChange(), ColumnConfig.class) {
+            where "emotion=':emotion'"
+            whereParams {
+                inv()
+            }
         }
     }
-*/
+
     /**
      * {@code delete} changes will have a where clause, but no actual columns.  Make sure we can
      * handle this.  We'll also use this test to put every documented attribute of a whereParam to

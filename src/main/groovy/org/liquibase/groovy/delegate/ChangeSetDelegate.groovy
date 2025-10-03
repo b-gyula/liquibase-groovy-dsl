@@ -96,13 +96,13 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
      <dt>onSqlOutput</dt>
      <dd>Controls how preconditions are evaluated with the update-sql command for XML, YAML, and JSON changelogs. Since 1.9.5</dd>
      </dl> */
-    void preConditions(Map<String,Object> namedArgs, FailOption onFail = null, ErrorOption onError = null,
+    void preConditions(Map ǃ, FailOption onFail = null, ErrorOption onError = null,
                        String onFailMessage = null, String onErrorMessage = null,
                        OnSqlOutputOption onSqlOutput = null,
                        @DelegatesTo(value = PreconditionDelegate, strategy = DELEGATE_ONLY) Closure preconditions) {
-        argsAsMap(Tag.preConditions, namedArgs, onFail, onError, onFailMessage, onErrorMessage, onSqlOutput, preconditions)
+        argsAsMap(Tag.preConditions, ǃ, onFail, onError, onFailMessage, onErrorMessage, onSqlOutput, preconditions)
         changeSet.preconditions =
-                buildPreconditionContainer(databaseChangeLog, namedArgs, preconditions, changeId)
+                buildPreconditionContainer(databaseChangeLog, ǃ, preconditions, changeId)
     }
 
     /** Preconditions required to execute the changeset. The closure containing nested elements of a precondition.
@@ -179,9 +179,9 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
      @param changeSetAuthor the 3rd part of the unique id of the changes
      @param changeSetPath the 1st part of the unique id of the changes. Default: the current logicalFilePath
      */
-    void rollback(Map<String, Object> namedArgs, String changeSetId, String changeSetAuthor=null,
+    void rollback(Map ǃ, String changeSetId, String changeSetAuthor=null,
                   String changeSetPath=null) {
-        argsAsMap Tag.rollback, namedArgs, changeSetId, changeSetAuthor, changeSetPath
+        argsAsMap Tag.rollback, ǃ, changeSetId, changeSetAuthor, changeSetPath
     }
 
     /**
@@ -353,7 +353,7 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
      <dt>replaceIfExists</dt>
      <dd>If the stored procedure defined by {@code procedureName} already exists, alter it instead of creating it. Default: false.</dd>
      </dl> */
-    void createProcedure(Map params = [:],
+    void createProcedure(Map params = [:], // TODO could be generated
                          @DelegatesTo(value = CreateProcedureDelegate, strategy = DELEGATE_ONLY) Closure<String> procedureText = null) {
         addChangeWithMixedChild chkMap(Tag.createProcedure, params),'procedureText', procedureText
     }
@@ -408,7 +408,7 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
 
     /**
      * Output {@code message} into {@code target} stream
-     * @param namedArgs
+     * @param ǃ
      * @param message text to output
      * @param target stream output {@code message} into
      */
@@ -418,12 +418,11 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
 
     /**
      *  Output {@code message} into {@code target} stream
-     * @param namedArgs
      * @param message text to output
      * @param target stream output {@code message} into
      */
-    void output(Map<String, String> namedArgs, String message, String target = null ) {
-        addChange Tag.output, argsAsMap(Tag.output, namedArgs, message, target)
+    void output(Map ǃ, String message, String target = null ) {
+        addChange Tag.output, argsAsMap(Tag.output, ǃ, message, target)
     }
 
 /*  Processes an output change. This method only takes a map, but we can't use methodMissing for
@@ -472,9 +471,9 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
      database type by prefixing with !. The keywords all and none are also available.
      Will run for all dbms' if empty or absent</dd>
      </dl> */
-    void sql(Map<String,Object> namedArgs, Boolean stripComments=null, String dbms=null, Boolean splitStatements=null, String endDelimiter=null,
+    void sql(Map ǃ, Boolean stripComments=null, String dbms=null, Boolean splitStatements=null, String endDelimiter=null,
              @DelegatesTo(value = SqlDelegate, strategy = DELEGATE_ONLY) Closure<String> sql) {
-        addChangeWithMixedChild( chkMap(Tag.sql, namedArgs) ('stripComments',stripComments) ('dbms',dbms) ('splitStatements',splitStatements) ('endDelimiter',endDelimiter), 'sql', sql)
+        addChangeWithMixedChild( chkMap(Tag.sql, ǃ) ('stripComments',stripComments) ('dbms',dbms) ('splitStatements',splitStatements) ('endDelimiter',endDelimiter), 'sql', sql)
     }
 
     /** Execute any SQL statement(s) in the content.
@@ -507,8 +506,8 @@ class ChangeSetDelegate extends Delegatee<Tag> implements ChangeSetChildren {
         addChange chkMap(Tag.sql) ('sql',sql)('stripComments', stripComments)('dbms', dbms) ('splitStatements',splitStatements) ('endDelimiter' , endDelimiter)
     }
 
-    void sql(Map<String,Object> namedArgs, String sql, Boolean stripComments=null, String dbms=null, Boolean splitStatements=null, String endDelimiter=null) {
-        addChange chkMap(Tag.sql,namedArgs) ('sql',sql)('dbms', dbms)('stripComments', stripComments) ('splitStatements',splitStatements) ('endDelimiter' , endDelimiter)
+    void sql(Map ǃ, String sql, Boolean stripComments=null, String dbms=null, Boolean splitStatements=null, String endDelimiter=null) {
+        addChange chkMap(Tag.sql,ǃ) ('sql',sql)('dbms', dbms)('stripComments', stripComments) ('splitStatements',splitStatements) ('endDelimiter' , endDelimiter)
     }
 
      /**

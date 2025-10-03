@@ -26,6 +26,7 @@ import liquibase.parser.groovy.exception.InvalidArguments
 import liquibase.parser.groovy.exception.MissingClosure
 import liquibase.util.LiquibaseUtil
 import org.apache.commons.lang3.StringUtils
+import org.codehaus.groovy.runtime.metaclass.MethodSelectionException
 
 import static groovy.lang.Closure.DELEGATE_FIRST
 import static groovy.lang.Closure.DELEGATE_ONLY
@@ -288,16 +289,24 @@ class DelegateUtil {
         map
     }
 
-    @TypeChecked(TypeCheckingMode.SKIP)
     /** call the given closure with this as delegate for the IDE editor auto complete all methods
      declared with DELEGATE_ONLY, but actually executed as DELEGATE_FIRST */
     static def callOn(self, @DelegatesTo(strategy = DELEGATE_ONLY) Closure closure, args = null) {
         if(closure) {
             closure.delegate = self
             closure.resolveStrategy = DELEGATE_FIRST
-            return closure.call(args)
+            try {
+                return closure.call(args)
+            } catch (MethodSelectionException e) { // Happens if there are
+                log.fine("$e.message caught and redirected to missingMethod")
+                self.metaClass.invokeMissingMethod(self, getMethodName(e), objArr())
+            }
         }
         null
+    }
+
+    static String getMethodName(MethodSelectionException e) {
+        e.metaClass.getAttribute(e, 'methodName')
     }
 
     /** Cache for element Name -> Delegate class */

@@ -1,5 +1,5 @@
 package org.liquibase.groovy.delegate
-/* Generated @ Sun Sep 28 12:20:14 CEST 2025 on M600 */
+/* Generated @ Thu Oct 02 21:42:02 CEST 2025 on M600 */
 import groovy.transform.CompileStatic
 import groovy.transform.SelfType
 import liquibase.database.ObjectQuotingStrategy
@@ -31,8 +31,15 @@ trait PreConditionChildren {
 	/** Check if the changeset identified by {@code changeLogFile} :: {@code id} :: {@code author}
 		has already been executed in a previous deployment
 	  @param changeLogFile File name of the changelog. If not set the actual (logical) file name is used */
-	void changeSetExecuted( Map<String, Object> namedArgs, String id, String author, String changeLogFile=null) {
-		addPrecondition chkMap(Tag.changeSetExecuted,namedArgs) ('id',id) ('author',author) ('changeLogFile',changeLogFile)
+	void changeSetExecuted( Map ǃ, String id, String author, String changeLogFile=null) {
+		addPrecondition chkMap(Tag.changeSetExecuted,ǃ) ('id',id) ('author',author) ('changeLogFile',changeLogFile)
+	}
+
+	/** Check if the changeset identified by {@code changeLogFile} :: {@code id} :: {@code author}
+		has already been executed in a previous deployment
+	  @param changeLogFile File name of the changelog. If not set the actual (logical) file name is used */
+	void changeSetExecuted(Map params) {
+		addPrecondition Tag.changeSetExecuted, params
 	}
 
 	/** Checks if table with {@code tableName} exists in the database */
@@ -41,8 +48,13 @@ trait PreConditionChildren {
 	}
 
 	/** Checks if table with {@code tableName} exists in the database */
-	void tableExists( Map<String, Object> namedArgs, String tableName, String schemaName=null, String catalogName=null) {
-		addPrecondition chkMap(Tag.tableExists,namedArgs) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
+	void tableExists( Map ǃ, String tableName, String schemaName=null, String catalogName=null) {
+		addPrecondition chkMap(Tag.tableExists,ǃ) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
+	}
+
+	/** Checks if table with {@code tableName} exists in the database */
+	void tableExists(Map params) {
+		addPrecondition Tag.tableExists, params
 	}
 
 	/** Check if column {@code columnName} exists in the table {@code tableName} */
@@ -51,8 +63,13 @@ trait PreConditionChildren {
 	}
 
 	/** Check if column {@code columnName} exists in the table {@code tableName} */
-	void columnExists( Map<String, Object> namedArgs, String columnName, String tableName, String schemaName=null, String catalogName=null) {
-		addPrecondition chkMap(Tag.columnExists,namedArgs) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
+	void columnExists( Map ǃ, String columnName, String tableName, String schemaName=null, String catalogName=null) {
+		addPrecondition chkMap(Tag.columnExists,ǃ) ('columnName',columnName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
+	}
+
+	/** Check if column {@code columnName} exists in the table {@code tableName} */
+	void columnExists(Map params) {
+		addPrecondition Tag.columnExists, params
 	}
 
 	/**  */
@@ -61,8 +78,13 @@ trait PreConditionChildren {
 	}
 
 	/**  */
-	void sequenceExists( Map<String, Object> namedArgs, String sequenceName, String schemaName=null, String catalogName=null) {
-		addPrecondition chkMap(Tag.sequenceExists,namedArgs) ('sequenceName',sequenceName) ('schemaName',schemaName) ('catalogName',catalogName)
+	void sequenceExists( Map ǃ, String sequenceName, String schemaName=null, String catalogName=null) {
+		addPrecondition chkMap(Tag.sequenceExists,ǃ) ('sequenceName',sequenceName) ('schemaName',schemaName) ('catalogName',catalogName)
+	}
+
+	/**  */
+	void sequenceExists(Map params) {
+		addPrecondition Tag.sequenceExists, params
 	}
 
 	/**  */
@@ -71,8 +93,13 @@ trait PreConditionChildren {
 	}
 
 	/**  */
-	void foreignKeyConstraintExists( Map<String, Object> namedArgs, String foreignKeyName, String foreignKeyTableName=null, String schemaName=null, String catalogName=null) {
-		addPrecondition chkMap(Tag.foreignKeyConstraintExists,namedArgs) ('foreignKeyName',foreignKeyName) ('foreignKeyTableName',foreignKeyTableName) ('schemaName',schemaName) ('catalogName',catalogName)
+	void foreignKeyConstraintExists( Map ǃ, String foreignKeyName, String foreignKeyTableName=null, String schemaName=null, String catalogName=null) {
+		addPrecondition chkMap(Tag.foreignKeyConstraintExists,ǃ) ('foreignKeyName',foreignKeyName) ('foreignKeyTableName',foreignKeyTableName) ('schemaName',schemaName) ('catalogName',catalogName)
+	}
+
+	/**  */
+	void foreignKeyConstraintExists(Map params) {
+		addPrecondition Tag.foreignKeyConstraintExists, params
 	}
 
 	/** Check if the index referenced by {@code indexName} or {@code tableName} and {@code columnNames}
@@ -83,8 +110,8 @@ trait PreConditionChildren {
 
 	/** Check if the index referenced by {@code indexName} or {@code tableName} and {@code columnNames}
 		Either {@code indexName} or {@code tableName} and {@code columnNames} is required */
-	void indexExists( Map<String, Object> namedArgs, String indexName=null, String tableName=null, String columnNames=null, String schemaName=null, String catalogName=null) {
-		addPrecondition chkMap(Tag.indexExists,namedArgs) ('indexName',indexName) ('tableName',tableName) ('columnNames',columnNames) ('schemaName',schemaName) ('catalogName',catalogName)
+	void indexExists( Map ǃ, String indexName=null, String tableName=null, String columnNames=null, String schemaName=null, String catalogName=null) {
+		addPrecondition chkMap(Tag.indexExists,ǃ) ('indexName',indexName) ('tableName',tableName) ('columnNames',columnNames) ('schemaName',schemaName) ('catalogName',catalogName)
 	}
 
 	/** Check if unique key exists on table defined by {@code tableName.} Either {@code primaryKeyName} or {@code tableName} required */
@@ -93,8 +120,13 @@ trait PreConditionChildren {
 	}
 
 	/** Check if unique key exists on table defined by {@code tableName.} Either {@code primaryKeyName} or {@code tableName} required */
-	void uniqueConstraintExists( Map<String, Object> namedArgs, String tableName, String constraintName=null, String columnNames=null, String schemaName=null, String catalogName=null) {
-		addPrecondition chkMap(Tag.uniqueConstraintExists,namedArgs) ('tableName',tableName) ('constraintName',constraintName) ('columnNames',columnNames) ('schemaName',schemaName) ('catalogName',catalogName)
+	void uniqueConstraintExists( Map ǃ, String tableName, String constraintName=null, String columnNames=null, String schemaName=null, String catalogName=null) {
+		addPrecondition chkMap(Tag.uniqueConstraintExists,ǃ) ('tableName',tableName) ('constraintName',constraintName) ('columnNames',columnNames) ('schemaName',schemaName) ('catalogName',catalogName)
+	}
+
+	/** Check if unique key exists on table defined by {@code tableName.} Either {@code primaryKeyName} or {@code tableName} required */
+	void uniqueConstraintExists(Map params) {
+		addPrecondition Tag.uniqueConstraintExists, params
 	}
 
 	/** Check if primary key exists. Either {@code primaryKeyName} or {@code tableName} required depending on the database type */
@@ -103,8 +135,8 @@ trait PreConditionChildren {
 	}
 
 	/** Check if primary key exists. Either {@code primaryKeyName} or {@code tableName} required depending on the database type */
-	void primaryKeyExists( Map<String, Object> namedArgs, String primaryKeyName=null, String tableName=null, String schemaName=null, String catalogName=null) {
-		addPrecondition chkMap(Tag.primaryKeyExists,namedArgs) ('primaryKeyName',primaryKeyName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
+	void primaryKeyExists( Map ǃ, String primaryKeyName=null, String tableName=null, String schemaName=null, String catalogName=null) {
+		addPrecondition chkMap(Tag.primaryKeyExists,ǃ) ('primaryKeyName',primaryKeyName) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
 	}
 
 	/**  */
@@ -113,8 +145,13 @@ trait PreConditionChildren {
 	}
 
 	/**  */
-	void viewExists( Map<String, Object> namedArgs, String viewName, String schemaName=null, String catalogName=null) {
-		addPrecondition chkMap(Tag.viewExists,namedArgs) ('viewName',viewName) ('schemaName',schemaName) ('catalogName',catalogName)
+	void viewExists( Map ǃ, String viewName, String schemaName=null, String catalogName=null) {
+		addPrecondition chkMap(Tag.viewExists,ǃ) ('viewName',viewName) ('schemaName',schemaName) ('catalogName',catalogName)
+	}
+
+	/**  */
+	void viewExists(Map params) {
+		addPrecondition Tag.viewExists, params
 	}
 
 	/**  */
@@ -123,8 +160,13 @@ trait PreConditionChildren {
 	}
 
 	/**  */
-	void tableIsEmpty( Map<String, Object> namedArgs, String tableName, String schemaName=null, String catalogName=null) {
-		addPrecondition chkMap(Tag.tableIsEmpty,namedArgs) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
+	void tableIsEmpty( Map ǃ, String tableName, String schemaName=null, String catalogName=null) {
+		addPrecondition chkMap(Tag.tableIsEmpty,ǃ) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
+	}
+
+	/**  */
+	void tableIsEmpty(Map params) {
+		addPrecondition Tag.tableIsEmpty, params
 	}
 
 	/**  */
@@ -133,8 +175,13 @@ trait PreConditionChildren {
 	}
 
 	/**  */
-	void rowCount( Map<String, Object> namedArgs, Long expectedRows, String tableName, String schemaName=null, String catalogName=null) {
-		addPrecondition chkMap(Tag.rowCount,namedArgs) ('expectedRows',expectedRows) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
+	void rowCount( Map ǃ, Long expectedRows, String tableName, String schemaName=null, String catalogName=null) {
+		addPrecondition chkMap(Tag.rowCount,ǃ) ('expectedRows',expectedRows) ('tableName',tableName) ('schemaName',schemaName) ('catalogName',catalogName)
+	}
+
+	/**  */
+	void rowCount(Map params) {
+		addPrecondition Tag.rowCount, params
 	}
 
 	/** Check if the changeLog property with the name in {@code property} is set to {@code value.}

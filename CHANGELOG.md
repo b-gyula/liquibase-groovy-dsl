@@ -1,12 +1,12 @@
 Changes for 4.1
 ================
-- Attributes can be passed as positional method parameter for each element, that adds auto complete 
-  help @ script edit in IDEs with groovy support like IntelliJ IDEA, Eclipse and Netbeans.
+- Attributes can be passed as positional method parameter for each element, that adds **auto complete** 
+  @ script edit in IDEs with groovy support like IntelliJ IDEA, Eclipse and Netbeans.
 
-- This solution adds documentation also in IDEs 
+- This solution **adds inplace documentation** also in IDEs 
 
-- From now if the IDE does not show error during script edit, there is a big chance the script is 
-valid and no parse error occurs @ runtime
+- From now **if the IDE does not show error during script edit, there is a big chance the script is 
+valid and no parse error occurs @ runtime**
 
 - Error messages are improved containing the script name+line and possible names / parameters
 e.g: "changeSet includerelative/pathinclude1::1::nvoxland: Unrecognized child element: 'colum' for 
@@ -20,16 +20,23 @@ e.g: "changeSet includerelative/pathinclude1::1::nvoxland: Unrecognized child el
   ,`liquibase.precondition.core.PreconditionContainer.FailOption.*`
 
 - `column` element attributes are limited to their meaningful set e.g. `index` / `column` does not offer
-  `defaultValueNumeric` as it is ignored during execution.
+  attributes like `defaultValueNumeric` as it is ignored during execution.
 
 - `property` element handling logs warning("'name' and 'value' parameters are ignored if 'file' is set")
 
 - `output` element is supported with `message` in closure parameter too 
 
-- **Converter from XML**: To convert XML changelog _and all XMLs it includes transitively_ run
-> `java -jar liquibase-groovy-dsl-4.1.0.jar -cp liquibase-core-4.28.0.jar;<liquibase dependencies> <change log xml>`
-_Known limitations: `rollback` and `createProcedure` elements are not converted correctly_
+_Known limitations:_
+1. elements with 2 disjunct parameter sets return only one possible parameter list in the error message
+2. `whereParams` not using the new error handling
 
+Fixes:
+- `databaseChangeLog/includeAllSql` related test were not running on Windows
+- `include@errorIfMissing` should be true by default
+
+- **Converter from XML**: To convert XML changelog _and all XMLs it includes transitively_ run
+> `java -jar liquibase-groovy-dsl-4.1.0.jar -cp liquibase-core-4.xx.x.jar;<liquibase dependencies> <change log xml>`
+_Known limitations: `rollback` and `createProcedure` elements are not converted correctly_
 
 **Breaking change**
 - The change [createProcedure](https://docs.liquibase.com/reference-guide/change-types/createprocedure)

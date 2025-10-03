@@ -14,6 +14,7 @@
 
 package org.liquibase.groovy.delegate
 
+import groovy.transform.PackageScope
 import groovy.transform.TypeChecked
 import liquibase.ContextExpression
 import liquibase.Labels
@@ -141,7 +142,7 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
      </dl>
      @param changes closure containing, the refactoring changes the change set should make.
      */    // TODO annotate mandatory params
-    void changeSet(String id, String author = null, Boolean runOnChange = null,
+    void changeSet(String id, String author, Boolean runOnChange = null,
                    @Since(value=v4_16, oldName = 'context') String contextFilter = null,
                    Boolean runAlways = null, String labels = null,
                    String dbms = null, String logicalFilePath = null,
@@ -149,7 +150,7 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
                    Boolean runInTransaction = null, String runOrder = null, Boolean failOnError = null,
                    ObjectQuotingStrategy objectQuotingStrategy = null, String runWith = null,
                    String created = null,
-                   @Since('4.21.0') String runWithSpoolFile = null,
+                   @Since('4.21') String runWithSpoolFile = null,
                    Boolean ignore = null,
                    @DelegatesTo(value=ChangeSetDelegate, strategy=DELEGATE_ONLY) Closure changes) {
         changeSet( [:], id, author, runOnChange, contextFilter, runAlways, labels, dbms,
@@ -158,7 +159,7 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
     }
 
     /** {@link #changeSet} */
-    void changeSet(Map<String, Object> namedArgs, String id, String author = null,
+    void changeSet(Map ǃ, String id, String author = null,
                    Boolean runOnChange = null, String contextFilter = null,
                    Boolean runAlways = null, String labels = null, String dbms = null,
                    String logicalFilePath = null, ValidationFailOption onValidationFail = null,
@@ -166,7 +167,7 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
                    ObjectQuotingStrategy objectQuotingStrategy = null, String runWith = null,
                    String created = null, String runWithSpoolFile = null, Boolean ignore = null,
                    @DelegatesTo(value=ChangeSetDelegate, strategy=DELEGATE_ONLY) Closure changes) {
-        changeSet chkMap( Tag.changeSet, namedArgs)
+        changeSet chkMap( Tag.changeSet, ǃ)
             .call('id', id)
             .call('author', author)
             .call(Arg.dbms, dbms)
@@ -188,7 +189,7 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
     }
 
     /** {@link #changeSet} */
-    void changeSet(Map<String, Object> params,
+    void changeSet(Map params,
                    @DelegatesTo(value = ChangeSetDelegate, strategy = DELEGATE_ONLY)  Closure changes) {
         // Most of the time, we just pass any parameters through to a newly created Liquibase
         // object, but we need to do things a little differently for a ChangeSet because the
@@ -322,11 +323,11 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
     }
 
     /** {@link #include} */
-    void include(Map<String, Object> namedArgs, String file, Boolean relativeToChangelogFile = null,
+    void include(Map ǃ, String file, Boolean relativeToChangelogFile = null,
                  String contextFilter = null, String labels = null,
                  Boolean errorIfMissing = null, String logicalFilePath = null,
                  Boolean ignore = null) {
-        include chkMap(Tag.include, namedArgs) (Arg.file, file)
+        include chkMap(Tag.include, ǃ) (Arg.file, file)
                 .call(Arg.relativeToChangelogFile, relativeToChangelogFile)
                 .call(Arg.contextFilter, contextFilter)(Arg.labels, labels)
                 .call(Arg.errorIfMissing, errorIfMissing)
@@ -426,7 +427,7 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
     }
 
     /** {@link #includeAll} */
-    void includeAll(Map<String, Object> namedArgs, String path, Boolean relativeToChangelogFile=null,
+    void includeAll(Map ǃ, String path, Boolean relativeToChangelogFile=null,
                     String contextFilter=null, String labels=null,
                     String endsWithFilter=null, String filter=null,
                     Integer maxDepth=null, Integer minDepth=null,
@@ -434,7 +435,7 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
                     Boolean errorIfMissingOrEmpty=null,
                     String logicalFilePath = null,
                     Boolean ignore = null) {
-        includeAll argsAsMap(Tag.includeAll, namedArgs, path, relativeToChangelogFile,
+        includeAll argsAsMap(Tag.includeAll, ǃ, path, relativeToChangelogFile,
                     contextFilter, labels,
                     endsWithFilter, filter,
                     maxDepth, minDepth,
@@ -649,13 +650,13 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
     }
 
     /** {@link #preConditions} */
-    void preConditions(Map<String,Object> namedArgs,
+    void preConditions(Map ǃ,
                        FailOption onFail = null, ErrorOption onError = null,
                        String onFailMessage = null, String onErrorMessage = null,
                        OnSqlOutputOption onSqlOutput = null,
                        @DelegatesTo(value= PreconditionDelegate, strategy=DELEGATE_ONLY) Closure preconditions) {
-        argsAsMap(Tag.preConditions, namedArgs, onFail, onError, onFailMessage, onErrorMessage, onSqlOutput, preconditions)
-        databaseChangeLog.preconditions = buildPreconditionContainer(databaseChangeLog, namedArgs, preconditions)
+        argsAsMap(Tag.preConditions, ǃ, onFail, onError, onFailMessage, onErrorMessage, onSqlOutput, preconditions)
+        databaseChangeLog.preconditions = buildPreconditionContainer(databaseChangeLog, ǃ, preconditions)
     }
 
     /**
@@ -688,10 +689,10 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
     }
 
     /** {@link #property} */
-    void property(Map<String, Object> namedArgs, String name, String value,
+    void property(Map ǃ, String name, String value,
                   String contextFilter = null, String labels = null,
                   String dbms = null, Boolean global = null) {
-        property chkMap(Tag.property, namedArgs)
+        property chkMap(Tag.property, ǃ)
                 .call(Arg.name, name)
                 .call(Arg.value, value)
                 .call(Arg.contextFilter, contextFilter)
@@ -735,10 +736,10 @@ class DatabaseChangeLogDelegate extends Delegatee<Tag> {
     }
 
     /** {@link #property} */
-    void property(Map<String, Object> namedArgs, String file, Boolean relativeToChangelogFile = null,
+    void property(Map ǃ, String file, Boolean relativeToChangelogFile = null,
                   String contextFilter = null, String labels = null,
                   String dbms = null, Boolean global = null, Boolean errorIfMissing = null) {
-        property chkMap(Tag.property, namedArgs) // TODO use method definition
+        property chkMap(Tag.property, ǃ) // TODO use method definition
                 .call(Arg.contextFilter, contextFilter)
                 .call(Arg.labels, labels)
                 .call(Arg.file, file)

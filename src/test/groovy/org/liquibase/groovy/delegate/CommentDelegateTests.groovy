@@ -15,7 +15,7 @@ package org.liquibase.groovy.delegate
 
 import groovy.transform.TypeChecked
 import liquibase.change.Change
-import liquibase.exception.ChangeLogParseException
+import liquibase.parser.groovy.exception.UnrecognizedElement
 import org.junit.Test
 
 import static groovy.lang.Closure.DELEGATE_ONLY
@@ -77,7 +77,7 @@ class CommentDelegateTests {
      * and not Groovy's standard MethodMissingException.
      */
     @TypeChecked(SKIP)
-    @Test(expected = ChangeLogParseException)
+    @Test(expected = UnrecognizedElement)
     void invalidClosure() {
         buildComments(sql, null) {
             invalid "this is an invalid method"

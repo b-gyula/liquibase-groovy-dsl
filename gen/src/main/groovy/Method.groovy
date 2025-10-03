@@ -106,7 +106,7 @@ class Method extends NameAndDesc<Method> {
 		r
 	}
 
-	static Arg namedArgs = new Arg('namedArgs','', Arg.YES, 'Map<String, Object>')
+	static Arg namedArgs = new Arg('ǃ','', Arg.YES, 'Map')
 
 	/** move required first */
 	List<Arg> resortArgs() {

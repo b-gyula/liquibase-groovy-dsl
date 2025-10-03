@@ -28,6 +28,7 @@ import org.codehaus.groovy.control.customizers.ImportCustomizer
 import org.codehaus.groovy.reflection.CachedMethod
 import org.codehaus.groovy.runtime.metaclass.MethodSelectionException
 import org.codehaus.groovy.util.FastArray
+import org.liquibase.groovy.delegate.DelegateUtil
 import org.liquibase.groovy.delegate.MethodDef
 
 import java.lang.reflect.Modifier
@@ -106,7 +107,7 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
             throw e // Contains file + line
         } catch(MethodSelectionException e) {
             // Get private fields
-            String methodName = e.metaClass.getAttribute(e, 'methodName')
+            String methodName = DelegateUtil.getMethodName(e)
             Class[] argTypes = e.metaClass.getAttribute(e, 'arguments') as Class[]
             FastArray methods = e.metaClass.getAttribute(e, 'methods') as FastArray
             //MetaMethod method = script.metaClass.methods.find {it.name == methodName}
@@ -220,6 +221,5 @@ class GroovyLiquibaseChangeLogParser implements ChangeLogParser {
         static final String runWith = 'runWith'
         static final String runWithSpoolFile = 'runWithSpoolFile'
     }
-
 }
 

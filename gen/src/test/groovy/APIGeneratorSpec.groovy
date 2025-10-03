@@ -106,8 +106,8 @@ class APIGeneratorSpec extends Specification {
 \t\tm chkMap(Tag.fn) ('a',a) ('b',b) .asMap, c
 \t}"""
 		true| true| """/**  */
-\tvoid fn( Map<String, Object> namedArgs, int a, String b=null, Closure c) {
-\t\tm chkMap(Tag.fn,namedArgs) ('a',a) ('b',b) .asMap, c
+\tvoid fn( Map ǃ, int a, String b=null, Closure c) {
+\t\tm chkMap(Tag.fn,ǃ) ('a',a) ('b',b) .asMap, c
 \t}"""
 	}
 

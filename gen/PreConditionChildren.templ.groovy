@@ -10,5 +10,11 @@ import static org.liquibase.groovy.delegate.PreconditionDelegate.Tag
 trait PreConditionChildren {
 <% methods.findAll{it.args && !it.hasChild && !skip.contains(it.name) }.each { m -> %>
 	${m.functionDefinitions('addPrecondition', true, '')}
-<%	} // each %>
+<% if(m.args.size() > 2 && m.hasRequired()) { // Add singel Map params version %>
+	${m.javadoc(m.args, m.args.size() > 3 )}
+	void $m.name(Map params) {
+		addPrecondition Tag.$m.name, params
+	}
+<%	} // if
+	} // each %>
 }

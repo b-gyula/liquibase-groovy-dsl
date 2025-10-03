@@ -914,8 +914,7 @@ emotion=angry
 
     @Test
     void parseDatabaseChangeLogErrors() {
-        [
-          "nonExistent () {}" : unrecognizedRootElement('nonExistent').message,
+        [ "nonExistent () {}" : unrecognizedRootElement('nonExistent').message,
           "nonExistent 'a'"   : unrecognizedRootElement('nonExistent').message,
           "nonExistent ()"    : unrecognizedRootElement('nonExistent').message,
           "nonExistent {}"    : unrecognizedRootElement('nonExistent').message,
@@ -949,7 +948,7 @@ emotion=angry
                 String errMsg = errMessage key, expMsg
                 try {
                     parseDatabaseChangeLog "databaseChangeLog{\n$key\n}"
-                    assertFalse(String.format(errMsg, ''), true)
+                    fail(String.format(errMsg, ''))
                 } catch (ChangeLogParseException e) {
                     assertTrue(String.format(errMsg, e.message), e.message.startsWith(expMsg))
                 }
@@ -972,9 +971,8 @@ emotion=angry
             //'preConditions {}{}'   : chLog.invalidArgs(Tag.preConditions, {}, {}),
             "preConditions 'a'"    : chLog.missingClosure(Tag.preConditions),
 
-            'include'          : chLog.invalidArgs(Tag.include, null),
-            //'include ()' : chLog.invalidArgs(Tag.include, {}, {}),
-            //'include () {}' : chLog.invalidArgs(Tag.include, {}, {}),
+            'include'         : chLog.invalidArgs(Tag.include, null),
+            'include ()'        : chLog.invalidArgs(Tag.include, null),
             // 'include () {} {}' : chLog.invalidArgs(Tag.include, {}, {}),
             //'include (1) {}'   : chLog.invalidArgs(Tag.include, 1, {}),
             // 'include {}{}'     : chLog.invalidArgs(Tag.include, {}, {}),

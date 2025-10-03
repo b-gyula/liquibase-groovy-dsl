@@ -3,8 +3,6 @@ package org.liquibase.groovy.delegate
 import groovy.transform.CompileStatic
 import groovy.transform.PackageScope
 import groovy.transform.TupleConstructor
-import groovy.transform.TypeChecked
-import groovy.transform.TypeCheckingMode
 import liquibase.changelog.ChangeSet
 import liquibase.changelog.DatabaseChangeLog
 import liquibase.parser.groovy.exception.*
@@ -21,6 +19,7 @@ import static org.liquibase.groovy.delegate.DelegateUtil.*
 
 @CompileStatic
 /** Class for generic functions in ...Delegate classes */
+// TODO @Delegate pattern might, to remove public methods from auto-complete
 abstract class Delegatee<Tag extends Enum<Tag>> {
     protected final DatabaseChangeLog databaseChangeLog
     final String changeId // used for error messages
@@ -39,10 +38,11 @@ abstract class Delegatee<Tag extends Enum<Tag>> {
         this.parent = parent
     }
 
-    @TypeChecked(TypeCheckingMode.SKIP)
+    //@TypeChecked(TypeCheckingMode.SKIP)
     /** call the given closure with this as delegate for the IDE editor auto complete all methods
-     declared with DELEGATE_ONLY, but actually executed as DELEGATE_FIRST */
-    protected callOn( @DelegatesTo(strategy = DELEGATE_ONLY) Closure closure, args = null) {
+     declared with DELEGATE_ONLY, but actually executed as DELEGATE_FIRST
+     */
+    @PackageScope def callOn( @DelegatesTo(strategy = DELEGATE_ONLY) Closure closure, args = null) {
         DelegateUtil.callOn(this, closure, args)
     }
 
@@ -160,7 +160,7 @@ abstract class Delegatee<Tag extends Enum<Tag>> {
 
     //@TypeChecked(TypeCheckingMode.SKIP)
     protected def propertyMissing(String name) {
-        methodMissing name, null // Simply forward to methodMissing
+        methodMissing name, objArr() // Simply forward to methodMissing with empty object array (CANNOT BE null!!)
     }
 
     protected UnrecognizedElement unrecognizedElement(String name){

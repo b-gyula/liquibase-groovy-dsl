@@ -107,9 +107,9 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
      * @param params the attributes of the precondition
      * @param closure the SQL for the precondition
      */
-    def sqlCheck(Map<String, Object> namedArgs, // Legacy
+    def sqlCheck(Map params, // Legacy
                   Closure<String> sql) {
-        addPrecondition chkMap(Tag.sqlCheck, namedArgs)('sql', sql.call() as String)
+        addPrecondition chkMap(Tag.sqlCheck, params)('sql', sql.call() as String)
     }
 
     /** Executes the SQL statement in the child closure and checks the returned value
@@ -135,8 +135,8 @@ class PreconditionDelegate extends Delegatee<Tag> implements PreConditionChildre
      The SQL must return a single row with a single value.
      @param sql SQL to execute
      @param expectedResult the single value expected*/
-    def sqlCheck(Map<String, Object> namedArgs, String sql) {
-        addPrecondition chkMap(Tag.sqlCheck, namedArgs)('sql', sql)
+    def sqlCheck(Map ǃ, String sql) {
+        addPrecondition chkMap(Tag.sqlCheck, ǃ)('sql', sql)
     }
 
     /**

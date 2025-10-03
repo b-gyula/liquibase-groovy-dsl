@@ -60,8 +60,8 @@ class ConstraintDelegate extends Delegatee<Tag> {
                      String referencedTableCatalogName = null, String referencedTableSchemaName = null,
                      String notNullConstraintName = null, String primaryKeyTablespace = null,
                      String checkConstraint = null, Boolean deleteCascade = null,
-                     Boolean initiallyDeferred = null,
-                     Boolean deferrable = null, Boolean validateNullable = null, Boolean validateUnique = null,
+                     Boolean initiallyDeferred = null, Boolean deferrable = null,
+                     Boolean validateNullable = null, Boolean validateUnique = null,
                      Boolean validatePrimaryKey = null, Boolean validateForeignKey = null) {
         constraints argsAsMap(Tag.constraints, nullable, primaryKey, unique,
                     references, foreignKeyName,
@@ -74,7 +74,7 @@ class ConstraintDelegate extends Delegatee<Tag> {
                     validatePrimaryKey, validateForeignKey )
     }
 
-    void constraints(Map<String,Object> named,
+    void constraints(Map ǃ,
                      Boolean nullable, Boolean primaryKey = null, Boolean unique = null,
                      String references = null, String foreignKeyName = null,
                      String primaryKeyName = null, String uniqueConstraintName = null,
@@ -82,10 +82,10 @@ class ConstraintDelegate extends Delegatee<Tag> {
                      String referencedTableCatalogName = null, String referencedTableSchemaName = null,
                      String notNullConstraintName = null, String primaryKeyTablespace = null,
                      String checkConstraint = null, Boolean deleteCascade = null,
-                     Boolean initiallyDeferred = null,
-                     Boolean deferrable = null, Boolean validateNullable = null, Boolean validateUnique = null,
+                     Boolean initiallyDeferred = null, Boolean deferrable = null,
+                     Boolean validateNullable = null, Boolean validateUnique = null,
                      Boolean validatePrimaryKey = null, Boolean validateForeignKey = null) {
-        constraints argsAsMap(Tag.constraints, named, nullable, primaryKey, unique,
+        constraints argsAsMap(Tag.constraints, ǃ, nullable, primaryKey, unique,
            references, foreignKeyName,
            primaryKeyName, uniqueConstraintName,
            referencedTableName= null, referencedColumnNames,
@@ -95,6 +95,7 @@ class ConstraintDelegate extends Delegatee<Tag> {
            initiallyDeferred, deferrable, validateNullable, validateUnique,
            validatePrimaryKey, validateForeignKey )
     }
+
     def constraints(Map params) {
         if(!params) {
             error new ParseErrorWithFileNLine("`constraint` element requires at least one argument to be set. " +
@@ -104,7 +105,7 @@ class ConstraintDelegate extends Delegatee<Tag> {
         setProps(constraint, params)
     }
 
-    protected def methodMissing(String name, params) {
+    def methodMissing(String name, params) {
         if ( constraint.hasProperty(name) ) {
             setProp(constraint, name, (params as Object[])[0])
         } else {

@@ -48,7 +48,7 @@ class InvalidArguments extends ParseErrorWithFileNLine {
         this(tagName, fnDef, args as List, prefix )
     }
     InvalidArguments(String tagName, String fnDef, Iterable args, String prefix = null) {
-        super("'$tagName' element got invalid arguments ${argsToString(args)}. Valid arguments are: $fnDef", prefix )
+        super("'$tagName' element got invalid arguments ${argsToString(args)}. Valid arguments are: [$fnDef]", prefix )
     }
 
     static String argsToString(Iterable args){
@@ -67,7 +67,7 @@ class InvalidArguments extends ParseErrorWithFileNLine {
     }
 }
 
-/** Throw when unknown parameter passed through to the setProp for a change */
+/** Throw when unknown parameter passed through to the setProp for an object */
 @CompileStatic
 class InvalidAttribute extends ParseErrorWithFileNLine {
     InvalidAttribute(String tagName, String attrib, String prefix, String validArgs, String parentName = '',
